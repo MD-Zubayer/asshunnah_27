@@ -40,8 +40,10 @@ services:
       - POSTGRES_DB=${POSTGRES_DB}
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    # Avoid host postgres port conflict: map host 5434 -> container 5432
+    # If you prefer a different host port, change the left side (host:container)
     ports:
-      - '5434:5434'
+      - '5434:5432'
 
   minio:
     image: minio/minio:latest
@@ -56,8 +58,8 @@ services:
     volumes:
       - minio_data:/data
     ports:
-      - '9000:9000'
-      - '9001:9001'
+      - '9002:9000'
+      - '9003:9001'
 
   cloudflared:
     image: cloudflare/cloudflared:latest
@@ -67,7 +69,7 @@ services:
       - .env
     environment:
       - TUNNEL_TOKEN=${CLOUDFLARED_TUNNEL_TOKEN}
-    command: tunnel --url http://backend:8000 --no-autoupdate
+    command: tunnel --no-autoupdate run --token ${CLOUDFLARED_TUNNEL_TOKEN} --url http://backend:8000
     depends_on:
       - backend
 
