@@ -1,0 +1,54 @@
+# Node / Expo
+node_modules/
+.expo/
+.expo-shared/
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+android/assunnah_27/node_modules/
+android/assunnah_27/.expo/
+android/assunnah_27/.expo-shared/
+android/assunnah_27/web-build/
+android/assunnah_27/dist/
+android/assunnah_27/build/
+android/assunnah_27/*.log
+
+# React Native / Expo cache
+**/ios/Pods/
+**/ios/build/
+**/android/build/
+**/android/app/build/
+**/android/.gradle/
+**/android/.idea/
+**/android/app/*.iml
+
+# Python
+*.py[cod]
+__pycache__/
+*.sqlite3
+*.db
+*.db-journal
+.env
+backend/.env
+backend/venv/
+backend/env/
+backend/__pycache__/
+backend/*.py[cod]
+backend/.pytest_cache/
+backend/media/
+backend/staticfiles/
+
+# IDE / Editor
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
+.DS_Store
+Thumbs.db

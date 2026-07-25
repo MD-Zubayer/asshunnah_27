@@ -1,0 +1,8 @@
+Django==5.2.6
+django-storages
+boto3
+psycopg[binary]
+python-dotenv
+minio
+djangorestframework
+django-cors-headers
