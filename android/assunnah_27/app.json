@@ -1,0 +1,59 @@
+{
+  "expo": {
+    "name": "assunnah_27",
+    "slug": "assunnah_27",
+    "version": "1.0.0",
+    "jsEngine": "hermes",
+    "orientation": "portrait",
+    "icon": "./assets/expo.icon/Assets/images/icon.png",
+    "scheme": "assunnah27",
+    "userInterfaceStyle": "automatic",
+    "ios": {
+      "icon": "./assets/expo.icon/Assets/images/icon.png",
+      "bundleIdentifier": "com.newsmartagent.assunnah-27"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#E6F4FE"
+      },
+      "predictiveBackGestureEnabled": false,
+      "package": "com.newsmartagent.assunnah_27",
+      "config": {
+        "googleMaps": {
+          "apiKey": "YOUR_GOOGLE_MAPS_API_KEY"
+        }
+      },
+      "permissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.MODIFY_AUDIO_SETTINGS",
+        "android.permission.FOREGROUND_SERVICE",
+        "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK",
+        "android.permission.CAMERA"
+      ]
+    },
+    "web": {
+      "output": "static"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-splash-screen",
+      "expo-localization",
+      "expo-audio",
+      "expo-video",
+      "@react-native-community/datetimepicker",
+      "expo-image",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "extraProguardRules": "-keep class host.exp.exponent.taskManager.** { *; }\n-keep class expo.modules.taskmanager.** { *; }\n-keep class com.swmansion.worklets.** { *; }"
+          }
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true,
+      "reactCompiler": true
+    }
+  }
+}
