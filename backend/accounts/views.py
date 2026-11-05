@@ -1,3 +1,4 @@
+from django.db import IntegrityError
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -23,13 +24,21 @@ class TakmilStudentSignupView(APIView):
     def post(self, request):
         serializer = TakmilStudentSignupSerializer(data=request.data)
         if serializer.is_valid():
-            user = serializer.save()
-            token, created = Token.objects.get_or_create(user=user)
-            return Response({
-                'message': 'Takmil Student registered successfully',
-                'user': UserSerializer(user).data,
-                'token': token.key
-            }, status=status.HTTP_201_CREATED)
+            try:
+                user = serializer.save()
+                token, created = Token.objects.get_or_create(user=user)
+                return Response({
+                    'message': 'Takmil Student registered successfully',
+                    'user': UserSerializer(user).data,
+                    'token': token.key
+                }, status=status.HTTP_201_CREATED)
+            except IntegrityError as e:
+                err_str = str(e).lower()
+                if 'email' in err_str:
+                    return Response({'email': ['এই ইমেইল দিয়ে ইতোমধ্যে একটি অ্যাকাউন্ট রয়েছে।']}, status=status.HTTP_400_BAD_REQUEST)
+                if 'phone_number' in err_str:
+                    return Response({'phone_number': ['এই মোবাইল নম্বর দিয়ে ইতোমধ্যে একটি অ্যাকাউন্ট রয়েছে।']}, status=status.HTTP_400_BAD_REQUEST)
+                return Response({'detail': 'এই তথ্যে ইতোমধ্যে একটি অ্যাকাউন্ট রয়েছে। নতুন তথ্য দিন।'}, status=status.HTTP_400_BAD_REQUEST)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
@@ -40,13 +49,21 @@ class NonTakmilStudentSignupView(APIView):
     def post(self, request):
         serializer = NonTakmilStudentSignupSerializer(data=request.data)
         if serializer.is_valid():
-            user = serializer.save()
-            token, created = Token.objects.get_or_create(user=user)
-            return Response({
-                'message': 'Non-Takmil Student registered successfully',
-                'user': UserSerializer(user).data,
-                'token': token.key
-            }, status=status.HTTP_201_CREATED)
+            try:
+                user = serializer.save()
+                token, created = Token.objects.get_or_create(user=user)
+                return Response({
+                    'message': 'Non-Takmil Student registered successfully',
+                    'user': UserSerializer(user).data,
+                    'token': token.key
+                }, status=status.HTTP_201_CREATED)
+            except IntegrityError as e:
+                err_str = str(e).lower()
+                if 'email' in err_str:
+                    return Response({'email': ['এই ইমেইল দিয়ে ইতোমধ্যে একটি অ্যাকাউন্ট রয়েছে।']}, status=status.HTTP_400_BAD_REQUEST)
+                if 'phone_number' in err_str:
+                    return Response({'phone_number': ['এই মোবাইল নম্বর দিয়ে ইতোমধ্যে একটি অ্যাকাউন্ট রয়েছে।']}, status=status.HTTP_400_BAD_REQUEST)
+                return Response({'detail': 'এই তথ্যে ইতোমধ্যে একটি অ্যাকাউন্ট রয়েছে। নতুন তথ্য দিন।'}, status=status.HTTP_400_BAD_REQUEST)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 

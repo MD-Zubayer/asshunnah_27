@@ -6,6 +6,7 @@ import { useRouter } from 'expo-router';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { Colors } from '../../constants/theme';
 import { useAuth } from '../../context/AuthContext';
+import { parseBackendError } from '../../utils/errorParser';
 
 export default function NonTakmilSignupScreen() {
   const scheme = useColorScheme();
@@ -13,7 +14,7 @@ export default function NonTakmilSignupScreen() {
   const colors = Colors[isDark ? 'dark' : 'light'];
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { signup, isLoading, isSignedIn } = useAuth();
+  const { signup, isLoading, token } = useAuth();
 
   const [firstName, setFirstName] = useState('');
   const [fatherName, setFatherName] = useState('');
@@ -48,19 +49,19 @@ export default function NonTakmilSignupScreen() {
       password_confirm: passwordConfirm,
     });
     if (result.success) {
-      router.replace('/profile');
+      router.replace('/(tabs)/profile');
     } else {
-      setError(result.message?.detail || JSON.stringify(result.message) || 'সাইনআপ ব্যর্থ হয়েছে।');
+      setError(parseBackendError(result.message) || 'সাইনআপ ব্যর্থ হয়েছে।');
     }
   };
 
-  if (isSignedIn) {
+  if (token) {
     return (
       <View style={[styles.container, { backgroundColor: isDark ? '#0F172A' : '#F8FAFC' }]}>
         <View style={styles.alreadyLoggedInCard}>
           <Ionicons name="checkmark-circle" size={48} color="#059669" />
           <Text style={[styles.alreadyLoggedInTitle, { color: isDark ? '#F8FAFC' : '#1E293B' }]}>আপনি ইতোমধ্যে লগ ইন আছেন</Text>
-          <TouchableOpacity style={styles.goToProfileBtn} onPress={() => router.replace('/profile')}>
+          <TouchableOpacity style={styles.goToProfileBtn} onPress={() => router.replace('/(tabs)/profile')}>
             <Text style={styles.goToProfileText}>প্রোফাইলে যান</Text>
           </TouchableOpacity>
         </View>

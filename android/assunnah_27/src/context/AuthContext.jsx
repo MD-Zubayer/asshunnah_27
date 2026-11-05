@@ -401,6 +401,7 @@ export const AuthProvider = ({ children }) => {
 
       if (response.ok) {
         const result = await response.json();
+        setIsGuest(false);
         setToken(result.token);
         setUser(result.user);
         return { success: true, message: result.message };
@@ -437,6 +438,7 @@ export const AuthProvider = ({ children }) => {
 
       if (response.ok) {
         const result = await response.json();
+        setIsGuest(false);
         setToken(result.token);
         setUser(result.user);
         return { success: true, message: result.message };

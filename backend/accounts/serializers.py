@@ -24,6 +24,15 @@ class TakmilStudentSignupSerializer(serializers.Serializer):
     def validate(self, data):
         if data['password'] != data.pop('password_confirm'):
             raise serializers.ValidationError({'password': 'Passwords do not match.'})
+        
+        email = data.get('email')
+        if email and User.objects.filter(email__iexact=email).exists():
+            raise serializers.ValidationError({'email': 'এই ইমেইল দিয়ে ইতোমধ্যে একটি অ্যাকাউন্ট রয়েছে।'})
+            
+        phone_number = data.get('phone_number')
+        if phone_number and User.objects.filter(phone_number=phone_number).exists():
+            raise serializers.ValidationError({'phone_number': 'এই মোবাইল নম্বর দিয়ে ইতোমধ্যে একটি অ্যাকাউন্ট রয়েছে।'})
+
         return data
 
     def create(self, validated_data):
@@ -73,6 +82,15 @@ class NonTakmilStudentSignupSerializer(serializers.Serializer):
     def validate(self, data):
         if data['password'] != data.pop('password_confirm'):
             raise serializers.ValidationError({'password': 'Passwords do not match.'})
+        
+        email = data.get('email')
+        if email and User.objects.filter(email__iexact=email).exists():
+            raise serializers.ValidationError({'email': 'এই ইমেইল দিয়ে ইতোমধ্যে একটি অ্যাকাউন্ট রয়েছে।'})
+            
+        phone_number = data.get('phone_number')
+        if phone_number and User.objects.filter(phone_number=phone_number).exists():
+            raise serializers.ValidationError({'phone_number': 'এই মোবাইল নম্বর দিয়ে ইতোমধ্যে একটি অ্যাকাউন্ট রয়েছে।'})
+
         return data
 
     def create(self, validated_data):

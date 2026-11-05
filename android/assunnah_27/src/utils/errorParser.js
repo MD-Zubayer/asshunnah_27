@@ -6,6 +6,16 @@ export const parseBackendError = (errorObj) => {
 
   // If error is a string
   if (typeof errorObj === 'string') {
+    // If backend returned an HTML error page (e.g. Django 500 debug page)
+    if (errorObj.includes('<!DOCTYPE html>') || errorObj.includes('<html') || errorObj.includes('IntegrityError')) {
+      if (errorObj.includes('phone_number') && errorObj.includes('already exists')) {
+        return 'এই মোবাইল নম্বর দিয়ে ইতোমধ্যে একটি অ্যাকাউন্ট রয়েছে।';
+      }
+      if (errorObj.includes('email') && errorObj.includes('already exists')) {
+        return 'এই ইমেইল দিয়ে ইতোমধ্যে একটি অ্যাকাউন্ট রয়েছে।';
+      }
+      return 'এই তথ্য দিয়ে ইতোমধ্যে অ্যাকাউন্ট রয়েছে অথবা সার্ভারে সমস্যা হয়েছে। অনুগ্রহ করে ভিন্ন ইমেইল/মোবাইল দিয়ে চেষ্টা করুন।';
+    }
     return errorObj;
   }
 
