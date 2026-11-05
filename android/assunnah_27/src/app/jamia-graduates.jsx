@@ -10,7 +10,7 @@ import { useRouter } from 'expo-router';
 import { Colors } from '../constants/theme';
 import { API_ENDPOINTS } from '../constants/api';
 import { useAuth } from '../context/AuthContext';
-import fuzalayeJamiaData from '../data/fuzalaye-jamia-data';
+import { allDistricts } from '../data/fuzalaye-jamia-data';
 
 export default function JamiaGraduatesScreen() {
   const scheme = useColorScheme();
@@ -29,7 +29,7 @@ export default function JamiaGraduatesScreen() {
   const [showDistrictPicker, setShowDistrictPicker] = useState(false);
   const [customDistrictSelected, setCustomDistrictSelected] = useState(false);
 
-  const staticDistricts = Object.keys(fuzalayeJamiaData).sort();
+  const staticDistricts = allDistricts;
 
   // Form State
   const [form, setForm] = useState({

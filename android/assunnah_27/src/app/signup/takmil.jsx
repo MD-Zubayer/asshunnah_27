@@ -6,7 +6,7 @@ import { useRouter } from 'expo-router';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { Colors } from '../../constants/theme';
 import { useAuth } from '../../context/AuthContext';
-import fuzalayeJamiaData from '../../data/fuzalaye-jamia-data';
+import fuzalayeJamiaData, { fuzalayeJamiaByDistrict, allDistricts } from '../../data/fuzalaye-jamia-data';
 import { API_ENDPOINTS } from '../../constants/api';
 
 export default function TakmilSignupScreen() {
@@ -42,7 +42,7 @@ export default function TakmilSignupScreen() {
   const [showDistrictPicker, setShowDistrictPicker] = useState(false);
   const [customDistrictSelected, setCustomDistrictSelected] = useState(false);
 
-  const staticDistricts = Object.keys(fuzalayeJamiaData).sort();
+  const staticDistricts = allDistricts;
 
   // Add Graduate Form State
   const [graduateForm, setGraduateForm] = useState({
@@ -102,23 +102,23 @@ export default function TakmilSignupScreen() {
 
   const filteredNames = useMemo(() => {
     let names = [];
-    if (district && fuzalayeJamiaData[district]) {
-      names = fuzalayeJamiaData[district].map(person => ({
+    if (district && fuzalayeJamiaByDistrict[district]) {
+      names = fuzalayeJamiaByDistrict[district].map(person => ({
         name: person.name,
         father: person.father,
         village: person.village,
         thana: person.thana,
-        district: district
+        district: person.district || district
       }));
     } else {
-      Object.keys(fuzalayeJamiaData).forEach(dist => {
-        fuzalayeJamiaData[dist].forEach(person => {
+      Object.keys(fuzalayeJamiaByDistrict).forEach(dist => {
+        fuzalayeJamiaByDistrict[dist].forEach(person => {
           names.push({
             name: person.name,
             father: person.father,
             village: person.village,
             thana: person.thana,
-            district: dist
+            district: person.district || dist
           });
         });
       });

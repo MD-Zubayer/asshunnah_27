@@ -9,16 +9,19 @@ import { setCache, getCache, CacheKeys } from './cacheService';
 import NetInfo from '@react-native-community/netinfo';
 
 /**
- * Safely parse JSON response
+ * Safely parse JSON response without throwing unhandled errors
  */
 async function parseResponse(response) {
-  const text = await response.text();
   try {
-    return JSON.parse(text);
-  } catch (e) {
-    // If response is not JSON (e.g., HTML error page), throw meaningful error
-    console.error('Non-JSON response received:', text.substring(0, 200));
-    throw new Error('সার্ভার থেকে সঠিক response পাওয়া যায়নি। পরে আবার চেষ্টা করুন।');
+    const text = await response.text();
+    try {
+      return JSON.parse(text);
+    } catch {
+      // Non-JSON response (e.g. HTML error page, Cloudflare 1033)
+      return null;
+    }
+  } catch {
+    return null;
   }
 }
 
@@ -85,11 +88,23 @@ export async function getArticles(token, page = 1, forceRefresh = false) {
     });
 
     if (!response.ok) {
-      const errorData = await parseResponse(response);
-      throw new Error(errorData.detail || `HTTP ${response.status}`);
+      console.log(`[ArticleService] Server unreachable or returned ${response.status}`);
+      const staleCache = await getCache(cacheKey);
+      if (staleCache.exists) {
+        return { ...staleCache.data, fromCache: true, stale: true };
+      }
+      return { results: [], count: 0, fromCache: false, isOffline: true };
     }
 
     const data = await parseResponse(response);
+    if (!data) {
+      console.log('[ArticleService] Server returned non-JSON response, using fallback');
+      const staleCache = await getCache(cacheKey);
+      if (staleCache.exists) {
+        return { ...staleCache.data, fromCache: true, stale: true };
+      }
+      return { results: [], count: 0, fromCache: false, isOffline: true };
+    }
 
     // 4. Cache the result (15 min TTL) - only cache first 3 pages to prevent memory full
     if (page <= 3) {
@@ -98,16 +113,12 @@ export async function getArticles(token, page = 1, forceRefresh = false) {
 
     return { ...data, fromCache: false };
   } catch (error) {
-    // 5. On network error, return stale cache if available
-    if (!forceRefresh) {
-      const staleCache = await getCache(cacheKey);
-      if (staleCache.exists) {
-        console.log('[ArticleService] Network error, returning stale cache');
-        return { ...staleCache.data, fromCache: true, stale: true };
-      }
+    console.log('[ArticleService] Network or server error:', error.message);
+    const staleCache = await getCache(cacheKey);
+    if (staleCache.exists) {
+      return { ...staleCache.data, fromCache: true, stale: true };
     }
-    console.error('Error fetching articles:', error);
-    throw error;
+    return { results: [], count: 0, fromCache: false, isOffline: true };
   }
 }
 
@@ -122,13 +133,13 @@ export async function getArticleDetail(token, articleId) {
     });
 
     if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
+      return null;
     }
 
     return await parseResponse(response);
   } catch (error) {
-    console.error('Error fetching article detail:', error);
-    throw error;
+    console.log('[ArticleService] Error fetching article detail:', error.message);
+    return null;
   }
 }
 
@@ -245,13 +256,13 @@ export async function logDwellTime(token, articleId) {
     });
 
     if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
+      return null;
     }
 
     return await parseResponse(response);
   } catch (error) {
-    console.error('Error logging dwell time:', error);
-    throw error;
+    // Fail silently for background telemetry
+    return null;
   }
 }
 
@@ -290,11 +301,22 @@ export async function getUserArticles(token, userId, page = 1, forceRefresh = fa
     });
 
     if (!response.ok) {
-      const errorData = await parseResponse(response);
-      throw new Error(errorData.detail || `HTTP ${response.status}`);
+      console.log(`[ArticleService] Server unreachable (${response.status}) for user articles`);
+      const staleCache = await getCache(cacheKey);
+      if (staleCache.exists) {
+        return { ...staleCache.data, fromCache: true, stale: true };
+      }
+      return { results: [], count: 0, fromCache: false, isOffline: true };
     }
 
     const data = await parseResponse(response);
+    if (!data) {
+      const staleCache = await getCache(cacheKey);
+      if (staleCache.exists) {
+        return { ...staleCache.data, fromCache: true, stale: true };
+      }
+      return { results: [], count: 0, fromCache: false, isOffline: true };
+    }
 
     // 3. Cache the result (15 min TTL) - only cache first 3 pages to prevent memory full
     if (page <= 3) {
@@ -303,15 +325,12 @@ export async function getUserArticles(token, userId, page = 1, forceRefresh = fa
 
     return { ...data, fromCache: false };
   } catch (error) {
-    if (!forceRefresh) {
-      const staleCache = await getCache(cacheKey);
-      if (staleCache.exists) {
-        console.log('[ArticleService] Network error, returning cached user articles');
-        return { ...staleCache.data, fromCache: true, stale: true };
-      }
+    console.log('[ArticleService] Error fetching user articles:', error.message);
+    const staleCache = await getCache(cacheKey);
+    if (staleCache.exists) {
+      return { ...staleCache.data, fromCache: true, stale: true };
     }
-    console.error('Error fetching user articles:', error);
-    throw error;
+    return { results: [], count: 0, fromCache: false, isOffline: true };
   }
 }
 
@@ -326,13 +345,13 @@ export async function trackView(token, articleId) {
     });
 
     if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
+      return null;
     }
 
     return await parseResponse(response);
   } catch (error) {
-    console.error('Error tracking view:', error);
-    throw error;
+    // Fail silently for analytics
+    return null;
   }
 }
 
@@ -348,13 +367,13 @@ export async function trackShare(token, articleId, platform) {
     });
 
     if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
+      return null;
     }
 
     return await parseResponse(response);
   } catch (error) {
-    console.error('Error tracking share:', error);
-    throw error;
+    // Fail silently for analytics
+    return null;
   }
 }
 

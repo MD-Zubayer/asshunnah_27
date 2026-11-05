@@ -13,10 +13,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Colors } from '../constants/theme';
-import fuzalayeJamiaData from '../data/fuzalaye-jamia-data';
+import { fuzalayeJamiaByDistrict, allDistricts } from '../data/fuzalaye-jamia-data';
 import acquaintanceService from '../services/acquaintance-service';
-
-const allDistricts = Object.keys(fuzalayeJamiaData);
 
 export default function SelectAcquaintancesScreen() {
     const scheme = useColorScheme();
@@ -188,7 +186,7 @@ export default function SelectAcquaintancesScreen() {
                         <View style={styles.grid}>
                             {allDistricts.map((district) => {
                                 const countInDistrict = getSelectedCountInDistrict(district);
-                                const totalCount = fuzalayeJamiaData[district].length;
+                                const totalCount = fuzalayeJamiaByDistrict[district]?.length || 0;
                                 return (
                                     <TouchableOpacity
                                         key={district}
@@ -225,12 +223,12 @@ export default function SelectAcquaintancesScreen() {
                         <View style={[styles.districtHeader, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
                             <Ionicons name="location" size={20} color={colors.primary} />
                             <Text style={[styles.districtHeaderTitle, { color: colors.text }]}>
-                                {selectedDistrict} - {fuzalayeJamiaData[selectedDistrict]?.length || 0} জন
+                                {selectedDistrict} - {fuzalayeJamiaByDistrict[selectedDistrict]?.length || 0} জন
                             </Text>
                         </View>
 
                         {/* Person List */}
-                        {fuzalayeJamiaData[selectedDistrict]?.map((person) =>
+                        {fuzalayeJamiaByDistrict[selectedDistrict]?.map((person) =>
                             renderPersonCard(person, selectedDistrict)
                         )}
                     </>

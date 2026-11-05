@@ -118,8 +118,7 @@ export default function ArticleScreen() {
 
       setHasMore(nextUrl !== null && nextUrl !== undefined);
     } catch (err) {
-      console.error('Failed to load articles:', err);
-      setError(err.message || 'প্রবন্ধ লোড করতে সমস্যা হয়েছে');
+      console.log('[ArticleScreen] Silent handle error:', err?.message || err);
     } finally {
       setLoading(false);
       setLoadingMore(false);

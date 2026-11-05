@@ -17,6 +17,7 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Image } from 'expo-image';
 import { Colors } from '../constants/theme';
 import { useAuth } from '../context/AuthContext';
+import { useCall } from '../context/CallContext';
 import articleService from '../services/article-service';
 import followService from '../services/follow-service';
 import { API_ENDPOINTS } from '../constants/api';
@@ -32,6 +33,7 @@ export default function UserProfileScreen() {
     const router = useRouter();
     const { userId, fuzalayeName } = useLocalSearchParams();
     const { token, user } = useAuth();
+    const { initiateCall } = useCall();
 
     const [profileUser, setProfileUser] = useState(null);
     const [articles, setArticles] = useState([]);
@@ -428,6 +430,34 @@ export default function UserProfileScreen() {
                             <Ionicons name="chatbubble-ellipses-outline" size={16} color={colors.text} />
                             <Text style={[styles.messageBtnText, { color: colors.text }]}>মেসেজ</Text>
                         </TouchableOpacity>
+
+                        <TouchableOpacity
+                            style={[styles.iconActionBtn, { backgroundColor: '#10b98118', borderColor: '#10b98133' }]}
+                            onPress={() => {
+                                if (!token) {
+                                    router.push('/login');
+                                    return;
+                                }
+                                initiateCall(resolvedUserId, getUserName(), 'audio');
+                            }}
+                            title="অডিও কল"
+                        >
+                            <Ionicons name="call" size={18} color="#10b981" />
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                            style={[styles.iconActionBtn, { backgroundColor: '#3b82f618', borderColor: '#3b82f633' }]}
+                            onPress={() => {
+                                if (!token) {
+                                    router.push('/login');
+                                    return;
+                                }
+                                initiateCall(resolvedUserId, getUserName(), 'video');
+                            }}
+                            title="ভিডিও কল"
+                        >
+                            <Ionicons name="videocam" size={18} color="#3b82f6" />
+                        </TouchableOpacity>
                     </View>
                 </View>
 
@@ -571,6 +601,7 @@ const styles = StyleSheet.create({
     followBtnText: { fontSize: 14, fontWeight: '700' },
     messageBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 12, borderRadius: 12, gap: 6 },
     messageBtnText: { fontSize: 14, fontWeight: '600' },
+    iconActionBtn: { width: 44, height: 44, borderRadius: 12, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
     // Posts
     postsHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingBottom: 12, marginBottom: 12, borderBottomWidth: 1 },
     postsHeaderText: { fontSize: 16, fontWeight: '700' },

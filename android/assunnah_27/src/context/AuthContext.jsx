@@ -3,8 +3,10 @@ import { API_ENDPOINTS, WS_BASE_URL } from '../constants/api';
 import { setCache, getCache, CacheKeys } from '../services/cacheService';
 import * as FileSystem from 'expo-file-system/legacy';
 import { useRouter } from 'expo-router';
-import { Animated, View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { Animated, View, Text, TouchableOpacity, StyleSheet, useColorScheme } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { Image } from 'expo-image';
+import { getImageUri } from '../utils/image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 let Notifications = null;
 try {
@@ -18,6 +20,24 @@ try {
         shouldShowBadge: true,
       }),
     });
+  }
+  if (typeof Notifications?.setNotificationChannelAsync === 'function') {
+    Notifications.setNotificationChannelAsync('default', {
+      name: 'General Notifications',
+      importance: Notifications.AndroidImportance.MAX,
+      vibrationPattern: [0, 250, 250, 250],
+      lightColor: '#059669',
+      sound: true,
+    }).catch(() => {});
+    Notifications.setNotificationChannelAsync('incoming-calls', {
+      name: 'Incoming Calls',
+      importance: Notifications.AndroidImportance.MAX,
+      sound: 'default',
+      vibrationPattern: [0, 500, 250, 500],
+      lightColor: '#10B981',
+      lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
+      bypassDnd: true,
+    }).catch(() => {});
   }
 } catch (e) {
   console.warn('[Presence] Failed to require expo-notifications:', e);
@@ -43,6 +63,8 @@ global.fetch = async (...args) => {
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
+  const scheme = useColorScheme();
+  const isDark = scheme === 'dark';
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -246,6 +268,7 @@ export const AuthProvider = ({ children }) => {
                     notificationType: data.notification_type,
                     callType: data.call_type
                   },
+                  channelId: data.notification_type === 'call' ? 'incoming-calls' : 'default',
                 },
                 trigger: null,
               });
@@ -693,31 +716,113 @@ export const AuthProvider = ({ children }) => {
     <AuthContext.Provider value={value}>
       {children}
       {activeNotification && (
-        <Animated.View style={[styles.notificationContainer, { top: insets.top + 10, transform: [{ translateY: slideAnim }] }]}>
-          <TouchableOpacity activeOpacity={0.9} onPress={handleBannerPress} style={styles.notificationCard}>
-            <View style={[styles.iconWrapper, { backgroundColor: activeNotification.notificationType === 'call' ? 'rgba(16, 185, 129, 0.15)' : 'rgba(59, 130, 246, 0.15)' }]}>
-              <Ionicons
-                name={activeNotification.notificationType === 'call' ? 'call' : 'chatbubble-ellipses'}
-                size={20}
-                color={activeNotification.notificationType === 'call' ? '#10B981' : '#3B82F6'}
-              />
+        <Animated.View style={[styles.notificationContainer, { top: insets.top + 8, transform: [{ translateY: slideAnim }] }]}>
+          <TouchableOpacity
+            activeOpacity={0.92}
+            onPress={handleBannerPress}
+            style={[
+              styles.notificationCard,
+              {
+                backgroundColor: isDark ? 'rgba(15, 23, 42, 0.96)' : '#FFFFFF',
+                borderColor: activeNotification.notificationType === 'call'
+                  ? 'rgba(16, 185, 129, 0.4)'
+                  : (isDark ? 'rgba(51, 65, 85, 0.8)' : '#E2E8F0'),
+              }
+            ]}
+          >
+            {/* Left Avatar / Icon with active status indicator */}
+            <View style={styles.avatarContainer}>
+              {activeNotification.senderImage ? (
+                <Image
+                  source={{ uri: getImageUri(activeNotification.senderImage) }}
+                  style={styles.avatarImage}
+                  contentFit="cover"
+                />
+              ) : (
+                <View style={[
+                  styles.iconFallback,
+                  {
+                    backgroundColor: activeNotification.notificationType === 'call'
+                      ? 'rgba(16, 185, 129, 0.15)'
+                      : (isDark ? 'rgba(37, 99, 235, 0.2)' : 'rgba(37, 99, 235, 0.1)'),
+                  }
+                ]}>
+                  <Ionicons
+                    name={activeNotification.notificationType === 'call'
+                      ? (activeNotification.callType === 'video' ? 'videocam' : 'call')
+                      : 'chatbubble-ellipses'}
+                    size={20}
+                    color={activeNotification.notificationType === 'call' ? '#10B981' : '#2563EB'}
+                  />
+                </View>
+              )}
+              {activeNotification.notificationType === 'call' && (
+                <View style={styles.pulsingDot} />
+              )}
             </View>
+
+            {/* Middle Content */}
             <View style={styles.textContainer}>
-              <Text style={styles.notificationTitle} numberOfLines={1}>{activeNotification.title}</Text>
-              <Text style={styles.notificationBody} numberOfLines={2}>{activeNotification.body}</Text>
+              {/* Type Badge */}
+              <View style={styles.badgeRow}>
+                <View style={[
+                  styles.typeBadge,
+                  {
+                    backgroundColor: activeNotification.notificationType === 'call'
+                      ? 'rgba(16, 185, 129, 0.15)'
+                      : (isDark ? 'rgba(59, 130, 246, 0.15)' : 'rgba(37, 99, 235, 0.1)')
+                  }
+                ]}>
+                  <Text style={[
+                    styles.typeBadgeText,
+                    { color: activeNotification.notificationType === 'call' ? '#10B981' : '#2563EB' }
+                  ]}>
+                    {activeNotification.notificationType === 'call'
+                      ? (activeNotification.callType === 'video' ? '📹 ভিডিও কল আসছে' : '📞 অডিও কল আসছে')
+                      : '💬 নতুন বার্তা'}
+                  </Text>
+                </View>
+              </View>
+
+              <Text
+                style={[styles.notificationTitle, { color: isDark ? '#F8FAFC' : '#0F172A' }]}
+                numberOfLines={1}
+              >
+                {activeNotification.title || (activeNotification.notificationType === 'call' ? 'ইনকামিং কল' : 'নতুন বার্তা')}
+              </Text>
+              
+              <Text
+                style={[styles.notificationBody, { color: isDark ? '#94A3B8' : '#64748B' }]}
+                numberOfLines={1}
+              >
+                {activeNotification.body || (activeNotification.notificationType === 'call' ? 'কথা বলতে রিসিভ করুন' : 'বার্তাটি দেখুন')}
+              </Text>
             </View>
+
+            {/* Action Buttons */}
             {activeNotification.notificationType === 'call' ? (
-              <View style={styles.actionsContainer}>
-                <TouchableOpacity onPress={handleDeclineCall} style={[styles.actionBtn, { backgroundColor: '#EF4444' }]}>
-                  <Ionicons name="close" size={16} color="#fff" />
+              <View style={styles.callActionsContainer}>
+                <TouchableOpacity
+                  activeOpacity={0.8}
+                  onPress={(e) => {
+                    e.stopPropagation();
+                    handleDeclineCall();
+                  }}
+                  style={styles.declineCallBtn}
+                >
+                  <Ionicons name="call" size={17} color="#FFFFFF" style={{ transform: [{ rotate: '135deg' }] }} />
                 </TouchableOpacity>
-                <TouchableOpacity onPress={handleBannerPress} style={[styles.actionBtn, { backgroundColor: '#10B981', marginLeft: 8 }]}>
-                  <Ionicons name="checkmark" size={16} color="#fff" />
+                <TouchableOpacity
+                  activeOpacity={0.8}
+                  onPress={handleBannerPress}
+                  style={styles.acceptCallBtn}
+                >
+                  <Ionicons name="call" size={17} color="#FFFFFF" />
                 </TouchableOpacity>
               </View>
             ) : (
-              <View style={styles.chevronWrapper}>
-                <Ionicons name="chevron-forward" size={16} color="#9CA3AF" />
+              <View style={[styles.viewMessagePill, { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.05)' }]}>
+                <Ionicons name="chevron-forward" size={16} color={isDark ? '#94A3B8' : '#64748B'} />
               </View>
             )}
           </TouchableOpacity>
@@ -730,60 +835,118 @@ export const AuthProvider = ({ children }) => {
 const styles = StyleSheet.create({
   notificationContainer: {
     position: 'absolute',
-    left: 16,
-    right: 16,
+    left: 14,
+    right: 14,
     zIndex: 99999,
-    elevation: 10,
+    elevation: 12,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 5,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.16,
+    shadowRadius: 16,
   },
   notificationCard: {
-    backgroundColor: '#1E293B',
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#334155',
+    borderRadius: 20,
+    borderWidth: 1.5,
     flexDirection: 'row',
     alignItems: 'center',
     padding: 12,
   },
-  iconWrapper: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+  avatarContainer: {
+    position: 'relative',
+    width: 44,
+    height: 44,
+  },
+  avatarImage: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#E2E8F0',
+  },
+  iconFallback: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  pulsingDot: {
+    position: 'absolute',
+    bottom: -1,
+    right: -1,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: '#10B981',
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
   },
   textContainer: {
     flex: 1,
     marginLeft: 12,
     marginRight: 8,
+    justifyContent: 'center',
   },
-  notificationTitle: {
-    color: '#F9FAFB',
-    fontSize: 14,
-    fontWeight: '700',
-    marginBottom: 2,
-  },
-  notificationBody: {
-    color: '#9CA3AF',
-    fontSize: 12,
-  },
-  actionsContainer: {
+  badgeRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginBottom: 3,
   },
-  actionBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+  typeBadge: {
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  typeBadgeText: {
+    fontSize: 10,
+    fontWeight: '800',
+  },
+  notificationTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    marginBottom: 1,
+    letterSpacing: -0.2,
+  },
+  notificationBody: {
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  callActionsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  declineCallBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#EF4444',
     justifyContent: 'center',
     alignItems: 'center',
-    elevation: 2,
+    elevation: 3,
+    shadowColor: '#EF4444',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.4,
+    shadowRadius: 4,
   },
-  chevronWrapper: {
-    padding: 4,
+  acceptCallBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#10B981',
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 3,
+    shadowColor: '#10B981',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.4,
+    shadowRadius: 4,
+  },
+  viewMessagePill: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });
 
