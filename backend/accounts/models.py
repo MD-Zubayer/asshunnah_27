@@ -41,17 +41,29 @@ class User(AbstractBaseUser, PermissionsMixin):
     district = models.CharField(_('district'), max_length=100, blank=True)
     upazila = models.CharField(_('upazila'), max_length=100, blank=True)
     
-    # Profile type: takmil_student or non_takmil_student
+    # Profile type: jamia_faregin, current_student, jamia_ustad, general_user (also legacy takmil_student, non_takmil_student)
     profile_type = models.CharField(
         _('profile type'),
-        max_length=20,
+        max_length=30,
         choices=[
+            ('jamia_faregin', _('Jamia Faregin')),
+            ('current_student', _('Current Student')),
+            ('jamia_ustad', _('Jamia Ustad')),
+            ('general_user', _('General User')),
             ('takmil_student', _('Takmil Student')),
             ('non_takmil_student', _('Non-Takmil Student')),
         ],
         blank=True,
         null=True
     )
+    
+    # Specific fields for different user types
+    jamat = models.CharField(_('jamat'), max_length=100, blank=True, null=True, help_text=_('Class/Jamat for current students'))
+    designation = models.CharField(_('designation'), max_length=150, blank=True, null=True, help_text=_('Designation for Ustads'))
+    department = models.CharField(_('department'), max_length=150, blank=True, null=True, help_text=_('Department for Ustads'))
+    dakhila_number = models.CharField(_('dakhila number'), max_length=50, blank=True, null=True)
+    blood_group = models.CharField(_('blood group'), max_length=10, blank=True, null=True)
+    occupation = models.CharField(_('occupation'), max_length=100, blank=True, null=True)
     
     profile_image = models.CharField(_('profile image'), max_length=500, blank=True, null=True)
     cover_image = models.CharField(_('cover image'), max_length=500, blank=True, null=True)

@@ -2,6 +2,7 @@ from django.urls import path
 from .views import (
     TakmilStudentSignupView,
     NonTakmilStudentSignupView,
+    UniversalSignupView,
     LoginView,
     UserProfileView,
     LogoutView,
@@ -23,6 +24,7 @@ from .views import (
 
 urlpatterns = [
     # Authentication endpoints
+    path('auth/signup/', UniversalSignupView.as_view(), name='universal_signup'),
     path('auth/signup/takmil/', TakmilStudentSignupView.as_view(), name='takmil_signup'),
     path('auth/signup/non-takmil/', NonTakmilStudentSignupView.as_view(), name='non_takmil_signup'),
     path('auth/login/', LoginView.as_view(), name='login'),

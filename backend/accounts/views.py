@@ -22,6 +22,7 @@ from django.utils import timezone
 from .serializers import (
     TakmilStudentSignupSerializer,
     NonTakmilStudentSignupSerializer,
+    UniversalSignupSerializer,
     UserSerializer,
     LoginSerializer,
     DuaSerializer,
@@ -86,6 +87,31 @@ class NonTakmilStudentSignupView(APIView):
                 token, created = Token.objects.get_or_create(user=user)
                 return Response({
                     'message': 'Non-Takmil Student registered successfully',
+                    'user': UserSerializer(user).data,
+                    'token': token.key
+                }, status=status.HTTP_201_CREATED)
+            except IntegrityError as e:
+                err_str = str(e).lower()
+                if 'email' in err_str:
+                    return Response({'email': ['এই ইমেইল দিয়ে ইতোমধ্যে একটি অ্যাকাউন্ট রয়েছে।']}, status=status.HTTP_400_BAD_REQUEST)
+                if 'phone_number' in err_str:
+                    return Response({'phone_number': ['এই মোবাইল নম্বর দিয়ে ইতোমধ্যে একটি অ্যাকাউন্ট রয়েছে।']}, status=status.HTTP_400_BAD_REQUEST)
+                return Response({'detail': 'এই তথ্যে ইতোমধ্যে একটি অ্যাকাউন্ট রয়েছে। নতুন তথ্য দিন।'}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class UniversalSignupView(APIView):
+    """API view for all signup types (Jamia Faregin, Current Students, Ustads, Others)"""
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        serializer = UniversalSignupSerializer(data=request.data)
+        if serializer.is_valid():
+            try:
+                user = serializer.save()
+                token, created = Token.objects.get_or_create(user=user)
+                return Response({
+                    'message': 'অ্যাকাউন্ট সফলভাবে তৈরি হয়েছে।',
                     'user': UserSerializer(user).data,
                     'token': token.key
                 }, status=status.HTTP_201_CREATED)

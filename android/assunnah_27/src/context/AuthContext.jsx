@@ -387,16 +387,24 @@ export const AuthProvider = ({ children }) => {
   const signup = async (profileType, data) => {
     setIsLoading(true);
     try {
-      const endpoint = profileType === 'takmil_student'
-        ? API_ENDPOINTS.SIGNUP_TAKMIL
-        : API_ENDPOINTS.SIGNUP_NON_TAKMIL;
+      let endpoint = API_ENDPOINTS.SIGNUP_UNIVERSAL;
+      if (profileType === 'takmil_student') {
+        endpoint = API_ENDPOINTS.SIGNUP_TAKMIL;
+      } else if (profileType === 'non_takmil_student') {
+        endpoint = API_ENDPOINTS.SIGNUP_NON_TAKMIL;
+      }
+
+      const bodyData = {
+        profile_type: profileType,
+        ...data,
+      };
 
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(data),
+        body: JSON.stringify(bodyData),
       });
 
       if (response.ok) {

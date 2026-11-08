@@ -11,8 +11,55 @@ export default function SignupSelectionScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
 
+  const options = [
+    {
+      id: 'jamia_faregin',
+      title: 'জামিয়ার ফারেগীন ছাত্র',
+      subtitle: 'তাকমিল ও প্রাক্তন ফারেগীন ব্যাচ',
+      icon: 'school',
+      iconType: 'material',
+      color: '#059669',
+      bgColor: isDark ? 'rgba(5, 150, 105, 0.15)' : 'rgba(5, 150, 105, 0.1)',
+      borderColor: isDark ? 'rgba(5, 150, 105, 0.4)' : '#A7F3D0',
+      route: '/signup/faregin',
+    },
+    {
+      id: 'current_student',
+      title: 'জামিয়ার ছাত্রবৃন্দ',
+      subtitle: 'বর্তমানে অধ্যয়নরত সকল জামাতের ছাত্র',
+      icon: 'book-open-variant',
+      iconType: 'material',
+      color: '#2563EB',
+      bgColor: isDark ? 'rgba(37, 99, 235, 0.15)' : 'rgba(37, 99, 235, 0.1)',
+      borderColor: isDark ? 'rgba(37, 99, 235, 0.4)' : '#BFDBFE',
+      route: '/signup/student',
+    },
+    {
+      id: 'jamia_ustad',
+      title: 'জামিয়ার উস্তাদগণ',
+      subtitle: 'জামিয়ার সম্মানিত শিক্ষকমণ্ডলী',
+      icon: 'account-tie',
+      iconType: 'material',
+      color: '#7C3AED',
+      bgColor: isDark ? 'rgba(124, 58, 237, 0.15)' : 'rgba(124, 58, 237, 0.1)',
+      borderColor: isDark ? 'rgba(124, 58, 237, 0.4)' : '#DDD6FE',
+      route: '/signup/ustad',
+    },
+    {
+      id: 'general_user',
+      title: 'অন্যান্য (সাধারণ)',
+      subtitle: 'শুভাকাঙ্ক্ষী ও সাধারণ ব্যবহারকারী',
+      icon: 'person',
+      iconType: 'ionicon',
+      color: '#D97706',
+      bgColor: isDark ? 'rgba(217, 119, 6, 0.15)' : 'rgba(217, 119, 6, 0.1)',
+      borderColor: isDark ? 'rgba(217, 119, 6, 0.4)' : '#FDE68A',
+      route: '/signup/general',
+    },
+  ];
+
   return (
-    <View style={[styles.container, { backgroundColor: isDark ? '#0F172A' : '#FFFFFF' }]}>
+    <View style={[styles.container, { backgroundColor: isDark ? '#0F172A' : '#F8FAFC' }]}>
       {/* Cover Image Background */}
       <ImageBackground
         source={require('../../../assets/expo.icon/Assets/images/hero_bg_6.jpeg')}
@@ -20,9 +67,9 @@ export default function SignupSelectionScreen() {
         resizeMode="cover"
       >
         <View style={styles.bgOverlay} />
-        
+
         {/* Back Button */}
-        <View style={[styles.backButtonContainer, { paddingTop: insets.top + 20 }]}>
+        <View style={[styles.backButtonContainer, { paddingTop: insets.top + 16 }]}>
           <TouchableOpacity
             style={styles.backButton}
             onPress={() => router.back()}
@@ -38,11 +85,11 @@ export default function SignupSelectionScreen() {
         </View>
       </ImageBackground>
 
-      {/* Logo overlapping cover and content - Facebook profile style */}
-      <View style={[styles.logoContainer, { marginTop: insets.top + 200 }]}>
+      {/* Logo Circle */}
+      <View style={[styles.logoContainer, { marginTop: insets.top + 180 }]}>
         <View style={styles.logoCircle}>
-          <Image 
-            source={require('../../../assets/expo.icon/Assets/images/icon.png')} 
+          <Image
+            source={require('../../../assets/expo.icon/Assets/images/icon.png')}
             style={styles.logoImage}
             resizeMode="contain"
           />
@@ -52,66 +99,58 @@ export default function SignupSelectionScreen() {
       <ScrollView
         contentContainerStyle={[
           styles.scrollContent,
-          { paddingTop: 340, paddingBottom: insets.bottom + 40 },
+          { paddingTop: 300, paddingBottom: insets.bottom + 30 },
         ]}
         showsVerticalScrollIndicator={false}
       >
-        {/* Welcome Text */}
+        {/* Welcome Section */}
         <View style={styles.welcomeSection}>
           <Text style={[styles.welcomeTitle, { color: isDark ? '#F8FAFC' : '#1E293B' }]}>
-            নতুন অ্যাকাউন্ট তৈরি করুন
+            অ্যাকাউন্ট টাইপ নির্বাচন করুন
           </Text>
           <Text style={[styles.welcomeSubtitle, { color: isDark ? '#94A3B8' : '#64748B' }]}>
-            আপনার জন্য সঠিক অপশন নির্বাচন করুন
+            আপনার পরিচয় অনুযায়ী সঠিক অপশনটি বেছে নিন
           </Text>
         </View>
 
-        {/* Option 1: Takmil Student - Green Button */}
-        <TouchableOpacity
-          activeOpacity={0.9}
-          style={styles.primaryButton}
-          onPress={() => router.push('/signup/takmil')}
-        >
-          <View style={styles.primaryButtonInner}>
-            <View style={styles.buttonIconBox}>
-              <MaterialCommunityIcons name="school" size={28} color="#FFFFFF" />
-            </View>
-            <View style={styles.buttonTextContent}>
-              <Text style={styles.primaryButtonText}>আমি তকমিলের ছাত্র</Text>
-              <Text style={styles.primaryButtonSubtext}>
-                দাখিলা নম্বর ও শিক্ষার বিবরণ দিন
-              </Text>
-            </View>
-            <Ionicons name="chevron-forward" size={24} color="rgba(255,255,255,0.8)" />
-          </View>
-        </TouchableOpacity>
+        {/* 4 Account Type Cards */}
+        <View style={styles.optionsList}>
+          {options.map((opt) => (
+            <TouchableOpacity
+              key={opt.id}
+              activeOpacity={0.88}
+              style={[
+                styles.optionCard,
+                {
+                  backgroundColor: isDark ? '#1E293B' : '#FFFFFF',
+                  borderColor: isDark ? '#334155' : '#E2E8F0',
+                },
+              ]}
+              onPress={() => router.push(opt.route)}
+            >
+              <View style={[styles.optionIconBox, { backgroundColor: opt.bgColor, borderColor: opt.borderColor }]}>
+                {opt.iconType === 'material' ? (
+                  <MaterialCommunityIcons name={opt.icon} size={28} color={opt.color} />
+                ) : (
+                  <Ionicons name={opt.icon} size={26} color={opt.color} />
+                )}
+              </View>
 
-        {/* OR Divider */}
-        <View style={styles.dividerRow}>
-          <View style={[styles.dividerLine, { backgroundColor: isDark ? '#334155' : '#E2E8F0' }]} />
-          <Text style={[styles.dividerText, { color: isDark ? '#64748B' : '#94A3B8' }]}>অথবা</Text>
-          <View style={[styles.dividerLine, { backgroundColor: isDark ? '#334155' : '#E2E8F0' }]} />
+              <View style={styles.optionContent}>
+                <Text style={[styles.optionTitle, { color: isDark ? '#F8FAFC' : '#0F172A' }]}>
+                  {opt.title}
+                </Text>
+                <Text style={[styles.optionSubtitle, { color: isDark ? '#94A3B8' : '#64748B' }]}>
+                  {opt.subtitle}
+                </Text>
+              </View>
+
+              <View style={[styles.chevronBox, { backgroundColor: isDark ? '#334155' : '#F1F5F9' }]}>
+                <Ionicons name="chevron-forward" size={18} color={opt.color} />
+              </View>
+            </TouchableOpacity>
+          ))}
         </View>
-
-        {/* Option 2: Non-Takmil - Blue Button */}
-        <TouchableOpacity
-          activeOpacity={0.9}
-          style={styles.secondaryButton}
-          onPress={() => router.push('/signup/non-takmil')}
-        >
-          <View style={styles.secondaryButtonInner}>
-            <View style={[styles.buttonIconBox, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
-              <Ionicons name="person" size={26} color="#FFFFFF" />
-            </View>
-            <View style={styles.buttonTextContent}>
-              <Text style={styles.secondaryButtonText}>সাধারণ ব্যবহারকারী</Text>
-              <Text style={styles.secondaryButtonSubtext}>
-                নাম, মোবাইল ও ঠিকানা দিন
-              </Text>
-            </View>
-            <Ionicons name="chevron-forward" size={24} color="rgba(255,255,255,0.8)" />
-          </View>
-        </TouchableOpacity>
 
         {/* Login Link */}
         <View style={styles.loginRow}>
@@ -119,7 +158,7 @@ export default function SignupSelectionScreen() {
             আগেই অ্যাকাউন্ট আছে?
           </Text>
           <TouchableOpacity onPress={() => router.push('/login')}>
-            <Text style={styles.loginLink}>লগ ইন করুন</Text>
+            <Text style={styles.loginLink}> লগ ইন করুন</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -136,9 +175,9 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     right: 0,
-    height: 280,
-    borderBottomLeftRadius: 40,
-    borderBottomRightRadius: 40,
+    height: 250,
+    borderBottomLeftRadius: 36,
+    borderBottomRightRadius: 36,
     overflow: 'hidden',
   },
   bgOverlay: {
@@ -147,184 +186,139 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.35)',
-    borderBottomLeftRadius: 40,
-    borderBottomRightRadius: 40,
+    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+    borderBottomLeftRadius: 36,
+    borderBottomRightRadius: 36,
   },
   backButtonContainer: {
     paddingHorizontal: 20,
   },
   backButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    alignItems: 'center',
+    width: 42,
+    height: 42,
+    borderRadius: 12,
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
     justifyContent: 'center',
+    alignItems: 'center',
   },
   coverTextSection: {
     position: 'absolute',
-    bottom: 55,
-    left: 0,
-    right: 0,
-    alignItems: 'center',
-    paddingHorizontal: 20,
+    bottom: 24,
+    left: 20,
+    right: 20,
   },
   appName: {
-    fontSize: 26,
-    fontWeight: '900',
-    marginBottom: 8,
-    letterSpacing: -0.5,
+    fontSize: 22,
+    fontWeight: '800',
     color: '#FFFFFF',
-    textAlign: 'center',
-    textShadowColor: 'rgba(0, 0, 0, 0.5)',
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 8,
-  },
-  tagline: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#FFFFFF',
-    textAlign: 'center',
     textShadowColor: 'rgba(0, 0, 0, 0.4)',
     textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 6,
+    textShadowRadius: 3,
+  },
+  tagline: {
+    fontSize: 13,
+    color: 'rgba(255, 255, 255, 0.9)',
+    marginTop: 2,
+    fontWeight: '500',
   },
   logoContainer: {
     position: 'absolute',
-    left: 0,
-    right: 0,
-    alignItems: 'center',
+    left: 24,
     zIndex: 10,
   },
   logoCircle: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
+    width: 68,
+    height: 68,
+    borderRadius: 34,
     backgroundColor: '#FFFFFF',
-    alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: '#FFFFFF',
+    alignItems: 'center',
+    elevation: 8,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.25,
-    shadowRadius: 16,
-    elevation: 10,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    borderWidth: 3,
+    borderColor: '#FFFFFF',
   },
   logoImage: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: 46,
+    height: 46,
   },
   scrollContent: {
-    paddingHorizontal: 24,
+    paddingHorizontal: 20,
   },
   welcomeSection: {
-    marginBottom: 28,
+    marginBottom: 20,
   },
   welcomeTitle: {
-    fontSize: 22,
+    fontSize: 21,
     fontWeight: '800',
-    marginBottom: 6,
+    letterSpacing: -0.3,
   },
   welcomeSubtitle: {
-    fontSize: 15,
-    fontWeight: '400',
+    fontSize: 13,
+    marginTop: 4,
+    lineHeight: 18,
   },
-  primaryButton: {
-    borderRadius: 16,
-    marginBottom: 16,
-    shadowColor: '#059669',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 16,
-    elevation: 8,
+  optionsList: {
+    gap: 12,
   },
-  primaryButtonInner: {
-    backgroundColor: '#059669',
-    borderRadius: 16,
-    padding: 18,
+  optionCard: {
     flexDirection: 'row',
     alignItems: 'center',
+    padding: 16,
+    borderRadius: 18,
+    borderWidth: 1.2,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 5,
   },
-  buttonIconBox: {
+  optionIconBox: {
     width: 52,
     height: 52,
     borderRadius: 14,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    alignItems: 'center',
+    borderWidth: 1,
     justifyContent: 'center',
+    alignItems: 'center',
     marginRight: 14,
   },
-  buttonTextContent: {
+  optionContent: {
     flex: 1,
   },
-  primaryButtonText: {
-    color: '#FFFFFF',
-    fontSize: 17,
-    fontWeight: '800',
+  optionTitle: {
+    fontSize: 16,
+    fontWeight: '700',
     marginBottom: 3,
   },
-  primaryButtonSubtext: {
-    color: 'rgba(255,255,255,0.75)',
-    fontSize: 13,
-    fontWeight: '400',
+  optionSubtitle: {
+    fontSize: 12,
+    lineHeight: 16,
   },
-  dividerRow: {
-    flexDirection: 'row',
+  chevronBox: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 16,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-  },
-  dividerText: {
-    fontSize: 13,
-    fontWeight: '600',
-    paddingHorizontal: 16,
-  },
-  secondaryButton: {
-    borderRadius: 16,
-    marginBottom: 28,
-    shadowColor: '#2563EB',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.25,
-    shadowRadius: 16,
-    elevation: 8,
-  },
-  secondaryButtonInner: {
-    backgroundColor: '#2563EB',
-    borderRadius: 16,
-    padding: 18,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  secondaryButtonText: {
-    color: '#FFFFFF',
-    fontSize: 17,
-    fontWeight: '800',
-    marginBottom: 3,
-  },
-  secondaryButtonSubtext: {
-    color: 'rgba(255,255,255,0.75)',
-    fontSize: 13,
-    fontWeight: '400',
+    marginLeft: 8,
   },
   loginRow: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    gap: 6,
+    marginTop: 26,
+    marginBottom: 10,
   },
   loginPrompt: {
     fontSize: 14,
     fontWeight: '500',
   },
   loginLink: {
-    color: '#059669',
     fontSize: 14,
-    fontWeight: '800',
+    fontWeight: '700',
+    color: '#059669',
   },
 });

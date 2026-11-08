@@ -8,6 +8,7 @@ export const API_BASE_URL = 'https://api-assunnah-27.newsmartagent.com';
 export const SHARE_BASE_URL = 'https://api-assunnah-27.newsmartagent.com';
 
 export const API_ENDPOINTS = {
+  SIGNUP_UNIVERSAL: `${API_BASE_URL}/api/auth/signup/`,
   SIGNUP_TAKMIL: `${API_BASE_URL}/api/auth/signup/takmil/`,
   SIGNUP_NON_TAKMIL: `${API_BASE_URL}/api/auth/signup/non-takmil/`,
   LOGIN: `${API_BASE_URL}/api/auth/login/`,

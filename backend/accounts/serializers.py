@@ -157,6 +157,130 @@ class NonTakmilStudentSignupSerializer(serializers.Serializer):
         return user
 
 
+class UniversalSignupSerializer(serializers.Serializer):
+    """Universal Serializer handling all 4 signup types:
+       - jamia_faregin (Takmil / Faregin)
+       - current_student (Jamiar Bortoman Chatro)
+       - jamia_ustad (Jamiar Ustadgon)
+       - general_user (Onanno)
+    """
+    profile_type = serializers.ChoiceField(
+        choices=['jamia_faregin', 'current_student', 'jamia_ustad', 'general_user', 'takmil_student', 'non_takmil_student']
+    )
+    email = serializers.EmailField()
+    password = serializers.CharField(write_only=True, min_length=8)
+    password_confirm = serializers.CharField(write_only=True, min_length=8)
+    first_name = serializers.CharField(max_length=150)
+    father_name = serializers.CharField(max_length=150, required=False, allow_blank=True)
+    phone_number = serializers.CharField(max_length=20)
+    district = serializers.CharField(max_length=100, required=False, allow_blank=True)
+    upazila = serializers.CharField(max_length=100, required=False, allow_blank=True)
+
+    # Faregin specific fields
+    dakhila_number = serializers.CharField(max_length=50, required=False, allow_blank=True, allow_null=True)
+    blood_group = serializers.CharField(max_length=10, required=False, allow_blank=True, allow_null=True)
+    period_of_education = serializers.CharField(max_length=100, required=False, allow_blank=True, allow_null=True)
+    fuzalaye_jamia_name = serializers.CharField(max_length=255, required=False, allow_blank=True, allow_null=True)
+    takmil_year_type = serializers.CharField(max_length=20, required=False, allow_blank=True, allow_null=True)
+    custom_graduation_year = serializers.CharField(max_length=10, required=False, allow_blank=True, allow_null=True)
+    jamia_graduate_id = serializers.IntegerField(required=False, allow_null=True)
+
+    # Current Student specific fields
+    jamat = serializers.CharField(max_length=100, required=False, allow_blank=True, allow_null=True)
+
+    # Ustad specific fields
+    designation = serializers.CharField(max_length=150, required=False, allow_blank=True, allow_null=True)
+    department = serializers.CharField(max_length=150, required=False, allow_blank=True, allow_null=True)
+
+    # General User specific fields
+    occupation = serializers.CharField(max_length=100, required=False, allow_blank=True, allow_null=True)
+
+    def validate(self, data):
+        if data.get('password') != data.pop('password_confirm', None):
+            raise serializers.ValidationError({'password': 'পাসওয়ার্ড মিলছে না।'})
+
+        email = data.get('email')
+        if email and User.objects.filter(email__iexact=email).exists():
+            raise serializers.ValidationError({'email': 'এই ইমেইল দিয়ে ইতোমধ্যে একটি অ্যাকাউন্ট রয়েছে।'})
+
+        phone_number = data.get('phone_number')
+        if phone_number and User.objects.filter(phone_number=phone_number).exists():
+            raise serializers.ValidationError({'phone_number': 'এই মোবাইল নম্বর দিয়ে ইতোমধ্যে একটি অ্যাকাউন্ট রয়েছে।'})
+
+        profile_type = data.get('profile_type')
+        if profile_type in ['jamia_faregin', 'takmil_student']:
+            if not data.get('dakhila_number'):
+                raise serializers.ValidationError({'dakhila_number': 'দাখিলা নম্বর আবশ্যক।'})
+        elif profile_type == 'current_student':
+            if not data.get('jamat'):
+                raise serializers.ValidationError({'jamat': 'জামাত নির্বাচন করুন।'})
+            if not data.get('dakhila_number'):
+                raise serializers.ValidationError({'dakhila_number': 'দাখিলা নম্বর দিন।'})
+
+        return data
+
+    def create(self, validated_data):
+        profile_type = validated_data.get('profile_type')
+        password = validated_data.pop('password')
+        dakhila_number = validated_data.pop('dakhila_number', None)
+        blood_group = validated_data.pop('blood_group', None)
+        period_of_education = validated_data.pop('period_of_education', None)
+        fuzalaye_jamia_name = validated_data.pop('fuzalaye_jamia_name', None)
+        takmil_year_type = validated_data.pop('takmil_year_type', '26_27')
+        custom_graduation_year = validated_data.pop('custom_graduation_year', None)
+        jamia_graduate_id = validated_data.pop('jamia_graduate_id', None)
+        jamat = validated_data.pop('jamat', None)
+        designation = validated_data.pop('designation', None)
+        department = validated_data.pop('department', None)
+        occupation = validated_data.pop('occupation', None)
+
+        jamia_graduate = None
+        if jamia_graduate_id:
+            try:
+                jamia_graduate = JamiaGraduate.objects.get(id=jamia_graduate_id)
+            except JamiaGraduate.DoesNotExist:
+                pass
+
+        user = User.objects.create(
+            email=validated_data['email'],
+            first_name=validated_data['first_name'],
+            father_name=validated_data.get('father_name', ''),
+            phone_number=validated_data['phone_number'],
+            district=validated_data.get('district', ''),
+            upazila=validated_data.get('upazila', ''),
+            profile_type=profile_type,
+            profile_completed=True,
+            dakhila_number=dakhila_number,
+            blood_group=blood_group,
+            jamat=jamat,
+            designation=designation,
+            department=department,
+            occupation=occupation,
+            fuzalaye_jamia_name=fuzalaye_jamia_name,
+            takmil_year_type=takmil_year_type or '26_27',
+            custom_graduation_year=custom_graduation_year,
+            jamia_graduate=jamia_graduate
+        )
+        user.set_password(password)
+        user.save()
+
+        # Legacy profiles for backward compatibility
+        if profile_type in ['jamia_faregin', 'takmil_student']:
+            TakmilStudentProfile.objects.create(
+                user=user,
+                dakhila_number=dakhila_number or '',
+                blood_group=blood_group or 'O+',
+                period_of_education=period_of_education or ''
+            )
+        else:
+            NonTakmilStudentProfile.objects.create(
+                user=user,
+                occupation=occupation or designation or ''
+            )
+
+        return user
+
+
 class UserSerializer(serializers.ModelSerializer):
     takmil_profile = serializers.SerializerMethodField()
     non_takmil_profile = serializers.SerializerMethodField()
@@ -167,7 +291,9 @@ class UserSerializer(serializers.ModelSerializer):
         model = User
         fields = ['id', 'email', 'first_name', 'last_name', 'father_name', 'phone_number',
                   'district', 'upazila', 'profile_type', 'profile_completed', 'profile_image',
-                  'cover_image', 'bio', 'takmil_profile', 'non_takmil_profile']
+                  'cover_image', 'bio', 'jamat', 'designation', 'department', 'dakhila_number',
+                  'blood_group', 'occupation', 'takmil_year_type', 'custom_graduation_year',
+                  'takmil_profile', 'non_takmil_profile']
 
     def get_profile_image(self, obj):
         if obj.profile_image:
