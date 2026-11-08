@@ -32,7 +32,7 @@ try {
     Notifications.setNotificationChannelAsync('incoming-calls', {
       name: 'Incoming Calls',
       importance: Notifications.AndroidImportance.MAX,
-      sound: 'default',
+      sound: true,
       vibrationPattern: [0, 500, 250, 500],
       lightColor: '#10B981',
       lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
