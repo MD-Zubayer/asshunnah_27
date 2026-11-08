@@ -4,7 +4,11 @@ from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.forms import ReadOnlyPasswordHashField
 from django.utils.translation import gettext_lazy as _
 
-from .models import User, TakmilStudentProfile, NonTakmilStudentProfile
+from .models import (
+    User, TakmilStudentProfile, NonTakmilStudentProfile, Dua,
+    GlobalPrayerAlertConfig, PrayerAlertSetting, PrayerAlertLog, DeviceToken,
+    AppSettings
+)
 
 
 class UserCreationForm(forms.ModelForm):
@@ -90,6 +94,64 @@ class NonTakmilStudentProfileAdmin(admin.ModelAdmin):
     )
 
 
+class DuaAdmin(admin.ModelAdmin):
+    list_display = ('title', 'created_by', 'created_at')
+    list_filter = ('created_at', 'created_by')
+    search_fields = ('title', 'arabic', 'meaning')
+    readonly_fields = ('created_at', 'updated_at')
+    fieldsets = (
+        (None, {'fields': ('title', 'icon', 'arabic', 'pronunciation', 'meaning')}),
+        ('Audio', {'fields': ('audio', 'pronunciation_audio', 'recitation_audio')}),
+        ('Metadata', {'fields': ('created_by', 'created_at', 'updated_at')}),
+    )
+
+# ============================================
+# Prayer Alert Admin
+# ============================================
+
+class GlobalPrayerAlertConfigAdmin(admin.ModelAdmin):
+    list_display = ('prayer_name', 'is_globally_enabled', 'default_offset_minutes', 'is_adhan_enabled', 'updated_by', 'updated_at')
+    list_filter = ('is_globally_enabled', 'is_adhan_enabled', 'prayer_name')
+    search_fields = ('prayer_name',)
+    readonly_fields = ('created_at', 'updated_at')
+    fieldsets = (
+        (None, {'fields': ('prayer_name', 'is_globally_enabled', 'default_offset_minutes')}),
+        (_('Notification Template'), {'fields': ('notification_title_template', 'notification_body_template')}),
+        (_('Adhan'), {'fields': ('adhan_audio', 'is_adhan_enabled')}),
+        (_('Metadata'), {'fields': ('updated_by', 'created_at', 'updated_at')}),
+    )
+
+
+class PrayerAlertSettingAdmin(admin.ModelAdmin):
+    list_display = ('user', 'prayer_name', 'is_enabled', 'offset_minutes', 'is_silent', 'updated_at')
+    list_filter = ('prayer_name', 'is_enabled', 'is_silent')
+    search_fields = ('user__email', 'user__first_name', 'prayer_name')
+    readonly_fields = ('created_at', 'updated_at')
+    raw_id_fields = ('user',)
+
+
+class PrayerAlertLogAdmin(admin.ModelAdmin):
+    list_display = ('user', 'prayer_name', 'scheduled_time', 'delivered_at', 'is_read', 'notification_type', 'created_at')
+    list_filter = ('prayer_name', 'is_read', 'notification_type')
+    search_fields = ('user__email', 'user__first_name', 'prayer_name')
+    readonly_fields = ('created_at',)
+    raw_id_fields = ('user',)
+    date_hierarchy = 'scheduled_time'
+
+
+class DeviceTokenAdmin(admin.ModelAdmin):
+    list_display = ('user', 'device_type', 'is_active', 'last_used_at', 'created_at')
+    list_filter = ('device_type', 'is_active')
+    search_fields = ('user__email', 'user__first_name', 'token')
+    readonly_fields = ('created_at', 'updated_at')
+    raw_id_fields = ('user',)
+
+
 admin.site.register(User, UserAdmin)
 admin.site.register(TakmilStudentProfile, TakmilStudentProfileAdmin)
 admin.site.register(NonTakmilStudentProfile, NonTakmilStudentProfileAdmin)
+admin.site.register(Dua, DuaAdmin)
+admin.site.register(GlobalPrayerAlertConfig, GlobalPrayerAlertConfigAdmin)
+admin.site.register(PrayerAlertSetting, PrayerAlertSettingAdmin)
+admin.site.register(PrayerAlertLog, PrayerAlertLogAdmin)
+admin.site.register(DeviceToken, DeviceTokenAdmin)

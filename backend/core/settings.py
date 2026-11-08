@@ -12,6 +12,7 @@ DEBUG = os.getenv('DJANGO_DEBUG', '1') == '1'
 ALLOWED_HOSTS = [host.strip() for host in os.getenv('DJANGO_ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',') if host.strip()]
 
 INSTALLED_APPS = [
+    'daphne',  # ASGI server - must be first
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -21,7 +22,11 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework.authtoken',
     'corsheaders',
+    'channels',
     'accounts',
+    'articles',
+    'mosques',
+    'chat',
 ]
 
 MIDDLEWARE = [
@@ -54,6 +59,19 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'core.wsgi.application'
+ASGI_APPLICATION = 'core.asgi.application'
+
+# Channels Configuration (WebSocket for real-time)
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels.layers.InMemoryChannelLayer',
+        # For production, use Redis:
+        # 'BACKEND': 'channels_redis.core.RedisChannelLayer',
+        # 'CONFIG': {
+        #     'hosts': [(os.getenv('REDIS_HOST', 'redis'), 6379)],
+        # },
+    },
+}
 
 DATABASES = {
     'default': {
@@ -92,23 +110,12 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
+# MinIO configuration (used directly via minio Python client in views)
 MINIO_ENDPOINT = os.getenv('MINIO_ENDPOINT', 'minio:9000')
 MINIO_ACCESS_KEY = os.getenv('MINIO_ACCESS_KEY', '')
 MINIO_SECRET_KEY = os.getenv('MINIO_SECRET_KEY', '')
-MINIO_BUCKET = os.getenv('MINIO_BUCKET', '')
-AWS_S3_ENDPOINT_URL = f'http://{MINIO_ENDPOINT}' if MINIO_ENDPOINT else None
-AWS_ACCESS_KEY_ID = MINIO_ACCESS_KEY
-AWS_SECRET_ACCESS_KEY = MINIO_SECRET_KEY
-AWS_STORAGE_BUCKET_NAME = MINIO_BUCKET
-AWS_S3_REGION_NAME = os.getenv('MINIO_REGION_NAME', 'us-east-1')
-AWS_S3_SIGNATURE_VERSION = 's3v4'
-AWS_S3_FILE_OVERWRITE = False
-AWS_DEFAULT_ACL = None
-AWS_S3_USE_SSL = False
-AWS_QUERYSTRING_AUTH = False
-
-if AWS_STORAGE_BUCKET_NAME:
-    DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
+MINIO_BUCKET = os.getenv('MINIO_BUCKET', 'media')
+MINIO_PUBLIC_URL = os.getenv('MINIO_PUBLIC_URL', '')
 
 AUTH_USER_MODEL = 'accounts.User'
 
@@ -134,7 +141,22 @@ CORS_ALLOWED_ORIGINS = [
     'http://127.0.0.1:3000',
     'http://127.0.0.1:8000',
     'http://localhost:19000',  # Expo
-    'http://localhost:19001',  # Expo
+    'http://localhost:19001',
+    'https://api-assunnah-27.newsmartagent.com'# Expo
 ] + [host.strip() for host in os.getenv('CORS_ALLOWED_ORIGINS', '').split(',') if host.strip()]
 
 CORS_ALLOW_CREDENTIALS = True
+
+# CSRF Trusted Origins
+CSRF_TRUSTED_ORIGINS = [
+    'https://api-assunnah-27.newsmartagent.com',  # Production API domain
+    'http://localhost:8000',
+    'http://127.0.0.1:8000',
+] + [host.strip() for host in os.getenv('CSRF_TRUSTED_ORIGINS', '').split(',') if host.strip()]
+
+# Fireworks AI Configuration
+FIREWORKS_API_KEYS = [k.strip() for k in os.getenv('FIREWORKS_API_KEYS', '').split(',') if k.strip()]
+
+# Gemini API Configuration
+GEMINI_API_KEYS = [k.strip() for k in os.getenv('GEMINI_API_KEYS', '').split(',') if k.strip()]
+

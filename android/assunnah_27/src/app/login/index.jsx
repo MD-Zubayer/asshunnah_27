@@ -9,6 +9,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
+  Image,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -95,7 +96,11 @@ export default function LoginScreen() {
         {/* Header Icon */}
         <View style={styles.iconHeader}>
           <View style={[styles.logoBadge, { backgroundColor: colors.primaryBg }]}>
-            <Ionicons name="log-in" size={32} color={colors.primary} />
+            <Image
+              source={require('../../../assets/expo.icon/Assets/images/icon.png')}
+              style={styles.logoImage}
+              resizeMode="contain"
+            />
           </View>
         </View>
 
@@ -216,11 +221,17 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   logoBadge: {
-    width: 64,
-    height: 64,
-    borderRadius: 20,
+    width: 84,
+    height: 84,
+    borderRadius: 24,
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  logoImage: {
+    width: 80,
+    height: 80,
+    borderRadius: 20,
   },
   title: {
     fontSize: 28,

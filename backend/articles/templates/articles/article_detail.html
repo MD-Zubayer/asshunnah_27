@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="bn" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ article_title }} - আস-সুন্নাহ</title>
+    <meta name="description" content="{{ article_excerpt }}">
+    <meta property="og:title" content="{{ article_title }}">
+    <meta property="og:description" content="{{ article_excerpt }}">
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="{{ article_url }}">
+    {% if article_image %}
+    <meta property="og:image" content="{{ article_image }}">
+    {% endif %}
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Noto Sans Bengali', 'Kalpurush', sans-serif;
+            background: #f5f5f5;
+            color: #333;
+            line-height: 1.8;
+        }
+        
+        .container {
+            max-width: 720px;
+            margin: 0 auto;
+            background: #fff;
+            min-height: 100vh;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #1e7e34, #28a745);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+        
+        .header p {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+        
+        .article-container {
+            padding: 24px 20px;
+        }
+        
+        .author-info {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .author-avatar {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: #e9ecef;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            font-weight: 700;
+            color: #1e7e34;
+            margin-right: 12px;
+        }
+        
+        .author-details h3 {
+            font-size: 16px;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .author-details p {
+            font-size: 13px;
+            color: #666;
+        }
+        
+        .article-content {
+            font-size: 17px;
+            line-height: 2;
+            color: #2c3e50;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        
+        .article-image {
+            margin: 20px 0;
+            text-align: center;
+        }
+        
+        .article-image img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            padding: 16px;
+            background: #f8f9fa;
+            border-radius: 12px;
+            margin: 24px 0;
+        }
+        
+        .stat-item {
+            text-align: center;
+        }
+        
+        .stat-item .number {
+            font-size: 20px;
+            font-weight: 700;
+            color: #1e7e34;
+        }
+        
+        .stat-item .label {
+            font-size: 12px;
+            color: #666;
+        }
+        
+        .cta-section {
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+            padding: 24px 20px;
+            text-align: center;
+            border-radius: 16px;
+            margin: 24px 0;
+        }
+        
+        .cta-section h2 {
+            font-size: 20px;
+            color: #333;
+            margin-bottom: 12px;
+        }
+        
+        .cta-section p {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 20px;
+        }
+        
+        .cta-button {
+            display: inline-block;
+            background: linear-gradient(135deg, #1e7e34, #28a745);
+            color: white;
+            text-decoration: none;
+            padding: 14px 32px;
+            border-radius: 30px;
+            font-size: 16px;
+            font-weight: 600;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 4px 12px rgba(30, 126, 52, 0.3);
+        }
+        
+        .cta-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(30, 126, 52, 0.4);
+        }
+        
+        .share-section {
+            padding: 20px;
+            border-top: 1px solid #eee;
+            text-align: center;
+        }
+        
+        .share-section h3 {
+            font-size: 16px;
+            margin-bottom: 16px;
+            color: #333;
+        }
+        
+        .share-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        
+        .share-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            text-decoration: none;
+            color: white;
+            font-size: 20px;
+            transition: transform 0.2s;
+        }
+        
+        .share-btn:hover {
+            transform: scale(1.1);
+        }
+        
+        .share-btn.facebook { background: #1877F2; }
+        .share-btn.whatsapp { background: #25D366; }
+        .share-btn.twitter { background: #1DA1F2; }
+        .share-btn.telegram { background: #0088CC; }
+        .share-btn.copy { background: #6B7280; }
+        
+        .footer {
+            background: #1e7e34;
+            color: white;
+            text-align: center;
+            padding: 20px;
+            font-size: 14px;
+        }
+        
+        .footer a {
+            color: white;
+            text-decoration: underline;
+        }
+        
+        .not-found {
+            text-align: center;
+            padding: 60px 20px;
+        }
+        
+        .not-found h2 {
+            font-size: 72px;
+            color: #1e7e34;
+        }
+        
+        .not-found p {
+            font-size: 18px;
+            color: #666;
+            margin-top: 16px;
+        }
+        
+        @media (max-width: 480px) {
+            .header h1 { font-size: 20px; }
+            .article-content { font-size: 16px; }
+            .stats { flex-direction: column; gap: 12px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>আস-সুন্নাহ</h1>
+            <p>মাদ্রাসা ডায়েরি</p>
+        </div>
+
+        {% if article %}
+        <div class="article-container">
+            <div class="author-info">
+                <div class="author-avatar">
+                    {{ author_initial }}
+                </div>
+                <div class="author-details">
+                    <h3>{{ author_name }}</h3>
+                    <p>{{ created_at }}</p>
+                </div>
+            </div>
+
+            {% if article_image %}
+            <div class="article-image">
+                <img src="{{ article_image }}" alt="Article image">
+            </div>
+            {% endif %}
+
+            <div class="article-content">{{ article_content }}</div>
+
+            <div class="stats">
+                <div class="stat-item">
+                    <div class="number">{{ like_count }}</div>
+                    <div class="label">পছন্দ</div>
+                </div>
+                <div class="stat-item">
+                    <div class="number">{{ comment_count }}</div>
+                    <div class="label">মন্তব্য</div>
+                </div>
+                <div class="stat-item">
+                    <div class="number">{{ view_count }}</div>
+                    <div class="label">পঠিত</div>
+                </div>
+            </div>
+
+            <div class="cta-section">
+                <h2>সম্পূর্ণ অভিজ্ঞতার জন্য অ্যাপ ডাউনলোড করুন</h2>
+                <p>মন্তব্য করুন, পছন্দ করুন এবং আরও অনেক কিছু করুন</p>
+                <a href="https://play.google.com/store/apps/details?id=com.assunnah27.app" class="cta-button" target="_blank">
+                    📱 অ্যাপে পড়ুন
+                </a>
+            </div>
+
+            <div class="share-section">
+                <h3>শেয়ার করুন</h3>
+                <div class="share-buttons">
+                    <a href="https://www.facebook.com/sharer/sharer.php?u={{ article_url }}" class="share-btn facebook" target="_blank">f</a>
+                    <a href="https://wa.me/?text={{ article_title }}%20{{ article_url }}" class="share-btn whatsapp" target="_blank">W</a>
+                    <a href="https://twitter.com/intent/tweet?text={{ article_title }}&url={{ article_url }}" class="share-btn twitter" target="_blank">X</a>
+                    <a href="https://t.me/share/url?url={{ article_url }}&text={{ article_title }}" class="share-btn telegram" target="_blank">T</a>
+                    <a href="#" class="share-btn copy" onclick="copyLink(event)">🔗</a>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="not-found">
+            <h2>৪০৪</h2>
+            <p>প্রবন্ধটি পাওয়া যায়নি</p>
+            <br><br>
+            <a href="/" class="cta-button">হোম পেজে যান</a>
+        </div>
+        {% endif %}
+
+        <div class="footer">
+            <p>&copy; ২০২৫ আস-সুন্নাহ | <a href="https://assunnah27.com">assunnah27.com</a></p>
+        </div>
+    </div>
+
+    <script>
+        function copyLink(e) {
+            e.preventDefault();
+            const url = window.location.href;
+            navigator.clipboard.writeText(url).then(() => {
+                alert('লিংক কপি করা হয়েছে!');
+            }).catch(() => {
+                // Fallback for older browsers
+                const input = document.createElement('input');
+                input.value = url;
+                document.body.appendChild(input);
+                input.select();
+                document.execCommand('copy');
+                document.body.removeChild(input);
+                alert('লিংক কপি করা হয়েছে!');
+            });
+        }
+    </script>
+</body>
+</html>

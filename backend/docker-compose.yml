@@ -20,6 +20,7 @@ services:
       - MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY}
       - MINIO_SECRET_KEY=${MINIO_SECRET_KEY}
       - MINIO_BUCKET=${MINIO_BUCKET}
+      - MINIO_PUBLIC_URL=${MINIO_PUBLIC_URL}
     ports:
       - '8000:8000'
     volumes:
@@ -29,7 +30,7 @@ services:
       - minio
 
   postgres:
-    image: postgres:16
+    image: pgvector/pgvector:pg16
     container_name: as_sunnah_postgres
     restart: unless-stopped
     env_file:

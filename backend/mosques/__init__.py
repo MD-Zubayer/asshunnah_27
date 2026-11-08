@@ -1,0 +1,1 @@
+# mosques Django App

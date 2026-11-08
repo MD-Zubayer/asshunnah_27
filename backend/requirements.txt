@@ -6,3 +6,9 @@ python-dotenv
 minio
 djangorestframework
 django-cors-headers
+pillow
+# WebSocket / Real-time
+channels>=4.0.0
+daphne>=4.0.0
+requests
+pgvector

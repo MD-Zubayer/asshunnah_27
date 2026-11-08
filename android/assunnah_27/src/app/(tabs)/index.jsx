@@ -289,7 +289,11 @@ export default function HomeScreen() {
             <View style={styles.heroOverlay}>
               <View style={styles.heroTopRow}>
                 <View style={styles.heroZapBadge}>
-                  <Ionicons name="book" size={26} color="#FBBF24" />
+                  <Image
+                    source={require('../../../assets/expo.icon/Assets/images/icon.png')}
+                    style={{ width: 40, height: 40, borderRadius: 10 }}
+                    resizeMode="contain"
+                  />
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.heroBalanceLabel}>আজকের মূল প্রতিপাদ্য</Text>

@@ -14,7 +14,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE"
+        "backgroundColor": "#F5EDE0"
       },
       "predictiveBackGestureEnabled": false,
       "package": "com.newsmartagent.assunnah_27",
