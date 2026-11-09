@@ -31,6 +31,104 @@ const imageCategories = [
     ],
   },
   {
+    id: 7,
+    title: 'ড্রোন ভিউ ও এরিয়াল ক্যাম্পাস',
+    icon: 'airplane-outline',
+    color: '#0284C7',
+    images: [
+      { file: require('../../assets/expo.icon/Assets/images/dji_0285.jpg'), name: 'ড্রোন দৃশ্য ১' },
+      { file: require('../../assets/expo.icon/Assets/images/dji_0286.jpg'), name: 'ড্রোন দৃশ্য ২' },
+      { file: require('../../assets/expo.icon/Assets/images/dji_0287.jpg'), name: 'ড্রোন দৃশ্য ৩' },
+      { file: require('../../assets/expo.icon/Assets/images/dji_0288.jpg'), name: 'ড্রোন দৃশ্য ৪' },
+      { file: require('../../assets/expo.icon/Assets/images/dji_0289.jpg'), name: 'ড্রোন দৃশ্য ৫' },
+      { file: require('../../assets/expo.icon/Assets/images/dji_0296.jpg'), name: 'ড্রোন দৃশ্য ৬' },
+      { file: require('../../assets/expo.icon/Assets/images/dji_0297.jpg'), name: 'ড্রোন দৃশ্য ৭' },
+      { file: require('../../assets/expo.icon/Assets/images/dji_0298.jpg'), name: 'ড্রোন দৃশ্য ৮' },
+      { file: require('../../assets/expo.icon/Assets/images/dji_0299.jpg'), name: 'ড্রোন দৃশ্য ৯' },
+      { file: require('../../assets/expo.icon/Assets/images/dji_0300.jpg'), name: 'ড্রোন দৃশ্য ১০' },
+      { file: require('../../assets/expo.icon/Assets/images/dji_0301.jpg'), name: 'ড্রোন দৃশ্য ১১' },
+      { file: require('../../assets/expo.icon/Assets/images/dji_0302.jpg'), name: 'ড্রোন দৃশ্য ১২' },
+      { file: require('../../assets/expo.icon/Assets/images/dji_0303.jpg'), name: 'ড্রোন দৃশ্য ১৩' },
+      { file: require('../../assets/expo.icon/Assets/images/dji_0304.jpg'), name: 'ড্রোন দৃশ্য ১৪' },
+      { file: require('../../assets/expo.icon/Assets/images/dji_0305.jpg'), name: 'ড্রোন দৃশ্য ১৫' },
+      { file: require('../../assets/expo.icon/Assets/images/dji_0307.jpg'), name: 'ড্রোন দৃশ্য ১৬' },
+      { file: require('../../assets/expo.icon/Assets/images/dji_0308.jpg'), name: 'ড্রোন দৃশ্য ১৭' },
+      { file: require('../../assets/expo.icon/Assets/images/dji_0309.jpg'), name: 'ড্রোন দৃশ্য ১৮' },
+      { file: require('../../assets/expo.icon/Assets/images/dji_0312.jpg'), name: 'ড্রোন দৃশ্য ১৯' },
+      { file: require('../../assets/expo.icon/Assets/images/dji_0313.jpg'), name: 'ড্রোন দৃশ্য ২০' },
+      { file: require('../../assets/expo.icon/Assets/images/dji_0314.jpg'), name: 'ড্রোন দৃশ্য ২১' },
+      { file: require('../../assets/expo.icon/Assets/images/dji_0315.jpg'), name: 'ড্রোন দৃশ্য ২২' },
+      { file: require('../../assets/expo.icon/Assets/images/dji_0316.jpg'), name: 'ড্রোন দৃশ্য ২৩' },
+      { file: require('../../assets/expo.icon/Assets/images/dji_0317.jpg'), name: 'ড্রোন দৃশ্য ২৪' },
+      { file: require('../../assets/expo.icon/Assets/images/dji_0318.jpg'), name: 'ড্রোন দৃশ্য ২৫' },
+      { file: require('../../assets/expo.icon/Assets/images/dji_0341.jpg'), name: 'ড্রোন দৃশ্য ২৬' },
+      { file: require('../../assets/expo.icon/Assets/images/dji_0350.jpg'), name: 'ড্রোন দৃশ্য ২৭' },
+      { file: require('../../assets/expo.icon/Assets/images/dji_0351.jpg'), name: 'ড্রোন দৃশ্য ২৮' },
+      { file: require('../../assets/expo.icon/Assets/images/dji_0352.jpg'), name: 'ড্রোন দৃশ্য ২৯' },
+      { file: require('../../assets/expo.icon/Assets/images/dji_0353.jpg'), name: 'ড্রোন দৃশ্য ৩০' },
+      { file: require('../../assets/expo.icon/Assets/images/dji_0354.jpg'), name: 'ড্রোন দৃশ্য ৩১' },
+    ],
+  },
+  {
+    id: 8,
+    title: 'জামিয়া অ্যালবাম ও স্মৃতিচারণ',
+    icon: 'camera-outline',
+    color: '#059669',
+    images: [
+      { file: require('../../assets/expo.icon/Assets/images/jamia_album_01.jpg'), name: 'ক্যাম্পাস স্মৃতি ১' },
+      { file: require('../../assets/expo.icon/Assets/images/jamia_album_02.jpg'), name: 'ক্যাম্পাস স্মৃতি ২' },
+      { file: require('../../assets/expo.icon/Assets/images/jamia_album_03.jpg'), name: 'ক্যাম্পাস স্মৃতি ৩' },
+      { file: require('../../assets/expo.icon/Assets/images/jamia_album_04.jpg'), name: 'ক্যাম্পাস স্মৃতি ৪' },
+      { file: require('../../assets/expo.icon/Assets/images/jamia_album_05.jpg'), name: 'ক্যাম্পাস স্মৃতি ৫' },
+      { file: require('../../assets/expo.icon/Assets/images/jamia_album_06.jpg'), name: 'ক্যাম্পাস স্মৃতি ৬' },
+      { file: require('../../assets/expo.icon/Assets/images/jamia_album_07.jpg'), name: 'ক্যাম্পাস স্মৃতি ৭' },
+      { file: require('../../assets/expo.icon/Assets/images/jamia_album_08.jpg'), name: 'ক্যাম্পাস স্মৃতি ৮' },
+      { file: require('../../assets/expo.icon/Assets/images/jamia_album_09.jpg'), name: 'ক্যাম্পাস স্মৃতি ৯' },
+      { file: require('../../assets/expo.icon/Assets/images/jamia_album_10.jpg'), name: 'ক্যাম্পাস স্মৃতি ১০' },
+      { file: require('../../assets/expo.icon/Assets/images/jamia_album_11.jpg'), name: 'ক্যাম্পাস স্মৃতি ১১' },
+      { file: require('../../assets/expo.icon/Assets/images/jamia_album_12.jpg'), name: 'ক্যাম্পাস স্মৃতি ১২' },
+      { file: require('../../assets/expo.icon/Assets/images/jamia_album_13.jpg'), name: 'ক্যাম্পাস স্মৃতি ১৩' },
+      { file: require('../../assets/expo.icon/Assets/images/jamia_album_14.jpg'), name: 'ক্যাম্পাস স্মৃতি ১৪' },
+      { file: require('../../assets/expo.icon/Assets/images/jamia_album_15.jpg'), name: 'ক্যাম্পাস স্মৃতি ১৫' },
+      { file: require('../../assets/expo.icon/Assets/images/jamia_album_16.jpg'), name: 'ক্যাম্পাস স্মৃতি ১৬' },
+      { file: require('../../assets/expo.icon/Assets/images/jamia_album_17.jpg'), name: 'ক্যাম্পাস স্মৃতি ১৭' },
+      { file: require('../../assets/expo.icon/Assets/images/jamia_album_18.jpg'), name: 'ক্যাম্পাস স্মৃতি ১৮' },
+      { file: require('../../assets/expo.icon/Assets/images/jamia_album_19.jpg'), name: 'ক্যাম্পাস স্মৃতি ১৯' },
+      { file: require('../../assets/expo.icon/Assets/images/jamia_album_20.jpg'), name: 'ক্যাম্পাস স্মৃতি ২০' },
+      { file: require('../../assets/expo.icon/Assets/images/jamia_album_21.jpg'), name: 'ক্যাম্পাস স্মৃতি ২১' },
+      { file: require('../../assets/expo.icon/Assets/images/jamia_album_22.jpg'), name: 'ক্যাম্পাস স্মৃতি ২২' },
+      { file: require('../../assets/expo.icon/Assets/images/jamia_album_23.jpg'), name: 'ক্যাম্পাস স্মৃতি ২৩' },
+      { file: require('../../assets/expo.icon/Assets/images/jamia_album_24.jpg'), name: 'ক্যাম্পাস স্মৃতি ২৪' },
+      { file: require('../../assets/expo.icon/Assets/images/jamia_album_25.jpg'), name: 'ক্যাম্পাস স্মৃতি ২৫' },
+      { file: require('../../assets/expo.icon/Assets/images/jamia_album_26.jpg'), name: 'ক্যাম্পাস স্মৃতি ২৬' },
+      { file: require('../../assets/expo.icon/Assets/images/jamia_album_27.jpg'), name: 'ক্যাম্পাস স্মৃতি ২৭' },
+      { file: require('../../assets/expo.icon/Assets/images/jamia_album_28.jpg'), name: 'ক্যাম্পাস স্মৃতি ২৮' },
+      { file: require('../../assets/expo.icon/Assets/images/jamia_album_29.jpg'), name: 'ক্যাম্পাস স্মৃতি ২৯' },
+      { file: require('../../assets/expo.icon/Assets/images/jamia_album_30.jpg'), name: 'ক্যাম্পাস স্মৃতি ৩০' },
+      { file: require('../../assets/expo.icon/Assets/images/jamia_album_31.jpg'), name: 'ক্যাম্পাস স্মৃতি ৩১' },
+      { file: require('../../assets/expo.icon/Assets/images/jamia_album_32.jpg'), name: 'ক্যাম্পাস স্মৃতি ৩২' },
+      { file: require('../../assets/expo.icon/Assets/images/jamia_album_33.jpg'), name: 'ক্যাম্পাস স্মৃতি ৩৩' },
+      { file: require('../../assets/expo.icon/Assets/images/jamia_album_34.jpg'), name: 'ক্যাম্পাস স্মৃতি ৩৪' },
+      { file: require('../../assets/expo.icon/Assets/images/jamia_album_35.jpg'), name: 'ক্যাম্পাস স্মৃতি ৩৫' },
+      { file: require('../../assets/expo.icon/Assets/images/jamia_album_36.jpg'), name: 'ক্যাম্পাস স্মৃতি ৩৬' },
+      { file: require('../../assets/expo.icon/Assets/images/jamia_album_37.jpg'), name: 'ক্যাম্পাস স্মৃতি ৩৭' },
+      { file: require('../../assets/expo.icon/Assets/images/jamia_album_38.jpg'), name: 'ক্যাম্পাস স্মৃতি ৩৮' },
+      { file: require('../../assets/expo.icon/Assets/images/jamia_album_39.jpg'), name: 'ক্যাম্পাস স্মৃতি ৩৯' },
+      { file: require('../../assets/expo.icon/Assets/images/jamia_album_40.jpg'), name: 'ক্যাম্পাস স্মৃতি ৪০' },
+      { file: require('../../assets/expo.icon/Assets/images/jamia_album_41.jpg'), name: 'ক্যাম্পাস স্মৃতি ৪১' },
+      { file: require('../../assets/expo.icon/Assets/images/jamia_album_42.jpg'), name: 'ক্যাম্পাস স্মৃতি ৪২' },
+      { file: require('../../assets/expo.icon/Assets/images/jamia_album_43.jpg'), name: 'ক্যাম্পাস স্মৃতি ৪৩' },
+      { file: require('../../assets/expo.icon/Assets/images/jamia_album_44.jpg'), name: 'ক্যাম্পাস স্মৃতি ৪৪' },
+      { file: require('../../assets/expo.icon/Assets/images/jamia_album_45.jpg'), name: 'ক্যাম্পাস স্মৃতি ৪৫' },
+      { file: require('../../assets/expo.icon/Assets/images/jamia_album_46.jpg'), name: 'ক্যাম্পাস স্মৃতি ৪৬' },
+      { file: require('../../assets/expo.icon/Assets/images/jamia_album_47.jpg'), name: 'ক্যাম্পাস স্মৃতি ৪৭' },
+      { file: require('../../assets/expo.icon/Assets/images/jamia_album_48.jpg'), name: 'ক্যাম্পাস স্মৃতি ৪৮' },
+      { file: require('../../assets/expo.icon/Assets/images/jamia_album_49.jpg'), name: 'ক্যাম্পাস স্মৃতি ৪৯' },
+      { file: require('../../assets/expo.icon/Assets/images/jamia_album_50.jpg'), name: 'ক্যাম্পাস স্মৃতি ৫০' },
+      { file: require('../../assets/expo.icon/Assets/images/jamia_album_51.jpg'), name: 'ক্যাম্পাস স্মৃতি ৫১' },
+    ],
+  },
+  {
     id: 2,
     title: 'দারস ও শিক্ষা',
     icon: 'school-outline',
@@ -235,7 +333,7 @@ export default function GalleryScreen() {
                 </View>
                 <Text style={[styles.heroTitle, { color: colors.text }]}>ফটো গ্যালারি</Text>
                 <Text style={[styles.heroSubtitle, { color: colors.textSecondary }]}>
-                  জামিয়াতুস সুন্নাহ'র বিরল মুহূর্তের স্মৃতিচিত্র
+                  {"জামিয়াতুস সুন্নাহ'র বিরল মুহূর্তের স্মৃতিচিত্র"}
                 </Text>
               </View>
             </View>
@@ -247,7 +345,7 @@ export default function GalleryScreen() {
               <View style={[styles.footerInner, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
                 <Ionicons name="heart" size={20} color={colors.accentEmerald} />
                 <Text style={[styles.footerText, { color: colors.textSecondary }]}>
-                  জামিয়াতুস সুন্নাহ'র স্মৃতিময় মুহূর্তগুলি ছবির মাধ্যমে উপভোগ করুন
+                  {"জামিয়াতুস সুন্নাহ'র স্মৃতিময় মুহূর্তগুলি ছবির মাধ্যমে উপভোগ করুন"}
                 </Text>
               </View>
             </View>
