@@ -24,6 +24,19 @@ import geoJamatData from '../../data/geo-jamat-data.json';
 import { API_ENDPOINTS } from '../../constants/api';
 import { parseBackendError } from '../../utils/errorParser';
 
+// Convert Bengali numerals to ASCII
+const bnToAscii = (str) => {
+  if (!str) return '';
+  const bnNums = ['০', '১', '২', '৩', '৪', '৫', '৬', '৭', '৮', '৯'];
+  return String(str)
+    .split('')
+    .map((ch) => {
+      const idx = bnNums.indexOf(ch);
+      return idx !== -1 ? idx : ch;
+    })
+    .join('');
+};
+
 export default function FareginSignupScreen() {
   const scheme = useColorScheme();
   const isDark = scheme === 'dark';
@@ -70,19 +83,6 @@ export default function FareginSignupScreen() {
   const [selectedGraduateId, setSelectedGraduateId] = useState(null);
   const [selectedGraduate, setSelectedGraduate] = useState(null);
 
-  // Convert Bengali numerals to ASCII
-  const bnToAscii = (str) => {
-    if (!str) return '';
-    const bnNums = ['০', '১', '২', '৩', '৪', '৫', '৬', '৭', '৮', '৯'];
-    return String(str)
-      .split('')
-      .map((ch) => {
-        const idx = bnNums.indexOf(ch);
-        return idx !== -1 ? idx : ch;
-      })
-      .join('');
-  };
-
   // Available thanas for selected district
   const availableThanas = useMemo(() => {
     if (!district || !geoJamatData.districts[district]) return [];
@@ -119,13 +119,18 @@ export default function FareginSignupScreen() {
   };
 
   useEffect(() => {
-    if (takmilYearType === 'other' && customGraduationYear && customGraduationYear.trim().length >= 2) {
-      const delay = setTimeout(() => {
-        searchDynamicGraduates(searchQuery, customGraduationYear);
-      }, 350);
-      return () => clearTimeout(delay);
-    } else if (takmilYearType === 'other' && !customGraduationYear.trim()) {
-      setDynamicGraduates([]);
+    if (takmilYearType === 'other') {
+      if (customGraduationYear && customGraduationYear.trim().length >= 2) {
+        const delay = setTimeout(() => {
+          searchDynamicGraduates(searchQuery, customGraduationYear);
+        }, 350);
+        return () => clearTimeout(delay);
+      } else {
+        const delay = setTimeout(() => {
+          setDynamicGraduates([]);
+        }, 0);
+        return () => clearTimeout(delay);
+      }
     }
   }, [searchQuery, customGraduationYear, takmilYearType]);
 
