@@ -414,7 +414,7 @@ export default function UstadSignupScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   scrollContent: { paddingBottom: 60 },
-  coverImage: { height: 180, position: 'relative', overflow: 'hidden' },
+  coverImage: { minHeight: 180, position: 'relative', overflow: 'hidden', paddingBottom: 16 },
   coverOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.45)' },
   coverContent: { paddingHorizontal: 16, zIndex: 1 },
   backBtn: { width: 36, height: 36, borderRadius: 10, backgroundColor: 'rgba(0,0,0,0.3)', justifyContent: 'center', alignItems: 'center' },

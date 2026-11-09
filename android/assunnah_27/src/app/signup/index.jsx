@@ -2,12 +2,10 @@ import { StyleSheet, Text, View, TouchableOpacity, useColorScheme, ScrollView, I
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { Colors } from '../../constants/theme';
 
 export default function SignupSelectionScreen() {
   const scheme = useColorScheme();
   const isDark = scheme === 'dark';
-  const colors = Colors[isDark ? 'dark' : 'light'];
   const insets = useSafeAreaInsets();
   const router = useRouter();
 
@@ -60,106 +58,112 @@ export default function SignupSelectionScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: isDark ? '#0F172A' : '#F8FAFC' }]}>
-      {/* Cover Image Background */}
-      <ImageBackground
-        source={require('../../../assets/expo.icon/Assets/images/hero_bg_6.jpeg')}
-        style={styles.bgImage}
-        resizeMode="cover"
-      >
-        <View style={styles.bgOverlay} />
-
-        {/* Back Button */}
-        <View style={[styles.backButtonContainer, { paddingTop: insets.top + 16 }]}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => router.back()}
-          >
-            <Ionicons name="arrow-back" size={22} color="#FFFFFF" />
-          </TouchableOpacity>
-        </View>
-
-        {/* App Name and Tagline at bottom of cover */}
-        <View style={styles.coverTextSection}>
-          <Text style={styles.appName}>আস-সুন্নাহ প্ল্যাটফর্ম</Text>
-          <Text style={styles.tagline}>ডিজিটাল ইসলামিক শিক্ষা ও আমল</Text>
-        </View>
-      </ImageBackground>
-
-      {/* Logo Circle */}
-      <View style={[styles.logoContainer, { marginTop: insets.top + 180 }]}>
-        <View style={styles.logoCircle}>
-          <Image
-            source={require('../../../assets/expo.icon/Assets/images/icon.png')}
-            style={styles.logoImage}
-            resizeMode="contain"
-          />
-        </View>
-      </View>
-
       <ScrollView
+        style={styles.scrollView}
         contentContainerStyle={[
           styles.scrollContent,
-          { paddingTop: 300, paddingBottom: insets.bottom + 30 },
+          { paddingBottom: insets.bottom + 36 },
         ]}
         showsVerticalScrollIndicator={false}
       >
-        {/* Welcome Section */}
-        <View style={styles.welcomeSection}>
-          <Text style={[styles.welcomeTitle, { color: isDark ? '#F8FAFC' : '#1E293B' }]}>
-            অ্যাকাউন্ট টাইপ নির্বাচন করুন
-          </Text>
-          <Text style={[styles.welcomeSubtitle, { color: isDark ? '#94A3B8' : '#64748B' }]}>
-            আপনার পরিচয় অনুযায়ী সঠিক অপশনটি বেছে নিন
-          </Text>
-        </View>
+        {/* Cover Image Header */}
+        <ImageBackground
+          source={require('../../../assets/expo.icon/Assets/images/hero_bg_6.jpeg')}
+          style={[styles.bgImage, { paddingTop: insets.top + 12 }]}
+          resizeMode="cover"
+        >
+          <View style={styles.bgOverlay} />
 
-        {/* 4 Account Type Cards */}
-        <View style={styles.optionsList}>
-          {options.map((opt) => (
+          {/* Top Row with Back Button */}
+          <View style={styles.backButtonContainer}>
             <TouchableOpacity
-              key={opt.id}
-              activeOpacity={0.88}
-              style={[
-                styles.optionCard,
-                {
-                  backgroundColor: isDark ? '#1E293B' : '#FFFFFF',
-                  borderColor: isDark ? '#334155' : '#E2E8F0',
-                },
-              ]}
-              onPress={() => router.push(opt.route)}
+              style={styles.backButton}
+              onPress={() => router.back()}
+              activeOpacity={0.8}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
-              <View style={[styles.optionIconBox, { backgroundColor: opt.bgColor, borderColor: opt.borderColor }]}>
-                {opt.iconType === 'material' ? (
-                  <MaterialCommunityIcons name={opt.icon} size={28} color={opt.color} />
-                ) : (
-                  <Ionicons name={opt.icon} size={26} color={opt.color} />
-                )}
-              </View>
-
-              <View style={styles.optionContent}>
-                <Text style={[styles.optionTitle, { color: isDark ? '#F8FAFC' : '#0F172A' }]}>
-                  {opt.title}
-                </Text>
-                <Text style={[styles.optionSubtitle, { color: isDark ? '#94A3B8' : '#64748B' }]}>
-                  {opt.subtitle}
-                </Text>
-              </View>
-
-              <View style={[styles.chevronBox, { backgroundColor: isDark ? '#334155' : '#F1F5F9' }]}>
-                <Ionicons name="chevron-forward" size={18} color={opt.color} />
-              </View>
+              <Ionicons name="arrow-back" size={22} color="#FFFFFF" />
             </TouchableOpacity>
-          ))}
+          </View>
+
+          {/* App Name and Tagline at bottom of cover */}
+          <View style={styles.coverTextSection}>
+            <Text style={styles.appName}>আস-সুন্নাহ প্ল্যাটফর্ম</Text>
+            <Text style={styles.tagline}>ডিজিটাল ইসলামিক শিক্ষা ও আমল</Text>
+          </View>
+        </ImageBackground>
+
+        {/* Logo Circle - cleanly overlapping bottom edge of cover */}
+        <View style={styles.logoContainer}>
+          <View style={[styles.logoCircle, { backgroundColor: isDark ? '#1E293B' : '#FFFFFF', borderColor: isDark ? '#0F172A' : '#F8FAFC' }]}>
+            <Image
+              source={require('../../../assets/expo.icon/Assets/images/icon.png')}
+              style={styles.logoImage}
+              resizeMode="contain"
+            />
+          </View>
         </View>
 
-        {/* Login Link */}
-        <View style={styles.loginRow}>
-          <Text style={[styles.loginPrompt, { color: isDark ? '#94A3B8' : '#64748B' }]}>
-            আগেই অ্যাকাউন্ট আছে?
-          </Text>
-          <TouchableOpacity onPress={() => router.push('/login')}>
-            <Text style={styles.loginLink}> লগ ইন করুন</Text>
-          </TouchableOpacity>
+        {/* Main Content Area */}
+        <View style={styles.mainContent}>
+          {/* Welcome Section */}
+          <View style={styles.welcomeSection}>
+            <Text style={[styles.welcomeTitle, { color: isDark ? '#F8FAFC' : '#1E293B' }]}>
+              অ্যাকাউন্ট টাইপ নির্বাচন করুন
+            </Text>
+            <Text style={[styles.welcomeSubtitle, { color: isDark ? '#94A3B8' : '#64748B' }]}>
+              আপনার পরিচয় অনুযায়ী সঠিক অপশনটি বেছে নিন
+            </Text>
+          </View>
+
+          {/* 4 Account Type Cards */}
+          <View style={styles.optionsList}>
+            {options.map((opt) => (
+              <TouchableOpacity
+                key={opt.id}
+                activeOpacity={0.88}
+                style={[
+                  styles.optionCard,
+                  {
+                    backgroundColor: isDark ? '#1E293B' : '#FFFFFF',
+                    borderColor: isDark ? '#334155' : '#E2E8F0',
+                  },
+                ]}
+                onPress={() => router.push(opt.route)}
+              >
+                <View style={[styles.optionIconBox, { backgroundColor: opt.bgColor, borderColor: opt.borderColor }]}>
+                  {opt.iconType === 'material' ? (
+                    <MaterialCommunityIcons name={opt.icon} size={28} color={opt.color} />
+                  ) : (
+                    <Ionicons name={opt.icon} size={26} color={opt.color} />
+                  )}
+                </View>
+
+                <View style={styles.optionContent}>
+                  <Text style={[styles.optionTitle, { color: isDark ? '#F8FAFC' : '#0F172A' }]}>
+                    {opt.title}
+                  </Text>
+                  <Text style={[styles.optionSubtitle, { color: isDark ? '#94A3B8' : '#64748B' }]}>
+                    {opt.subtitle}
+                  </Text>
+                </View>
+
+                <View style={[styles.chevronBox, { backgroundColor: isDark ? '#334155' : '#F1F5F9' }]}>
+                  <Ionicons name="chevron-forward" size={18} color={opt.color} />
+                </View>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          {/* Login Link */}
+          <View style={styles.loginRow}>
+            <Text style={[styles.loginPrompt, { color: isDark ? '#94A3B8' : '#64748B' }]}>
+              আগেই অ্যাকাউন্ট আছে?
+            </Text>
+            <TouchableOpacity onPress={() => router.push('/login')} activeOpacity={0.7}>
+              <Text style={styles.loginLink}> লগ ইন করুন</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </ScrollView>
     </View>
@@ -170,42 +174,44 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+  },
   bgImage: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 250,
-    borderBottomLeftRadius: 36,
-    borderBottomRightRadius: 36,
+    minHeight: 210,
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
     overflow: 'hidden',
+    justifyContent: 'space-between',
+    paddingBottom: 22,
   },
   bgOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.4)',
-    borderBottomLeftRadius: 36,
-    borderBottomRightRadius: 36,
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0, 0, 0, 0.42)',
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
   },
   backButtonContainer: {
     paddingHorizontal: 20,
+    zIndex: 2,
   },
   backButton: {
     width: 42,
     height: 42,
     borderRadius: 12,
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    backgroundColor: 'rgba(0, 0, 0, 0.35)',
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
   },
   coverTextSection: {
-    position: 'absolute',
-    bottom: 24,
-    left: 20,
-    right: 20,
+    paddingHorizontal: 20,
+    zIndex: 2,
+    marginTop: 20,
   },
   appName: {
     fontSize: 22,
@@ -222,15 +228,15 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   logoContainer: {
-    position: 'absolute',
-    left: 24,
+    marginTop: -34,
+    marginLeft: 24,
     zIndex: 10,
+    alignSelf: 'flex-start',
   },
   logoCircle: {
     width: 68,
     height: 68,
     borderRadius: 34,
-    backgroundColor: '#FFFFFF',
     justifyContent: 'center',
     alignItems: 'center',
     elevation: 8,
@@ -239,14 +245,14 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.15,
     shadowRadius: 8,
     borderWidth: 3,
-    borderColor: '#FFFFFF',
   },
   logoImage: {
-    width: 46,
-    height: 46,
+    width: 44,
+    height: 44,
   },
-  scrollContent: {
+  mainContent: {
     paddingHorizontal: 20,
+    paddingTop: 12,
   },
   welcomeSection: {
     marginBottom: 20,

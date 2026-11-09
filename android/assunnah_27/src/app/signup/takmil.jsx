@@ -84,6 +84,11 @@ export default function TakmilSignupScreen() {
     }
   };
 
+  // Fuzalaye Jamia selection state
+  const [showNameModal, setShowNameModal] = useState(false);
+  const [selectedFuzalayeName, setSelectedFuzalayeName] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+
   useEffect(() => {
     if (takmilYearType === 'other') {
       const delayDebounceFn = setTimeout(() => {
@@ -92,11 +97,6 @@ export default function TakmilSignupScreen() {
       return () => clearTimeout(delayDebounceFn);
     }
   }, [searchQuery, customGraduationYear, takmilYearType]);
-
-  // Fuzalaye Jamia selection state
-  const [showNameModal, setShowNameModal] = useState(false);
-  const [selectedFuzalayeName, setSelectedFuzalayeName] = useState('');
-  const [searchQuery, setSearchQuery] = useState('');
 
   // Focused field tracking for floating labels
   const [focusedField, setFocusedField] = useState(null);
