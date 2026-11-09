@@ -7,7 +7,15 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Colors } from '../../constants/theme';
-import { calculatePrayerTimes, fetchCurrentLocation, getHijriDate } from '../../services/prayer-service';
+import { 
+  calculatePrayerTimes, 
+  calculateFullPrayerData, 
+  getPrayerTimingStatus, 
+  formatRemainingTime, 
+  toBanglaDigits, 
+  fetchCurrentLocation, 
+  getHijriDate 
+} from '../../services/prayer-service';
 import { API_BASE_URL } from '../../constants/api';
 import TopNavbar from '../../components/TopNavbar';
 import AcquaintanceCarousel from '../../components/AcquaintanceCarousel';
@@ -34,13 +42,17 @@ export default function HomeScreen() {
 
   const [gregorianStr, setGregorianStr] = useState('');
   const [hijriStr, setHijriStr] = useState('');
+  const currentLocRef = useRef({ latitude: 23.8103, longitude: 90.4125 });
   const [prayerInfo, setPrayerInfo] = useState({
     currentName: 'আসর',
     currentTime: '৩:৪৫ PM',
-    progress: 0.8,
-    remaining: '১৫ মি',
+    progress: 0.5,
+    percent: 50,
+    percentText: '৫০',
+    remaining: '১৫ মি বাকি',
     nextName: 'মাগরিব',
     nextTime: '৫:১২ PM',
+    nextRemaining: '',
   });
   const [acquaintances, setAcquaintances] = useState([]);
   const [recentDiaries, setRecentDiaries] = useState([]);
@@ -111,6 +123,72 @@ export default function HomeScreen() {
   }, []);
 
   useEffect(() => {
+    const prayerNames = {
+      fajr: 'ফজর',
+      sunrise: 'সূর্যোদয় (মাকরূহ)',
+      chast: 'চাশত (নফল)',
+      zawal: 'জাওয়াল (মাকরূহ)',
+      dhuhr: 'যোহর',
+      asr: 'আসর',
+      sunset: 'সূর্যাস্ত (মাকরূহ)',
+      maghrib: 'মাগরিব',
+      isha: 'এশা',
+    };
+
+    const defaultLoc = {
+      latitude: 23.8103,
+      longitude: 90.4125,
+      city: 'ঢাকা',
+    };
+
+    const updateTimes = (lat, lon) => {
+      const fullData = calculateFullPrayerData(lat, lon, 'bn');
+      const pTimes = calculatePrayerTimes(lat, lon, 'bn');
+
+      const currentKey = pTimes.currentWaqtKey;
+      const nextKey = pTimes.nextPrayerKey;
+
+      const currentTime = pTimes[currentKey] || pTimes.fajr;
+      const nextTime = pTimes[nextKey] || pTimes.nextPrayerTime;
+
+      // Accurate active waqt status & progress
+      const activeWindow = fullData.prayerWindows[currentKey];
+      const status = activeWindow ? getPrayerTimingStatus(activeWindow, new Date()) : null;
+
+      let progress = 0;
+      let percent = 0;
+      let remainingStr = '';
+
+      if (status && status.status === 'active') {
+        percent = Math.min(100, Math.max(0, status.percent));
+        progress = percent / 100;
+        remainingStr = `${formatRemainingTime(status.remainingMinutes)} বাকি`;
+      } else {
+        const remainingMin = pTimes.remainingMinutes;
+        remainingStr = remainingMin < 60
+          ? `${toBengaliNumber(remainingMin)} মি বাকি`
+          : `${toBengaliNumber(Math.floor(remainingMin / 60))} ঘ ${toBengaliNumber(remainingMin % 60)} মি বাকি`;
+        progress = 0;
+        percent = 0;
+      }
+
+      const nextRemainingStr = pTimes.remainingMinutes > 0
+        ? `${formatRemainingTime(pTimes.remainingMinutes)} পরে`
+        : '';
+
+      setPrayerInfo({
+        currentName: prayerNames[currentKey] || 'আসর',
+        currentTime: currentTime,
+        progress: progress,
+        percent: percent,
+        percentText: toBanglaDigits(percent),
+        remaining: remainingStr,
+        nextName: prayerNames[nextKey] || 'মাগরিব',
+        nextTime: nextTime,
+        nextRemaining: nextRemainingStr,
+      });
+    };
+
     async function loadLiveData() {
       const now = new Date();
 
@@ -120,54 +198,6 @@ export default function HomeScreen() {
 
       // Hijri Date
       setHijriStr(getHijriDate(now));
-
-      const prayerNames = {
-        fajr: 'ফজর',
-        sunrise: 'সূর্যোদয় (মাকরূহ)',
-        chast: 'চাশত (নফল)',
-        zawal: 'জাওয়াল (মাকরূহ)',
-        dhuhr: 'যোহর',
-        asr: 'আসর',
-        sunset: 'সূর্যাস্ত (মাকরূহ)',
-        maghrib: 'মাগরিব',
-        isha: 'এশা',
-      };
-
-      const defaultLoc = {
-        latitude: 23.8103,
-        longitude: 90.4125,
-        city: 'ঢাকা',
-      };
-
-      const updateTimes = (lat, lon) => {
-        const pTimes = calculatePrayerTimes(lat, lon, 'bn');
-
-        const currentKey = pTimes.currentWaqtKey;
-        const nextKey = pTimes.nextPrayerKey;
-
-        const currentTime = pTimes[currentKey] || pTimes.fajr;
-        const nextTime = pTimes[nextKey] || pTimes.nextPrayerTime;
-
-        // Calculate progress to next Fard prayer
-        const totalDuration = 120; // approximate duration in minutes
-        const elapsed = Math.max(0, totalDuration - pTimes.remainingMinutes);
-        const progress = Math.min(1, Math.max(0, elapsed / totalDuration));
-
-        // Format remaining time with Bengali digits
-        const remainingMin = pTimes.remainingMinutes;
-        const remainingStr = remainingMin < 60
-          ? `${toBengaliNumber(remainingMin)} মি`
-          : `${toBengaliNumber(Math.floor(remainingMin / 60))} ঘ ${toBengaliNumber(remainingMin % 60)} মি`;
-
-        setPrayerInfo({
-          currentName: prayerNames[currentKey] || 'আসর',
-          currentTime: currentTime,
-          progress: progress,
-          remaining: remainingStr,
-          nextName: prayerNames[nextKey] || 'মাগরিব',
-          nextTime: nextTime,
-        });
-      };
 
       // 1. First, try to load from cache
       let cachedLoc = null;
@@ -181,12 +211,14 @@ export default function HomeScreen() {
       }
 
       const activeLoc = cachedLoc || defaultLoc;
+      currentLocRef.current = activeLoc;
       updateTimes(activeLoc.latitude, activeLoc.longitude);
 
       // 2. Query live location in the background
       try {
         const liveLoc = await fetchCurrentLocation();
         if (liveLoc && liveLoc.latitude && liveLoc.longitude) {
+          currentLocRef.current = liveLoc;
           updateTimes(liveLoc.latitude, liveLoc.longitude);
           // Save to cache
           await AsyncStorage.setItem('prayer_location', JSON.stringify({
@@ -205,6 +237,14 @@ export default function HomeScreen() {
     loadRecentDiaries();
     loadPopularArticles();
     loadUserStats();
+
+    const prayerTimer = setInterval(() => {
+      if (currentLocRef.current) {
+        updateTimes(currentLocRef.current.latitude, currentLocRef.current.longitude);
+      }
+    }, 30000);
+
+    return () => clearInterval(prayerTimer);
   }, []);
 
   // Load user stats for progress cards
@@ -337,12 +377,20 @@ export default function HomeScreen() {
                   <Text style={styles.prayerName}>{prayerInfo.currentName}</Text>
                   <Text style={styles.prayerTime}>{prayerInfo.currentTime}</Text>
 
-                  {/* Progress Bar */}
+                  {/* Progress Bar (Line Graph) */}
                   <View style={styles.progressContainer}>
                     <View style={styles.progressBarBg}>
-                      <View style={[styles.progressBarFill, { width: `${prayerInfo.progress * 100}%` }]} />
+                      <View
+                        style={[
+                          styles.progressBarFill,
+                          { width: `${Math.max(3, Math.min(100, (prayerInfo.progress || 0) * 100))}%` },
+                        ]}
+                      />
                     </View>
-                    <Text style={styles.progressText}>{prayerInfo.remaining} বাকি</Text>
+                    <View style={styles.progressInfoRow}>
+                      <Text style={styles.progressPercentText}>{prayerInfo.percentText}% সম্পন্ন</Text>
+                      <Text style={styles.progressText}>{prayerInfo.remaining}</Text>
+                    </View>
                   </View>
                 </View>
 
@@ -354,6 +402,9 @@ export default function HomeScreen() {
                   </View>
                   <Text style={styles.prayerNameNext}>{prayerInfo.nextName}</Text>
                   <Text style={styles.prayerTimeNext}>{prayerInfo.nextTime}</Text>
+                  {!!prayerInfo.nextRemaining && (
+                    <Text style={styles.prayerNextRemainingText}>{prayerInfo.nextRemaining}</Text>
+                  )}
                 </View>
               </View>
 
@@ -945,24 +996,40 @@ const styles = StyleSheet.create({
     color: '#94A3B8',
   },
   progressContainer: {
-    marginTop: 4,
+    marginTop: 6,
   },
   progressBarBg: {
-    height: 4,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 2,
+    height: 6,
+    backgroundColor: 'rgba(255, 255, 255, 0.18)',
+    borderRadius: 3,
     overflow: 'hidden',
     marginBottom: 4,
   },
   progressBarFill: {
     height: '100%',
     backgroundColor: '#34D399',
-    borderRadius: 2,
+    borderRadius: 3,
+  },
+  progressInfoRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  progressPercentText: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: '#CBD5E1',
   },
   progressText: {
     fontSize: 9,
     fontWeight: '700',
     color: '#34D399',
+  },
+  prayerNextRemainingText: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: '#60A5FA',
+    marginTop: 6,
   },
   dateRow: {
     flexDirection: 'row',

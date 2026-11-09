@@ -473,10 +473,31 @@ export function calculateFullPrayerData(
     durationMinutes: Math.floor((isha.getTime() - maghrib.getTime()) / 60000),
   };
 
+  // Isha window
+  // If targetDate is today and current time is between midnight and Fajr,
+  // the ongoing Isha started yesterday and ends at today's Fajr
+  const nowTime = new Date();
+  const isToday = !targetDate || (
+    date.getDate() === nowTime.getDate() &&
+    date.getMonth() === nowTime.getMonth() &&
+    date.getFullYear() === nowTime.getFullYear()
+  );
+  const isBeforeTodayFajr = isToday && nowTime.getTime() < fajr.getTime();
+
+  let ishaStart = isha;
+  let ishaEnd = addMinutes(nextDayFajr, -1);
+
+  if (isBeforeTodayFajr) {
+    const prevLocalDate = new Date(date.getFullYear(), date.getMonth(), date.getDate() - 1);
+    const prevRawTimes = new PrayerTimes(coordinates, prevLocalDate, params);
+    ishaStart = adhanTimeToLocal(prevRawTimes.isha);
+    ishaEnd = fajr;
+  }
+
   prayerWindows.isha = {
-    start: isha,
-    end: addMinutes(nextDayFajr, -1),
-    durationMinutes: Math.floor((addMinutes(nextDayFajr, -1).getTime() - isha.getTime()) / 60000),
+    start: ishaStart,
+    end: ishaEnd,
+    durationMinutes: Math.max(1, Math.floor((ishaEnd.getTime() - ishaStart.getTime()) / 60000)),
   };
 
   return {
@@ -515,14 +536,14 @@ export function getPrayerTimingStatus(window: PrayerWindow, now: Date): PrayerTi
     };
   }
   if (now.getTime() < window.end.getTime()) {
-    const elapsed = Math.floor((now.getTime() - window.start.getTime()) / 60000);
-    const remaining = window.durationMinutes - elapsed;
+    const elapsed = Math.max(0, Math.floor((now.getTime() - window.start.getTime()) / 60000));
+    const remaining = Math.max(0, window.durationMinutes - elapsed);
     return {
       status: 'active',
       elapsedMinutes: elapsed,
       remainingMinutes: remaining,
       totalMinutes: window.durationMinutes,
-      percent: Math.round((elapsed / window.durationMinutes) * 100),
+      percent: window.durationMinutes > 0 ? Math.min(100, Math.max(0, Math.round((elapsed / window.durationMinutes) * 100))) : 0,
     };
   }
   return {
