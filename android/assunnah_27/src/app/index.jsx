@@ -7,9 +7,7 @@ import {
   Dimensions,
   Animated,
   StatusBar,
-  useColorScheme,
   Image,
-  Platform,
 } from 'react-native';
 import { useRouter, Redirect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -18,44 +16,47 @@ import { useAuth } from '../context/AuthContext';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
-const SLIDE_DURATION = 2600; // 2.6 seconds per cover slide
+// Responsive cover dimensions matching 1.372 aspect ratio
+const COVER_WIDTH = Math.min(Math.round(SCREEN_WIDTH * 0.72), 320);
+const COVER_HEIGHT = Math.round(COVER_WIDTH * 1.372);
+
+const SLIDE_DURATION = 2800; // 2.8 seconds per slide
 
 const COVERS = [
   {
     id: 1,
     image: require('../../assets/expo.icon/Assets/images/proccod_1.jpeg'),
-    edition: 'প্রথম সংস্করণ',
+    edition: 'প্রথম প্রচ্ছদ',
     title: 'হৃদয়ে আস-সুন্নাহ',
-    subtitle: 'বিদায়ী স্মৃতি ২০২৭ • দাওরায়ে হাদীস',
-    institution: 'জামিয়াতুস সুন্নাহ',
+    subtitle: 'বিদায়ী স্মৃতি ২০২৭ • দাওরায়ে হাদীস সমাপনী',
+    institution: 'জামিয়াতুস সুন্নাহ • মাদারীপুর',
   },
   {
     id: 2,
     image: require('../../assets/expo.icon/Assets/images/proccod_2.jpeg'),
-    edition: 'দ্বিতীয় সংস্করণ',
+    edition: 'দ্বিতীয় প্রচ্ছদ',
     title: 'হৃদয়ে আস-সুন্নাহ',
-    subtitle: 'বিদায়ী স্মৃতি ২০২৭ • দাওরায়ে হাদীস',
-    institution: 'জামিয়াতুস সুন্নাহ',
+    subtitle: 'বিদায়ী স্মৃতি ২০২৭ • দাওরায়ে হাদীস সমাপনী',
+    institution: 'জামিয়াতুস সুন্নাহ • মাদারীপুর',
   },
   {
     id: 3,
     image: require('../../assets/expo.icon/Assets/images/proccod_3.jpeg'),
-    edition: 'তৃতীয় সংস্করণ',
+    edition: 'তৃতীয় প্রচ্ছদ',
     title: 'হৃদয়ে আস-সুন্নাহ',
-    subtitle: 'বিদায়ী স্মৃতি ২০২৭ • দাওরায়ে হাদীস',
-    institution: 'জামিয়াতুস সুন্নাহ',
+    subtitle: 'বিদায়ী স্মৃতি ২০২৭ • দাওরায়ে হাদীস সমাপনী',
+    institution: 'জামিয়াতুস সুন্নাহ • মাদারীপুর',
   },
 ];
 
 export default function HomeRedirect() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === 'dark';
   const { redirectAfterLogout } = useAuth();
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const fadeAnim = useRef(new Animated.Value(1)).current;
+  const scaleAnim = useRef(new Animated.Value(1)).current;
   const progressAnim = useRef(new Animated.Value(0)).current;
   const timerRef = useRef(null);
   const hasNavigated = useRef(false);
@@ -80,22 +81,36 @@ export default function HomeRedirect() {
       return;
     }
 
-    // Smooth fade transition
-    Animated.timing(fadeAnim, {
-      toValue: 0,
-      duration: 250,
-      useNativeDriver: true,
-    }).start(() => {
-      setCurrentIndex(nextIndex);
+    // Smooth transition
+    Animated.parallel([
       Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 350,
+        toValue: 0.1,
+        duration: 220,
         useNativeDriver: true,
-      }).start();
+      }),
+      Animated.timing(scaleAnim, {
+        toValue: 0.95,
+        duration: 220,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      setCurrentIndex(nextIndex);
+      Animated.parallel([
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+        Animated.timing(scaleAnim, {
+          toValue: 1,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+      ]).start();
     });
   };
 
-  // Progress bar and auto-advance timer for current slide
+  // Auto-advance timer and progress bar
   useEffect(() => {
     progressAnim.setValue(0);
     Animated.timing(progressAnim, {
@@ -141,21 +156,11 @@ export default function HomeRedirect() {
     <View style={styles.container}>
       <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
 
-      {/* Blurred / Dimmed Backdrop */}
-      <Image
-        key={`bg-${currentIndex}`}
-        source={currentCover.image}
-        style={StyleSheet.absoluteFillObject}
-        blurRadius={Platform.OS === 'ios' ? 24 : 12}
-        resizeMode="cover"
-      />
-      <View style={styles.darkBackdrop} />
-
       {/* Top Header Bar */}
-      <View style={[styles.headerBar, { top: insets.top + 8 }]}>
+      <View style={[styles.headerBar, { paddingTop: insets.top + 8 }]}>
         <View style={styles.brandRow}>
           <View style={styles.brandIconCircle}>
-            <Ionicons name="book" size={14} color="#FBBF24" />
+            <Ionicons name="book" size={13} color="#FBBF24" />
           </View>
           <Text style={styles.brandName}>আস-সুন্নাহ প্রকাশনা</Text>
         </View>
@@ -167,27 +172,37 @@ export default function HomeRedirect() {
           style={styles.skipButton}
         >
           <Text style={styles.skipButtonText}>এড়িয়ে যান</Text>
-          <Ionicons name="chevron-forward" size={15} color="#FFFFFF" />
+          <Ionicons name="chevron-forward" size={14} color="#FFFFFF" />
         </TouchableOpacity>
       </View>
 
-      {/* Main Cover Display with Cross-Fade */}
-      <Animated.View style={[styles.coverContainer, { opacity: fadeAnim }]}>
-        <TouchableOpacity
-          activeOpacity={0.98}
-          onPress={handleNextPress}
-          style={styles.touchableCover}
+      {/* Center Showcase Area (Dedicated flex: 1 space, zero overlap) */}
+      <View style={styles.showcaseArea}>
+        <Animated.View
+          style={[
+            styles.animatedWrapper,
+            {
+              opacity: fadeAnim,
+              transform: [{ scale: scaleAnim }],
+            },
+          ]}
         >
-          <Image
-            source={currentCover.image}
-            style={styles.coverImage}
-            resizeMode="contain"
-          />
-        </TouchableOpacity>
-      </Animated.View>
+          <TouchableOpacity
+            activeOpacity={0.95}
+            onPress={handleNextPress}
+            style={styles.coverCard}
+          >
+            <Image
+              source={currentCover.image}
+              style={styles.coverImage}
+              resizeMode="cover"
+            />
+          </TouchableOpacity>
+        </Animated.View>
+      </View>
 
-      {/* Bottom Information & Controls */}
-      <View style={[styles.bottomCard, { paddingBottom: Math.max(insets.bottom + 12, 24) }]}>
+      {/* Bottom Information & Controls (Natural flow below cover) */}
+      <View style={[styles.bottomCard, { paddingBottom: Math.max(insets.bottom + 8, 20) }]}>
         {/* Step Progress Indicators */}
         <View style={styles.progressRow}>
           {COVERS.map((item, idx) => {
@@ -235,7 +250,7 @@ export default function HomeRedirect() {
               <Ionicons name="arrow-back" size={20} color="#FFFFFF" />
             </TouchableOpacity>
           ) : (
-            <View style={{ width: 48 }} />
+            <View style={{ width: 44 }} />
           )}
 
           <TouchableOpacity
@@ -261,42 +276,38 @@ export default function HomeRedirect() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0B0F19',
-  },
-  darkBackdrop: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(11, 15, 25, 0.72)',
+    backgroundColor: '#070D18',
+    justifyContent: 'space-between',
   },
   headerBar: {
-    position: 'absolute',
-    left: 16,
-    right: 16,
-    zIndex: 20,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    paddingHorizontal: 18,
+    paddingBottom: 8,
+    zIndex: 20,
   },
   brandRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(15, 23, 42, 0.65)',
-    paddingVertical: 6,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    paddingVertical: 5,
     paddingHorizontal: 12,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.15)',
-    gap: 8,
+    borderColor: 'rgba(255, 255, 255, 0.12)',
+    gap: 6,
   },
   brandIconCircle: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
     backgroundColor: 'rgba(251, 191, 36, 0.2)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   brandName: {
-    color: '#F8FAFC',
+    color: '#E2E8F0',
     fontSize: 12,
     fontWeight: '700',
     letterSpacing: 0.3,
@@ -304,12 +315,12 @@ const styles = StyleSheet.create({
   skipButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.16)',
+    backgroundColor: 'rgba(255, 255, 255, 0.12)',
     paddingVertical: 6,
     paddingHorizontal: 14,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.25)',
+    borderColor: 'rgba(255, 255, 255, 0.2)',
     gap: 4,
   },
   skipButtonText: {
@@ -317,54 +328,53 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
   },
-  coverContainer: {
+  showcaseArea: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingTop: 80,
-    paddingBottom: 220,
-    zIndex: 10,
+    paddingVertical: 10,
   },
-  touchableCover: {
-    width: SCREEN_WIDTH * 0.78,
-    height: SCREEN_HEIGHT * 0.52,
+  animatedWrapper: {
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 16 },
+  },
+  coverCard: {
+    width: COVER_WIDTH,
+    height: COVER_HEIGHT,
+    borderRadius: 14,
+    overflow: 'hidden',
+    backgroundColor: '#1E293B',
+    elevation: 14,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 12 },
     shadowOpacity: 0.55,
-    shadowRadius: 24,
-    elevation: 16,
+    shadowRadius: 18,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.18)',
   },
   coverImage: {
-    width: '100%',
-    height: '100%',
-    borderRadius: 12,
+    width: COVER_WIDTH,
+    height: COVER_HEIGHT,
   },
   bottomCard: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: 'rgba(15, 23, 42, 0.88)',
-    borderTopLeftRadius: 30,
-    borderTopRightRadius: 30,
+    backgroundColor: 'rgba(15, 23, 42, 0.94)',
+    borderTopLeftRadius: 26,
+    borderTopRightRadius: 26,
     borderTopWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.12)',
-    paddingHorizontal: 22,
-    paddingTop: 18,
-    zIndex: 30,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    paddingHorizontal: 20,
+    paddingTop: 16,
   },
   progressRow: {
     flexDirection: 'row',
     gap: 8,
-    marginBottom: 14,
+    marginBottom: 12,
   },
   progressTrack: {
     flex: 1,
     height: 4,
     borderRadius: 2,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: 'rgba(255, 255, 255, 0.16)',
     overflow: 'hidden',
   },
   progressFill: {
@@ -374,39 +384,39 @@ const styles = StyleSheet.create({
   },
   metaSection: {
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 14,
   },
   editionBadge: {
-    backgroundColor: 'rgba(245, 158, 11, 0.2)',
+    backgroundColor: 'rgba(245, 158, 11, 0.18)',
     paddingHorizontal: 10,
-    paddingVertical: 3,
-    borderRadius: 12,
+    paddingVertical: 2,
+    borderRadius: 10,
     borderWidth: 1,
-    borderColor: 'rgba(245, 158, 11, 0.4)',
-    marginBottom: 6,
+    borderColor: 'rgba(245, 158, 11, 0.35)',
+    marginBottom: 4,
   },
   editionBadgeText: {
     color: '#FBBF24',
     fontSize: 11,
     fontWeight: '800',
-    letterSpacing: 0.5,
+    letterSpacing: 0.3,
   },
   coverTitle: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: '900',
     color: '#FFFFFF',
     letterSpacing: -0.3,
     textAlign: 'center',
   },
   coverSubtitle: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '600',
-    color: '#E2E8F0',
-    marginTop: 4,
+    color: '#CBD5E1',
+    marginTop: 2,
     textAlign: 'center',
   },
   institutionText: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '500',
     color: '#94A3B8',
     marginTop: 2,
@@ -419,33 +429,33 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   backArrowBtn: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: 'rgba(255, 255, 255, 0.12)',
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
+    borderColor: 'rgba(255, 255, 255, 0.18)',
   },
   primaryActionBtn: {
     flex: 1,
-    height: 50,
-    borderRadius: 25,
+    height: 46,
+    borderRadius: 23,
     backgroundColor: '#059669',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
+    gap: 6,
     shadowColor: '#059669',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.35,
-    shadowRadius: 10,
-    elevation: 6,
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
   },
   primaryActionBtnText: {
     color: '#FFFFFF',
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '800',
   },
 });
