@@ -68,6 +68,20 @@ export default function FareginSignupScreen() {
   const [dynamicGraduates, setDynamicGraduates] = useState([]);
   const [loadingGraduates, setLoadingGraduates] = useState(false);
   const [selectedGraduateId, setSelectedGraduateId] = useState(null);
+  const [selectedGraduate, setSelectedGraduate] = useState(null);
+
+  // Convert Bengali numerals to ASCII
+  const bnToAscii = (str) => {
+    if (!str) return '';
+    const bnNums = ['০', '১', '২', '৩', '৪', '৫', '৬', '৭', '৮', '৯'];
+    return String(str)
+      .split('')
+      .map((ch) => {
+        const idx = bnNums.indexOf(ch);
+        return idx !== -1 ? idx : ch;
+      })
+      .join('');
+  };
 
   // Available thanas for selected district
   const availableThanas = useMemo(() => {
@@ -76,28 +90,42 @@ export default function FareginSignupScreen() {
   }, [district]);
 
   // Search dynamic graduates for past batches
-  const searchDynamicGraduates = async (query = '') => {
-    if (!customGraduationYear) return;
+  const searchDynamicGraduates = async (query = '', targetYear = customGraduationYear) => {
+    const rawYear = (targetYear || customGraduationYear || '').trim();
+    if (!rawYear) {
+      setDynamicGraduates([]);
+      return;
+    }
+    const yearAscii = bnToAscii(rawYear);
     try {
       setLoadingGraduates(true);
-      let url = `${API_ENDPOINTS.JAMIA_GRADUATES || `${API_ENDPOINTS.SIGNUP_UNIVERSAL.replace('signup/', 'jamia-graduates/')}`}?graduation_year=${customGraduationYear}`;
-      if (query) url += `&search=${encodeURIComponent(query)}`;
+      let url = `${API_ENDPOINTS.JAMIA_GRADUATES || `${API_ENDPOINTS.SIGNUP_UNIVERSAL.replace('signup/', 'jamia-graduates/')}`}?graduation_year=${encodeURIComponent(yearAscii)}`;
+      if (query && query.trim()) {
+        url += `&search=${encodeURIComponent(query.trim())}`;
+      }
       const res = await fetch(url);
       if (res.ok) {
         const data = await res.json();
         setDynamicGraduates(Array.isArray(data) ? data : data.results || []);
+      } else {
+        setDynamicGraduates([]);
       }
     } catch (e) {
       console.log('Error fetching graduates:', e);
+      setDynamicGraduates([]);
     } finally {
       setLoadingGraduates(false);
     }
   };
 
   useEffect(() => {
-    if (takmilYearType === 'other' && customGraduationYear) {
-      const delay = setTimeout(() => searchDynamicGraduates(searchQuery), 400);
+    if (takmilYearType === 'other' && customGraduationYear && customGraduationYear.trim().length >= 2) {
+      const delay = setTimeout(() => {
+        searchDynamicGraduates(searchQuery, customGraduationYear);
+      }, 350);
       return () => clearTimeout(delay);
+    } else if (takmilYearType === 'other' && !customGraduationYear.trim()) {
+      setDynamicGraduates([]);
     }
   }, [searchQuery, customGraduationYear, takmilYearType]);
 
@@ -143,17 +171,24 @@ export default function FareginSignupScreen() {
     setSearchQuery('');
   };
 
-  // Convert Bengali numerals to ASCII
-  const bnToAscii = (str) => {
-    if (!str) return '';
-    const bnNums = ['০', '১', '২', '৩', '৪', '৫', '৬', '৭', '৮', '৯'];
-    return String(str)
-      .split('')
-      .map((ch) => {
-        const idx = bnNums.indexOf(ch);
-        return idx !== -1 ? idx : ch;
-      })
-      .join('');
+  // When a student is selected from dynamic graduates (other batches)
+  const handleSelectDynamicGraduate = (grad) => {
+    setSelectedGraduate(grad);
+    setSelectedGraduateId(grad.id);
+    setSelectedFuzalayeName(grad.name);
+    setFirstName(grad.name);
+    if (grad.father_name) setFatherName(grad.father_name);
+    if (grad.village) setVillage(grad.village);
+    if (grad.post_office) setPostOffice(grad.post_office);
+    if (grad.district) setDistrict(grad.district);
+    if (grad.thana) setUpazila(grad.thana);
+    if (grad.blood_group) setBloodGroup(grad.blood_group);
+    if (grad.mobile) {
+      const cleanPhone = bnToAscii(grad.mobile).replace(/[^0-9]/g, '');
+      if (cleanPhone) setPhoneNumber(cleanPhone);
+    }
+    setShowNameModal(false);
+    setSearchQuery('');
   };
 
   // Strict Verification for 2027 Batch
@@ -213,8 +248,13 @@ export default function FareginSignupScreen() {
   const handleSignup = async () => {
     setError(null);
 
-    if (!firstName || !phoneNumber || !email || !district || !upazila || !dakhilaNumber || !password || !passwordConfirm) {
+    if (!firstName || !phoneNumber || !email || !district || !upazila || (takmilYearType === '2027' && !dakhilaNumber) || !password || !passwordConfirm) {
       setError('অনুগ্রহ করে প্রয়োজনীয় সকল তথ্য পূরণ করুন।');
+      return;
+    }
+
+    if (takmilYearType === 'other' && !customGraduationYear.trim()) {
+      setError('অনুগ্রহ করে পাসের শিক্ষাবর্ষ উল্লেখ করুন।');
       return;
     }
 
@@ -251,8 +291,8 @@ export default function FareginSignupScreen() {
       password,
       password_confirm: passwordConfirm,
       takmil_year_type: takmilYearType === '2027' ? '26_27' : 'other',
-      custom_graduation_year: takmilYearType === 'other' ? customGraduationYear : '2027',
-      fuzalaye_jamia_name: takmilYearType === '2027' ? selectedFuzalayeName : null,
+      custom_graduation_year: takmilYearType === 'other' ? bnToAscii(customGraduationYear.trim()) : '2027',
+      fuzalaye_jamia_name: takmilYearType === '2027' ? selectedFuzalayeName : (selectedGraduate ? selectedGraduate.name : null),
       jamia_graduate_id: takmilYearType === 'other' ? selectedGraduateId : null,
     };
 
@@ -335,7 +375,10 @@ export default function FareginSignupScreen() {
               onPress={() => {
                 setTakmilYearType('2027');
                 setSelectedStudentRef(null);
+                setSelectedGraduate(null);
+                setSelectedGraduateId(null);
                 setSelectedFuzalayeName('');
+                setSearchQuery('');
               }}
             >
               <MaterialCommunityIcons
@@ -360,6 +403,10 @@ export default function FareginSignupScreen() {
               onPress={() => {
                 setTakmilYearType('other');
                 setSelectedStudentRef(null);
+                setSelectedGraduate(null);
+                setSelectedGraduateId(null);
+                setSelectedFuzalayeName('');
+                setSearchQuery('');
               }}
             >
               <MaterialCommunityIcons
@@ -381,12 +428,82 @@ export default function FareginSignupScreen() {
               <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>পাসের সন / শিক্ষাবর্ষ লিখুন *</Text>
               <TextInput
                 style={[styles.inputBox, { color: colors.text, borderColor: isDark ? '#334155' : '#E2E8F0' }]}
-                placeholder="যেমন: 2026 বা 2025"
+                placeholder="যেমন: 2025 বা 2024"
                 placeholderTextColor={colors.textMuted}
                 value={customGraduationYear}
-                onChangeText={setCustomGraduationYear}
+                onChangeText={(val) => {
+                  setCustomGraduationYear(val);
+                  setSelectedGraduate(null);
+                  setSelectedGraduateId(null);
+                }}
                 keyboardType="numeric"
               />
+
+              {/* Other Batches Student Selector Card */}
+              {customGraduationYear.trim().length >= 2 && (
+                <View style={{ marginTop: 14 }}>
+                  <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>
+                    {customGraduationYear} ব্যাচের তালিকা থেকে নিজের নাম নির্বাচন করুন
+                  </Text>
+                  <TouchableOpacity
+                    style={[
+                      styles.selectCard,
+                      {
+                        backgroundColor: isDark ? '#0F172A' : '#F8FAFC',
+                        borderColor: selectedGraduate ? '#059669' : isDark ? '#334155' : '#E2E8F0',
+                      },
+                    ]}
+                    onPress={() => {
+                      setSearchQuery('');
+                      setShowNameModal(true);
+                      if (dynamicGraduates.length === 0) {
+                        searchDynamicGraduates('', customGraduationYear);
+                      }
+                    }}
+                  >
+                    {loadingGraduates ? (
+                      <ActivityIndicator size="small" color="#059669" />
+                    ) : (
+                      <Ionicons
+                        name={selectedGraduate ? 'checkmark-circle' : 'search'}
+                        size={20}
+                        color={selectedGraduate ? '#059669' : colors.textMuted}
+                      />
+                    )}
+                    <Text
+                      style={[
+                        styles.selectCardText,
+                        { color: selectedGraduate ? (isDark ? '#F8FAFC' : '#0F172A') : colors.textMuted },
+                      ]}
+                      numberOfLines={1}
+                    >
+                      {selectedGraduate
+                        ? `${selectedGraduate.name} (পিতা: ${selectedGraduate.father_name || 'নাই'}, ${selectedGraduate.district || ''})`
+                        : dynamicGraduates.length > 0
+                        ? `ডাটাবেজে ${dynamicGraduates.length} জনের নাম রয়েছে — সিলেক্ট করুন`
+                        : loadingGraduates
+                        ? 'ডাটাবেজে অনুসন্ধান করা হচ্ছে...'
+                        : 'তালিকা থেকে নাম খুঁজুন ও সিলেক্ট করুন'}
+                    </Text>
+                    <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+                  </TouchableOpacity>
+
+                  {selectedGraduate && (
+                    <View style={styles.verifiedNotice}>
+                      <Ionicons name="shield-checkmark" size={16} color="#059669" />
+                      <Text style={styles.verifiedNoticeText}>
+                        ডাটাবেজ থেকে তথ্য পূরণ করা হয়েছে। প্রয়োজনে সংশোধন করতে পারেন।
+                      </Text>
+                    </View>
+                  )}
+
+                  {!selectedGraduate && dynamicGraduates.length === 0 && !loadingGraduates && (
+                    <Text style={{ fontSize: 11, color: colors.textMuted, marginTop: 6, fontStyle: 'italic' }}>
+                      💡 ডাটাবেজে নাম না থাকলে সরাসরি নিচে আপনার তথ্য পূরণ করে সাইনআপ করতে পারেন।
+                    </Text>
+                  )}
+                </View>
+              )}
             </View>
           )}
 
@@ -404,7 +521,10 @@ export default function FareginSignupScreen() {
                     borderColor: selectedStudentRef ? '#059669' : isDark ? '#334155' : '#E2E8F0',
                   },
                 ]}
-                onPress={() => setShowNameModal(true)}
+                onPress={() => {
+                  setSearchQuery('');
+                  setShowNameModal(true);
+                }}
               >
                 <Ionicons
                   name={selectedStudentRef ? 'checkmark-circle' : 'search'}
@@ -449,18 +569,54 @@ export default function FareginSignupScreen() {
               placeholder="আপনার পূর্ণ নাম"
               placeholderTextColor={colors.textMuted}
               value={firstName}
-              onChangeText={setFirstName}
+              onChangeText={(text) => {
+                setFirstName(text);
+                if (selectedGraduate && text !== selectedGraduate.name) {
+                  setSelectedGraduate(null);
+                  setSelectedGraduateId(null);
+                }
+              }}
             />
+            {/* Real-time Inline Name Suggestions for Other Years */}
+            {takmilYearType === 'other' && !selectedGraduate && firstName.trim().length >= 1 && (
+              dynamicGraduates.filter((g) => g.name && g.name.toLowerCase().includes(firstName.toLowerCase().trim())).length > 0 && (
+                <View style={[styles.inlineSuggestionsBox, { backgroundColor: isDark ? '#0F172A' : '#F8FAFC', borderColor: isDark ? '#334155' : '#E2E8F0' }]}>
+                  {dynamicGraduates
+                    .filter((g) => g.name && g.name.toLowerCase().includes(firstName.toLowerCase().trim()))
+                    .slice(0, 4)
+                    .map((item) => (
+                      <TouchableOpacity
+                        key={item.id}
+                        style={[styles.inlineSuggestionItem, { borderBottomColor: isDark ? '#334155' : '#E2E8F0' }]}
+                        onPress={() => handleSelectDynamicGraduate(item)}
+                      >
+                        <Ionicons name="school-outline" size={18} color="#059669" />
+                        <View style={{ flex: 1, marginLeft: 8 }}>
+                          <Text style={[styles.inlineSuggestionName, { color: colors.text }]}>{item.name}</Text>
+                          <Text style={styles.inlineSuggestionSub}>
+                            {item.father_name ? `পিতা: ${item.father_name} | ` : ''}{item.thana ? `${item.thana}, ` : ''}{item.district || ''}
+                          </Text>
+                        </View>
+                        <View style={styles.inlineSelectBadge}>
+                          <Text style={styles.inlineSelectBadgeText}>সিলেক্ট</Text>
+                        </View>
+                      </TouchableOpacity>
+                    ))}
+                </View>
+              )
+            )}
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>দাখিলা নম্বর (Dakhila) *</Text>
+            <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>
+              {takmilYearType === '2027' ? 'দাখিলা নম্বর (Dakhila) *' : 'দাখিলা নম্বর (জানা থাকলে)'}
+            </Text>
             <TextInput
               style={[
                 styles.inputBox,
                 { color: colors.text, borderColor: isDark ? '#334155' : '#E2E8F0', fontWeight: '700' },
               ]}
-              placeholder="যেমন: 267"
+              placeholder={takmilYearType === '2027' ? 'যেমন: 267' : 'দাখিলা নম্বর (ঐচ্ছিক)'}
               placeholderTextColor={colors.textMuted}
               value={dakhilaNumber}
               onChangeText={setDakhilaNumber}
@@ -607,12 +763,16 @@ export default function FareginSignupScreen() {
         </View>
       </KeyboardAwareScrollView>
 
-      {/* Name Selector Modal (2027 Takmil List) */}
+      {/* Name Selector Modal (2027 Takmil List or Other Years from DB) */}
       <Modal visible={showNameModal} animationType="slide" transparent={true}>
         <View style={styles.modalOverlay}>
           <View style={[styles.modalBox, { backgroundColor: isDark ? '#1E293B' : '#FFFFFF' }]}>
             <View style={styles.modalHeader}>
-              <Text style={[styles.modalTitle, { color: colors.text }]}>২০২৭ তাকমিল তালিকা</Text>
+              <Text style={[styles.modalTitle, { color: colors.text }]}>
+                {takmilYearType === '2027'
+                  ? '২০২৭ তাকমিল তালিকা'
+                  : `${customGraduationYear || ''} ফারেগীন তালিকা`}
+              </Text>
               <TouchableOpacity onPress={() => setShowNameModal(false)}>
                 <Ionicons name="close" size={24} color={colors.text} />
               </TouchableOpacity>
@@ -622,34 +782,94 @@ export default function FareginSignupScreen() {
               <Ionicons name="search" size={18} color={colors.textMuted} />
               <TextInput
                 style={[styles.modalSearchInput, { color: colors.text }]}
-                placeholder="নাম বা দাখিলা নম্বর দিয়ে খুঁজুন..."
+                placeholder={
+                  takmilYearType === '2027'
+                    ? 'নাম বা দাখিলা নম্বর দিয়ে খুঁজুন...'
+                    : 'নাম, পিতা, জেলা বা মোবাইল দিয়ে খুঁজুন...'
+                }
                 placeholderTextColor={colors.textMuted}
                 value={searchQuery}
                 onChangeText={setSearchQuery}
               />
+              {loadingGraduates && <ActivityIndicator size="small" color="#059669" />}
             </View>
 
-            <FlatList
-              data={filteredTakmilStudents}
-              keyExtractor={(item, index) => `${item.dakhila}_${index}`}
-              renderItem={({ item }) => (
-                <TouchableOpacity
-                  style={[styles.modalItem, { borderBottomColor: isDark ? '#334155' : '#F1F5F9' }]}
-                  onPress={() => handleSelectTakmilStudent(item)}
-                >
-                  <View style={styles.dakhilaBadge}>
-                    <Text style={styles.dakhilaBadgeText}>{item.dakhila}</Text>
+            {takmilYearType === '2027' ? (
+              <FlatList
+                data={filteredTakmilStudents}
+                keyExtractor={(item, index) => `${item.dakhila}_${index}`}
+                renderItem={({ item }) => (
+                  <TouchableOpacity
+                    style={[styles.modalItem, { borderBottomColor: isDark ? '#334155' : '#F1F5F9' }]}
+                    onPress={() => handleSelectTakmilStudent(item)}
+                  >
+                    <View style={styles.dakhilaBadge}>
+                      <Text style={styles.dakhilaBadgeText}>{item.dakhila}</Text>
+                    </View>
+                    <View style={{ flex: 1, marginLeft: 12 }}>
+                      <Text style={[styles.modalItemName, { color: colors.text }]}>{item.name}</Text>
+                      <Text style={styles.modalItemSub}>
+                        পিতা: {item.father} | {item.thana}, {item.district}
+                      </Text>
+                    </View>
+                    <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+                  </TouchableOpacity>
+                )}
+                ListEmptyComponent={
+                  <View style={{ padding: 24, alignItems: 'center' }}>
+                    <Text style={{ color: colors.textMuted }}>কোনো নাম পাওয়া যায়নি।</Text>
                   </View>
-                  <View style={{ flex: 1, marginLeft: 12 }}>
-                    <Text style={[styles.modalItemName, { color: colors.text }]}>{item.name}</Text>
-                    <Text style={styles.modalItemSub}>
-                      পিতা: {item.father} | {item.thana}, {item.district}
-                    </Text>
-                  </View>
-                  <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
-                </TouchableOpacity>
-              )}
-            />
+                }
+              />
+            ) : (
+              <FlatList
+                data={dynamicGraduates}
+                keyExtractor={(item) => String(item.id)}
+                renderItem={({ item }) => (
+                  <TouchableOpacity
+                    style={[styles.modalItem, { borderBottomColor: isDark ? '#334155' : '#F1F5F9' }]}
+                    onPress={() => handleSelectDynamicGraduate(item)}
+                  >
+                    <View style={[styles.dakhilaBadge, { backgroundColor: '#0284C7' }]}>
+                      <Ionicons name="school" size={14} color="#fff" />
+                    </View>
+                    <View style={{ flex: 1, marginLeft: 12 }}>
+                      <Text style={[styles.modalItemName, { color: colors.text }]}>{item.name}</Text>
+                      <Text style={styles.modalItemSub}>
+                        {item.father_name ? `পিতা: ${item.father_name} | ` : ''}
+                        {item.thana ? `${item.thana}, ` : ''}{item.district || ''}
+                        {item.mobile ? ` | মোবা: ${item.mobile}` : ''}
+                      </Text>
+                    </View>
+                    {selectedGraduateId === item.id ? (
+                      <Ionicons name="checkmark-circle" size={20} color="#059669" />
+                    ) : (
+                      <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+                    )}
+                  </TouchableOpacity>
+                )}
+                ListEmptyComponent={
+                  loadingGraduates ? (
+                    <View style={{ padding: 32, alignItems: 'center' }}>
+                      <ActivityIndicator size="large" color="#059669" />
+                      <Text style={{ marginTop: 8, color: colors.textMuted }}>ডাটাবেজ থেকে খোঁজা হচ্ছে...</Text>
+                    </View>
+                  ) : (
+                    <View style={{ padding: 24, alignItems: 'center' }}>
+                      <Ionicons name="information-circle-outline" size={36} color={colors.textMuted} />
+                      <Text style={{ color: colors.textMuted, marginTop: 8, textAlign: 'center', fontSize: 13 }}>
+                        {customGraduationYear
+                          ? `ডাটাবেজে "${customGraduationYear}" সনের কোনো রেকর্ড পাওয়া যায়নি।`
+                          : 'প্রথমে পাসের শিক্ষাবর্ষ লিখুন।'}
+                      </Text>
+                      <Text style={{ color: colors.textMuted, marginTop: 4, textAlign: 'center', fontSize: 12 }}>
+                        রেকর্ড না থাকলে সরাসরি নিচের বক্সে আপনার তথ্য লিখে সাইনআপ সম্পন্ন করতে পারবেন।
+                      </Text>
+                    </View>
+                  )
+                }
+              />
+            )}
           </View>
         </View>
       </Modal>
@@ -802,4 +1022,10 @@ const styles = StyleSheet.create({
   dakhilaBadgeText: { color: '#fff', fontSize: 12, fontWeight: '700' },
   bloodItem: { paddingVertical: 10, borderBottomWidth: 0.5, borderBottomColor: '#E2E8F0', alignItems: 'center' },
   bloodText: { fontSize: 16, fontWeight: '600' },
+  inlineSuggestionsBox: { marginTop: 6, borderRadius: 10, borderWidth: 1, overflow: 'hidden' },
+  inlineSuggestionItem: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 10, borderBottomWidth: 0.8 },
+  inlineSuggestionName: { fontSize: 13, fontWeight: '700' },
+  inlineSuggestionSub: { fontSize: 11, color: '#64748B', marginTop: 1 },
+  inlineSelectBadge: { backgroundColor: '#059669', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
+  inlineSelectBadgeText: { color: '#fff', fontSize: 11, fontWeight: '700' },
 });
