@@ -1350,7 +1350,16 @@ class JamiaGraduateViewSet(viewsets.ModelViewSet):
         if district:
             queryset = queryset.filter(district__iexact=district)
         if graduation_year:
-            queryset = queryset.filter(graduation_year=graduation_year)
+            graduation_year_str = str(graduation_year).strip()
+            bn_to_en = str.maketrans('০১২৩৪৫৬৭৮৯', '0123456789')
+            en_to_bn = str.maketrans('0123456789', '০১২৩৪৫৬৭৮৯')
+            en_year = graduation_year_str.translate(bn_to_en)
+            bn_year = graduation_year_str.translate(en_to_bn)
+            queryset = queryset.filter(
+                Q(graduation_year__iexact=graduation_year_str) |
+                Q(graduation_year__iexact=en_year) |
+                Q(graduation_year__iexact=bn_year)
+            )
         if search:
             queryset = queryset.filter(
                 Q(name__icontains=search) | 

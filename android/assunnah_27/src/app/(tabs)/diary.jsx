@@ -31,7 +31,6 @@ export default function DiaryScreen() {
     { id: 2, label: 'হযরাতুল মুহাদ্দিসিন', icon: 'people-outline', color: '#9333EA', colorBg: colors.purpleCardBg, colorBorder: colors.purpleCardBorder },
     { id: 3, label: 'মুদাররিস ও মোলাঝিম', icon: 'shirt-outline', color: '#059669', colorBg: colors.emeraldCardBg, colorBorder: colors.emeraldCardBorder },
     { id: 4, label: 'ফুজালায়ে জামিয়া', icon: 'ribbon-outline', color: '#D97706', colorBg: colors.amberCardBg, colorBorder: colors.amberCardBorder },
-    { id: 5, label: 'দায়িত্বশীল কর্মীগণ', icon: 'business-outline', color: '#EC4899', colorBg: colors.redCardBg, colorBorder: colors.redCardBorder },
     { id: 6, label: 'ফটো গ্যালারি', icon: 'images-outline', color: '#2563EB', colorBg: colors.blueCardBg, colorBorder: colors.blueCardBorder },
     { id: 7, label: 'প্রয়োজনীয় দোয়া', icon: 'heart-outline', color: '#DC2626', colorBg: colors.redCardBg, colorBorder: colors.redCardBorder },
     { id: 8, label: 'বিষয় ভিত্তিক প্রবন্ধ', icon: 'document-text-outline', color: '#059669', colorBg: colors.emeraldCardBg, colorBorder: colors.emeraldCardBorder },
@@ -114,7 +113,6 @@ export default function DiaryScreen() {
                   2: '/muhaddisin',
                   3: '/mudarris-wo-molazim',
                   4: '/fuzalaye-jamia',
-                  5: '/dayittoshil-kormigon',
                   6: '/photo-gallery',
                   7: '/doya',
                   8: '/probondho',
@@ -178,7 +176,7 @@ export default function DiaryScreen() {
               এখনো কোনো ডায়েরি লেখা হয়নি।
             </Text>
             <Text style={[styles.emptySubText, { color: colors.textMuted }]}>
-              "নতুন ডায়েরি লিখুন" বাটনে চেপে শুরু করুন
+              &quot;নতুন ডায়েরি লিখুন&quot; বাটনে চেপে শুরু করুন
             </Text>
           </View>
         ) : (
