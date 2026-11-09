@@ -25,6 +25,9 @@ import ShareOptionsModal from '../components/ShareOptionsModal';
 import ExpandableText from '../components/ExpandableText';
 import { API_BASE_URL } from '../constants/api';
 
+const DEFAULT_COVER = require('../../assets/expo.icon/Assets/images/madrasa1.jpg');
+const DEFAULT_AVATAR = require('../../assets/expo.icon/Assets/images/icon.png');
+
 export default function UserProfileScreen() {
     const scheme = useColorScheme();
     const isDark = scheme === 'dark';
@@ -330,17 +333,17 @@ export default function UserProfileScreen() {
                     <View style={[styles.cover, { backgroundColor: colors.primary }]}>
                         {profileUser?.cover_image ? (
                             <Image source={profileUser.cover_image} style={styles.coverImage} contentFit="cover" />
-                        ) : null}
+                        ) : (
+                            <Image source={DEFAULT_COVER} style={styles.coverImage} contentFit="cover" />
+                        )}
                     </View>
 
                     {/* Avatar */}
                     <View style={styles.avatarWrap}>
                         {profileUser?.profile_image ? (
-                            <Image source={profileUser.profile_image} style={styles.avatar} />
+                            <Image source={profileUser.profile_image} style={styles.avatar} contentFit="cover" />
                         ) : (
-                            <View style={[styles.avatar, styles.avatarFallback, { backgroundColor: colors.primary }]}>
-                                <Text style={styles.avatarText}>{getUserName().charAt(0).toUpperCase()}</Text>
-                            </View>
+                            <Image source={DEFAULT_AVATAR} style={styles.avatar} contentFit="cover" />
                         )}
                     </View>
                     <Text style={[styles.name, { color: colors.text }]}>{getUserName()}</Text>
@@ -480,11 +483,7 @@ export default function UserProfileScreen() {
                             {profileUser?.profile_image ? (
                                 <Image source={profileUser.profile_image} style={styles.postAvatar} contentFit="cover" />
                             ) : (
-                                <View style={[styles.postAvatar, styles.postAvatarFallback, { backgroundColor: colors.primaryBg }]}>
-                                    <Text style={[styles.postAvatarText, { color: colors.primary }]}>
-                                        {getUserName().charAt(0).toUpperCase()}
-                                    </Text>
-                                </View>
+                                <Image source={DEFAULT_AVATAR} style={styles.postAvatar} contentFit="cover" />
                             )}
                             <View style={styles.postHeaderInfo}>
                                 <Text style={[styles.postUserName, { color: colors.text }]}>{getUserName()}</Text>

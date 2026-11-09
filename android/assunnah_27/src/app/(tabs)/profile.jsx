@@ -24,6 +24,9 @@ import ShareOptionsModal from '../../components/ShareOptionsModal';
 import ExpandableText from '../../components/ExpandableText';
 import { getImageUri } from '../../utils/image';
 
+const DEFAULT_COVER = require('../../../assets/expo.icon/Assets/images/madrasa1.jpg');
+const DEFAULT_AVATAR = require('../../../assets/expo.icon/Assets/images/icon.png');
+
 export default function ProfileScreen() {
   const scheme = useColorScheme();
   const isDark = scheme === 'dark';
@@ -255,16 +258,125 @@ export default function ProfileScreen() {
       <View style={[styles.container, { backgroundColor: colors.background }]}>
         <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
           <Text style={[styles.headerTitle, { color: colors.text }]}>প্রোফাইল</Text>
+          <TouchableOpacity style={styles.settingsBtn} onPress={() => router.push('/settings')}>
+            <Ionicons name="settings-outline" size={24} color={colors.text} />
+          </TouchableOpacity>
         </View>
-        <View style={styles.guestContainer}>
-          <View style={[styles.guestCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
-            <Ionicons name="lock-closed" size={48} color={colors.primary} />
-            <Text style={[styles.guestTitle, { color: colors.text }]}>লগ ইন করুন</Text>
-            <TouchableOpacity style={[styles.guestBtn, { backgroundColor: colors.primary }]} onPress={() => router.replace('/login')}>
-              <Text style={{ color: '#fff', fontWeight: '700' }}>লগ ইন</Text>
-            </TouchableOpacity>
+
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Facebook-style Profile Card for Guest */}
+          <View style={[styles.profileCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
+            {/* Cover Photo - Madrasah full image */}
+            <View style={[styles.cover, { backgroundColor: colors.primary }]}>
+              <Image source={DEFAULT_COVER} style={styles.coverImage} contentFit="cover" />
+            </View>
+
+            {/* Avatar - App icon */}
+            <View style={styles.avatarRow}>
+              <View style={[styles.avatarContainer, { backgroundColor: colors.card }]}>
+                <Image source={DEFAULT_AVATAR} style={styles.avatar} contentFit="cover" />
+              </View>
+            </View>
+
+            {/* Name Section */}
+            <View style={styles.infoSection}>
+              <View style={styles.guestNameRow}>
+                <Text style={[styles.name, { color: colors.text }]}>অতিথি ব্যবহারকারী</Text>
+                <View style={styles.guestStatusBadge}>
+                  <Ionicons name="eye-outline" size={12} color="#F59E0B" />
+                  <Text style={styles.guestStatusBadgeText}>গেস্ট মোড</Text>
+                </View>
+              </View>
+              <Text style={[styles.guestSubtitle, { color: colors.textSecondary }]}>
+                জামিয়াতুস সুন্নাহ শিবচর, মাদারীপুর
+              </Text>
+            </View>
+
+            {/* Guest Welcome & Action Card */}
+            <View style={[styles.guestNoticeCard, { backgroundColor: isDark ? 'rgba(52, 211, 153, 0.08)' : 'rgba(5, 150, 105, 0.06)', borderColor: colors.cardBorder }]}>
+              <View style={styles.guestNoticeHeader}>
+                <Ionicons name="sparkles" size={18} color={colors.primary} />
+                <Text style={[styles.guestNoticeTitle, { color: colors.primary }]}>স্বাগতম আস-সুন্নাহ অ্যাপে</Text>
+              </View>
+              <Text style={[styles.guestNoticeBody, { color: colors.textSecondary }]}>
+                আপনি বর্তমানে অতিথি হিসেবে অ্যাপটি দেখছেন। ডায়েরি লেখা, পোস্ট প্রকাশ, লাইক ও মন্তব্য করাসহ সকল সুযোগ-সুবিধা উপভোগ করতে অনুগ্রহ করে লগ ইন করুন অথবা একটি একাউন্ট খুলুন।
+              </Text>
+
+              <View style={styles.guestActionButtonsRow}>
+                <TouchableOpacity
+                  style={[styles.guestPrimaryBtn, { backgroundColor: colors.primary }]}
+                  onPress={() => router.push('/login')}
+                  activeOpacity={0.8}
+                >
+                  <Ionicons name="log-in-outline" size={18} color="#fff" />
+                  <Text style={styles.guestPrimaryBtnText}>লগ ইন করুন</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.guestSecondaryBtn, { borderColor: colors.primary }]}
+                  onPress={() => router.push('/signup')}
+                  activeOpacity={0.8}
+                >
+                  <Ionicons name="person-add-outline" size={16} color={colors.primary} />
+                  <Text style={[styles.guestSecondaryBtnText, { color: colors.primary }]}>নতুন একাউন্ট</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Quick Explore Links */}
+            <View style={styles.guestQuickLinksSection}>
+              <Text style={[styles.guestQuickTitle, { color: colors.text }]}>মাদরাসার বিভিন্ন বিভাগ</Text>
+
+              <TouchableOpacity
+                style={[styles.guestLinkCard, { backgroundColor: colors.inputBg, borderColor: colors.cardBorder }]}
+                onPress={() => router.push('/muhaddisin')}
+                activeOpacity={0.7}
+              >
+                <View style={[styles.guestLinkIcon, { backgroundColor: 'rgba(37, 99, 235, 0.12)' }]}>
+                  <Ionicons name="people-outline" size={20} color="#2563EB" />
+                </View>
+                <View style={styles.guestLinkTexts}>
+                  <Text style={[styles.guestLinkName, { color: colors.text }]}>মুহাদ্দিস ও আসাতায়ে কেরাম</Text>
+                  <Text style={[styles.guestLinkDesc, { color: colors.textSecondary }]}>হাদিসের কিতাবভিত্তিক ওস্তাদগণের শাজারাহ ও পরিচিতি</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.guestLinkCard, { backgroundColor: colors.inputBg, borderColor: colors.cardBorder }]}
+                onPress={() => router.push('/photo-gallery')}
+                activeOpacity={0.7}
+              >
+                <View style={[styles.guestLinkIcon, { backgroundColor: 'rgba(16, 185, 129, 0.12)' }]}>
+                  <Ionicons name="images-outline" size={20} color="#10B981" />
+                </View>
+                <View style={styles.guestLinkTexts}>
+                  <Text style={[styles.guestLinkName, { color: colors.text }]}>মাদরাসা ফটো গ্যালারি</Text>
+                  <Text style={[styles.guestLinkDesc, { color: colors.textSecondary }]}>ক্যাম্পাস, দারুল হাদিস ও অন্যান্য চিত্রাবলি</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.guestLinkCard, { backgroundColor: colors.inputBg, borderColor: colors.cardBorder }]}
+                onPress={() => router.push('/(tabs)/prayer')}
+                activeOpacity={0.7}
+              >
+                <View style={[styles.guestLinkIcon, { backgroundColor: 'rgba(217, 119, 6, 0.12)' }]}>
+                  <Ionicons name="time-outline" size={20} color="#D97706" />
+                </View>
+                <View style={styles.guestLinkTexts}>
+                  <Text style={[styles.guestLinkName, { color: colors.text }]}>নামাজের সঠিক সময়সূচি</Text>
+                  <Text style={[styles.guestLinkDesc, { color: colors.textSecondary }]}>ওয়াক্ত ও মাকরূহ সময়ের বিস্তারিত ক্যালেন্ডার</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+              </TouchableOpacity>
+            </View>
           </View>
-        </View>
+        </ScrollView>
       </View>
     );
   }
@@ -309,7 +421,9 @@ export default function ProfileScreen() {
           >
             {user?.cover_image ? (
               <Image source={{ uri: getImageUri(user.cover_image) }} style={styles.coverImage} contentFit="cover" />
-            ) : null}
+            ) : (
+              <Image source={DEFAULT_COVER} style={styles.coverImage} contentFit="cover" />
+            )}
             <View style={styles.cameraBadgeCover}>
               <Ionicons name="camera" size={16} color="#fff" />
             </View>
@@ -325,9 +439,7 @@ export default function ProfileScreen() {
               {user?.profile_image ? (
                 <Image source={{ uri: getImageUri(user.profile_image) }} style={styles.avatar} contentFit="cover" />
               ) : (
-                <View style={[styles.avatar, styles.avatarFallback, { backgroundColor: colors.primary }]}>
-                  <Text style={styles.avatarText}>{getUserName().charAt(0).toUpperCase()}</Text>
-                </View>
+                <Image source={DEFAULT_AVATAR} style={styles.avatar} contentFit="cover" />
               )}
               <View style={styles.cameraBadgeAvatar}>
                 <Ionicons name="camera" size={12} color="#fff" />
@@ -654,6 +766,124 @@ const styles = StyleSheet.create({
   guestCard: { borderRadius: 24, padding: 32, alignItems: 'center', borderWidth: 1, width: '100%', maxWidth: 340 },
   guestTitle: { fontSize: 20, fontWeight: '800', marginVertical: 12, color: '#0F172A' },
   guestBtn: { paddingHorizontal: 32, paddingVertical: 14, borderRadius: 14 },
+
+  // Guest Profile Card Extensions
+  guestNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flexWrap: 'wrap',
+  },
+  guestStatusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(245, 158, 11, 0.15)',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 12,
+    marginBottom: 4,
+  },
+  guestStatusBadgeText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#F59E0B',
+  },
+  guestSubtitle: {
+    fontSize: 13,
+    fontWeight: '600',
+    marginTop: 2,
+  },
+  guestNoticeCard: {
+    marginHorizontal: 16,
+    marginBottom: 16,
+    padding: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+  },
+  guestNoticeHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 8,
+  },
+  guestNoticeTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+  },
+  guestNoticeBody: {
+    fontSize: 13,
+    lineHeight: 20,
+    marginBottom: 14,
+  },
+  guestActionButtonsRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  guestPrimaryBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 12,
+    borderRadius: 12,
+  },
+  guestPrimaryBtnText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  guestSecondaryBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: 1.5,
+  },
+  guestSecondaryBtnText: {
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  guestQuickLinksSection: {
+    paddingHorizontal: 16,
+    paddingBottom: 24,
+  },
+  guestQuickTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+    marginBottom: 12,
+  },
+  guestLinkCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderRadius: 14,
+    borderWidth: 1,
+    marginBottom: 10,
+    gap: 12,
+  },
+  guestLinkIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  guestLinkTexts: {
+    flex: 1,
+  },
+  guestLinkName: {
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  guestLinkDesc: {
+    fontSize: 11,
+    marginTop: 2,
+  },
 
   // Facebook-style Profile Card
   profileCard: {

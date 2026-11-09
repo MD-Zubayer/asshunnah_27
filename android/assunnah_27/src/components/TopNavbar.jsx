@@ -13,6 +13,8 @@ import Animated, {
 
 const AnimatedTouchable = Animated.createAnimatedComponent(TouchableOpacity);
 
+const DEFAULT_AVATAR = require('../../assets/expo.icon/Assets/images/icon.png');
+
 export default function TopNavbar({ showSettings = true }) {
     const scheme = useColorScheme();
     const isDark = scheme === 'dark';
@@ -63,13 +65,7 @@ export default function TopNavbar({ showSettings = true }) {
                     {/* Profile Section */}
                     <TouchableOpacity
                         style={styles.profileSection}
-                        onPress={() => {
-                            if (isGuest) {
-                                router.push('/login');
-                            } else {
-                                router.push('/(tabs)/profile');
-                            }
-                        }}
+                        onPress={() => router.push('/(tabs)/profile')}
                         activeOpacity={0.8}
                     >
                         {/* Profile Photo */}
@@ -80,9 +76,10 @@ export default function TopNavbar({ showSettings = true }) {
                                     style={styles.avatarImage}
                                 />
                             ) : (
-                                <View style={styles.avatarFallback}>
-                                    <Text style={styles.avatarText}>{getInitial(userName)}</Text>
-                                </View>
+                                <Image
+                                    source={DEFAULT_AVATAR}
+                                    style={styles.avatarImage}
+                                />
                             )}
                             {/* Online Indicator */}
                             <View style={[styles.onlineIndicator, { backgroundColor: '#4ade80' }]} />
