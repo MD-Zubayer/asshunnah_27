@@ -1,13 +1,11 @@
-import { StyleSheet, Text, View, SectionList, useColorScheme, TouchableOpacity, Modal, Dimensions, StatusBar, Image } from 'react-native';
+import { StyleSheet, Text, View, SectionList, useColorScheme, TouchableOpacity, Modal, StatusBar, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Colors } from '../constants/theme';
 import { useState } from 'react';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CARD_GAP = 12;
-
 const imageCategories = [
   {
     id: 1,
@@ -15,19 +13,19 @@ const imageCategories = [
     icon: 'business-outline',
     color: '#2563EB',
     images: [
-      { file: require('../../assets/expo.icon/Assets/images/madrasa1.jpg'), name: 'মাদ্রাসা ১' },
-      { file: require('../../assets/expo.icon/Assets/images/madrasa2.jpg'), name: 'মাদ্রাসা ২' },
-      { file: require('../../assets/expo.icon/Assets/images/madrasa3.jpg'), name: 'মাদ্রাসা ৩' },
-      { file: require('../../assets/expo.icon/Assets/images/madrasa4.jpg'), name: 'মাদ্রাসা ৪' },
-      { file: require('../../assets/expo.icon/Assets/images/madrasa7.jpg'), name: 'মাদ্রাসা ৭' },
-      { file: require('../../assets/expo.icon/Assets/images/madrasa8.jpg'), name: 'মাদ্রাসা ৮' },
-      { file: require('../../assets/expo.icon/Assets/images/madrasa9.jpg'), name: 'মাদ্রাসা ৯' },
-      { file: require('../../assets/expo.icon/Assets/images/madrasa10.jpg'), name: 'মাদ্রাসা ১০' },
-      { file: require('../../assets/expo.icon/Assets/images/madrasa11.jpg'), name: 'মাদ্রাসা ১১' },
-      { file: require('../../assets/expo.icon/Assets/images/madrasa88.jpg'), name: 'মাদ্রাসা ৮৮' },
-      { file: require('../../assets/expo.icon/Assets/images/madrada5.jpg'), name: 'মাদ্রাসা ৫' },
-      { file: require('../../assets/expo.icon/Assets/images/madrasa444.jpg'), name: 'মাদ্রাসা ৪৪৪' },
-      { file: require('../../assets/expo.icon/Assets/images/madrasa99.jpg'), name: 'মাদ্রাসা ৯৯' },
+      { thumb: require('../../assets/expo.icon/Assets/images/thumbs/madrasa1.jpg'), file: require('../../assets/expo.icon/Assets/images/madrasa1.jpg'), name: 'মাদ্রাসা ১' },
+      { thumb: require('../../assets/expo.icon/Assets/images/thumbs/madrasa2.jpg'), file: require('../../assets/expo.icon/Assets/images/madrasa2.jpg'), name: 'মাদ্রাসা ২' },
+      { thumb: require('../../assets/expo.icon/Assets/images/thumbs/madrasa3.jpg'), file: require('../../assets/expo.icon/Assets/images/madrasa3.jpg'), name: 'মাদ্রাসা ৩' },
+      { thumb: require('../../assets/expo.icon/Assets/images/thumbs/madrasa4.jpg'), file: require('../../assets/expo.icon/Assets/images/madrasa4.jpg'), name: 'মাদ্রাসা ৪' },
+      { thumb: require('../../assets/expo.icon/Assets/images/thumbs/madrasa7.jpg'), file: require('../../assets/expo.icon/Assets/images/madrasa7.jpg'), name: 'মাদ্রাসা ৭' },
+      { thumb: require('../../assets/expo.icon/Assets/images/thumbs/madrasa8.jpg'), file: require('../../assets/expo.icon/Assets/images/madrasa8.jpg'), name: 'মাদ্রাসা ৮' },
+      { thumb: require('../../assets/expo.icon/Assets/images/thumbs/madrasa9.jpg'), file: require('../../assets/expo.icon/Assets/images/madrasa9.jpg'), name: 'মাদ্রাসা ৯' },
+      { thumb: require('../../assets/expo.icon/Assets/images/thumbs/madrasa10.jpg'), file: require('../../assets/expo.icon/Assets/images/madrasa10.jpg'), name: 'মাদ্রাসা ১০' },
+      { thumb: require('../../assets/expo.icon/Assets/images/thumbs/madrasa11.jpg'), file: require('../../assets/expo.icon/Assets/images/madrasa11.jpg'), name: 'মাদ্রাসা ১১' },
+      { thumb: require('../../assets/expo.icon/Assets/images/thumbs/madrasa88.jpg'), file: require('../../assets/expo.icon/Assets/images/madrasa88.jpg'), name: 'মাদ্রাসা ৮৮' },
+      { thumb: require('../../assets/expo.icon/Assets/images/thumbs/madrada5.jpg'), file: require('../../assets/expo.icon/Assets/images/madrada5.jpg'), name: 'মাদ্রাসা ৫' },
+      { thumb: require('../../assets/expo.icon/Assets/images/thumbs/madrasa444.jpg'), file: require('../../assets/expo.icon/Assets/images/madrasa444.jpg'), name: 'মাদ্রাসা ৪৪৪' },
+      { thumb: require('../../assets/expo.icon/Assets/images/thumbs/madrasa99.jpg'), file: require('../../assets/expo.icon/Assets/images/madrasa99.jpg'), name: 'মাদ্রাসা ৯৯' },
     ],
   },
   {
@@ -36,37 +34,37 @@ const imageCategories = [
     icon: 'airplane-outline',
     color: '#0284C7',
     images: [
-      { file: require('../../assets/expo.icon/Assets/images/dji_0285.jpg'), name: 'ড্রোন দৃশ্য ১' },
-      { file: require('../../assets/expo.icon/Assets/images/dji_0286.jpg'), name: 'ড্রোন দৃশ্য ২' },
-      { file: require('../../assets/expo.icon/Assets/images/dji_0287.jpg'), name: 'ড্রোন দৃশ্য ৩' },
-      { file: require('../../assets/expo.icon/Assets/images/dji_0288.jpg'), name: 'ড্রোন দৃশ্য ৪' },
-      { file: require('../../assets/expo.icon/Assets/images/dji_0289.jpg'), name: 'ড্রোন দৃশ্য ৫' },
-      { file: require('../../assets/expo.icon/Assets/images/dji_0296.jpg'), name: 'ড্রোন দৃশ্য ৬' },
-      { file: require('../../assets/expo.icon/Assets/images/dji_0297.jpg'), name: 'ড্রোন দৃশ্য ৭' },
-      { file: require('../../assets/expo.icon/Assets/images/dji_0298.jpg'), name: 'ড্রোন দৃশ্য ৮' },
-      { file: require('../../assets/expo.icon/Assets/images/dji_0299.jpg'), name: 'ড্রোন দৃশ্য ৯' },
-      { file: require('../../assets/expo.icon/Assets/images/dji_0300.jpg'), name: 'ড্রোন দৃশ্য ১০' },
-      { file: require('../../assets/expo.icon/Assets/images/dji_0301.jpg'), name: 'ড্রোন দৃশ্য ১১' },
-      { file: require('../../assets/expo.icon/Assets/images/dji_0302.jpg'), name: 'ড্রোন দৃশ্য ১২' },
-      { file: require('../../assets/expo.icon/Assets/images/dji_0303.jpg'), name: 'ড্রোন দৃশ্য ১৩' },
-      { file: require('../../assets/expo.icon/Assets/images/dji_0304.jpg'), name: 'ড্রোন দৃশ্য ১৪' },
-      { file: require('../../assets/expo.icon/Assets/images/dji_0305.jpg'), name: 'ড্রোন দৃশ্য ১৫' },
-      { file: require('../../assets/expo.icon/Assets/images/dji_0307.jpg'), name: 'ড্রোন দৃশ্য ১৬' },
-      { file: require('../../assets/expo.icon/Assets/images/dji_0308.jpg'), name: 'ড্রোন দৃশ্য ১৭' },
-      { file: require('../../assets/expo.icon/Assets/images/dji_0309.jpg'), name: 'ড্রোন দৃশ্য ১৮' },
-      { file: require('../../assets/expo.icon/Assets/images/dji_0312.jpg'), name: 'ড্রোন দৃশ্য ১৯' },
-      { file: require('../../assets/expo.icon/Assets/images/dji_0313.jpg'), name: 'ড্রোন দৃশ্য ২০' },
-      { file: require('../../assets/expo.icon/Assets/images/dji_0314.jpg'), name: 'ড্রোন দৃশ্য ২১' },
-      { file: require('../../assets/expo.icon/Assets/images/dji_0315.jpg'), name: 'ড্রোন দৃশ্য ২২' },
-      { file: require('../../assets/expo.icon/Assets/images/dji_0316.jpg'), name: 'ড্রোন দৃশ্য ২৩' },
-      { file: require('../../assets/expo.icon/Assets/images/dji_0317.jpg'), name: 'ড্রোন দৃশ্য ২৪' },
-      { file: require('../../assets/expo.icon/Assets/images/dji_0318.jpg'), name: 'ড্রোন দৃশ্য ২৫' },
-      { file: require('../../assets/expo.icon/Assets/images/dji_0341.jpg'), name: 'ড্রোন দৃশ্য ২৬' },
-      { file: require('../../assets/expo.icon/Assets/images/dji_0350.jpg'), name: 'ড্রোন দৃশ্য ২৭' },
-      { file: require('../../assets/expo.icon/Assets/images/dji_0351.jpg'), name: 'ড্রোন দৃশ্য ২৮' },
-      { file: require('../../assets/expo.icon/Assets/images/dji_0352.jpg'), name: 'ড্রোন দৃশ্য ২৯' },
-      { file: require('../../assets/expo.icon/Assets/images/dji_0353.jpg'), name: 'ড্রোন দৃশ্য ৩০' },
-      { file: require('../../assets/expo.icon/Assets/images/dji_0354.jpg'), name: 'ড্রোন দৃশ্য ৩১' },
+      { thumb: require('../../assets/expo.icon/Assets/images/thumbs/dji_0285.jpg'), file: require('../../assets/expo.icon/Assets/images/dji_0285.jpg'), name: 'ড্রোন দৃশ্য ১' },
+      { thumb: require('../../assets/expo.icon/Assets/images/thumbs/dji_0286.jpg'), file: require('../../assets/expo.icon/Assets/images/dji_0286.jpg'), name: 'ড্রোন দৃশ্য ২' },
+      { thumb: require('../../assets/expo.icon/Assets/images/thumbs/dji_0287.jpg'), file: require('../../assets/expo.icon/Assets/images/dji_0287.jpg'), name: 'ড্রোন দৃশ্য ৩' },
+      { thumb: require('../../assets/expo.icon/Assets/images/thumbs/dji_0288.jpg'), file: require('../../assets/expo.icon/Assets/images/dji_0288.jpg'), name: 'ড্রোন দৃশ্য ৪' },
+      { thumb: require('../../assets/expo.icon/Assets/images/thumbs/dji_0289.jpg'), file: require('../../assets/expo.icon/Assets/images/dji_0289.jpg'), name: 'ড্রোন দৃশ্য ৫' },
+      { thumb: require('../../assets/expo.icon/Assets/images/thumbs/dji_0296.jpg'), file: require('../../assets/expo.icon/Assets/images/dji_0296.jpg'), name: 'ড্রোন দৃশ্য ৬' },
+      { thumb: require('../../assets/expo.icon/Assets/images/thumbs/dji_0297.jpg'), file: require('../../assets/expo.icon/Assets/images/dji_0297.jpg'), name: 'ড্রোন দৃশ্য ৭' },
+      { thumb: require('../../assets/expo.icon/Assets/images/thumbs/dji_0298.jpg'), file: require('../../assets/expo.icon/Assets/images/dji_0298.jpg'), name: 'ড্রোন দৃশ্য ৮' },
+      { thumb: require('../../assets/expo.icon/Assets/images/thumbs/dji_0299.jpg'), file: require('../../assets/expo.icon/Assets/images/dji_0299.jpg'), name: 'ড্রোন দৃশ্য ৯' },
+      { thumb: require('../../assets/expo.icon/Assets/images/thumbs/dji_0300.jpg'), file: require('../../assets/expo.icon/Assets/images/dji_0300.jpg'), name: 'ড্রোন দৃশ্য ১০' },
+      { thumb: require('../../assets/expo.icon/Assets/images/thumbs/dji_0301.jpg'), file: require('../../assets/expo.icon/Assets/images/dji_0301.jpg'), name: 'ড্রোন দৃশ্য ১১' },
+      { thumb: require('../../assets/expo.icon/Assets/images/thumbs/dji_0302.jpg'), file: require('../../assets/expo.icon/Assets/images/dji_0302.jpg'), name: 'ড্রোন দৃশ্য ১২' },
+      { thumb: require('../../assets/expo.icon/Assets/images/thumbs/dji_0303.jpg'), file: require('../../assets/expo.icon/Assets/images/dji_0303.jpg'), name: 'ড্রোন দৃশ্য ১৩' },
+      { thumb: require('../../assets/expo.icon/Assets/images/thumbs/dji_0304.jpg'), file: require('../../assets/expo.icon/Assets/images/dji_0304.jpg'), name: 'ড্রোন দৃশ্য ১৪' },
+      { thumb: require('../../assets/expo.icon/Assets/images/thumbs/dji_0305.jpg'), file: require('../../assets/expo.icon/Assets/images/dji_0305.jpg'), name: 'ড্রোন দৃশ্য ১৫' },
+      { thumb: require('../../assets/expo.icon/Assets/images/thumbs/dji_0307.jpg'), file: require('../../assets/expo.icon/Assets/images/dji_0307.jpg'), name: 'ড্রোন দৃশ্য ১৬' },
+      { thumb: require('../../assets/expo.icon/Assets/images/thumbs/dji_0308.jpg'), file: require('../../assets/expo.icon/Assets/images/dji_0308.jpg'), name: 'ড্রোন দৃশ্য ১৭' },
+      { thumb: require('../../assets/expo.icon/Assets/images/thumbs/dji_0309.jpg'), file: require('../../assets/expo.icon/Assets/images/dji_0309.jpg'), name: 'ড্রোন দৃশ্য ১৮' },
+      { thumb: require('../../assets/expo.icon/Assets/images/thumbs/dji_0312.jpg'), file: require('../../assets/expo.icon/Assets/images/dji_0312.jpg'), name: 'ড্রোন দৃশ্য ১৯' },
+      { thumb: require('../../assets/expo.icon/Assets/images/thumbs/dji_0313.jpg'), file: require('../../assets/expo.icon/Assets/images/dji_0313.jpg'), name: 'ড্রোন দৃশ্য ২০' },
+      { thumb: require('../../assets/expo.icon/Assets/images/thumbs/dji_0314.jpg'), file: require('../../assets/expo.icon/Assets/images/dji_0314.jpg'), name: 'ড্রোন দৃশ্য ২১' },
+      { thumb: require('../../assets/expo.icon/Assets/images/thumbs/dji_0315.jpg'), file: require('../../assets/expo.icon/Assets/images/dji_0315.jpg'), name: 'ড্রোন দৃশ্য ২২' },
+      { thumb: require('../../assets/expo.icon/Assets/images/thumbs/dji_0316.jpg'), file: require('../../assets/expo.icon/Assets/images/dji_0316.jpg'), name: 'ড্রোন দৃশ্য ২৩' },
+      { thumb: require('../../assets/expo.icon/Assets/images/thumbs/dji_0317.jpg'), file: require('../../assets/expo.icon/Assets/images/dji_0317.jpg'), name: 'ড্রোন দৃশ্য ২৪' },
+      { thumb: require('../../assets/expo.icon/Assets/images/thumbs/dji_0318.jpg'), file: require('../../assets/expo.icon/Assets/images/dji_0318.jpg'), name: 'ড্রোন দৃশ্য ২৫' },
+      { thumb: require('../../assets/expo.icon/Assets/images/thumbs/dji_0341.jpg'), file: require('../../assets/expo.icon/Assets/images/dji_0341.jpg'), name: 'ড্রোন দৃশ্য ২৬' },
+      { thumb: require('../../assets/expo.icon/Assets/images/thumbs/dji_0350.jpg'), file: require('../../assets/expo.icon/Assets/images/dji_0350.jpg'), name: 'ড্রোন দৃশ্য ২৭' },
+      { thumb: require('../../assets/expo.icon/Assets/images/thumbs/dji_0351.jpg'), file: require('../../assets/expo.icon/Assets/images/dji_0351.jpg'), name: 'ড্রোন দৃশ্য ২৮' },
+      { thumb: require('../../assets/expo.icon/Assets/images/thumbs/dji_0352.jpg'), file: require('../../assets/expo.icon/Assets/images/dji_0352.jpg'), name: 'ড্রোন দৃশ্য ২৯' },
+      { thumb: require('../../assets/expo.icon/Assets/images/thumbs/dji_0353.jpg'), file: require('../../assets/expo.icon/Assets/images/dji_0353.jpg'), name: 'ড্রোন দৃশ্য ৩০' },
+      { thumb: require('../../assets/expo.icon/Assets/images/thumbs/dji_0354.jpg'), file: require('../../assets/expo.icon/Assets/images/dji_0354.jpg'), name: 'ড্রোন দৃশ্য ৩১' },
     ],
   },
   {
@@ -75,57 +73,57 @@ const imageCategories = [
     icon: 'camera-outline',
     color: '#059669',
     images: [
-      { file: require('../../assets/expo.icon/Assets/images/jamia_album_01.jpg'), name: 'ক্যাম্পাস স্মৃতি ১' },
-      { file: require('../../assets/expo.icon/Assets/images/jamia_album_02.jpg'), name: 'ক্যাম্পাস স্মৃতি ২' },
-      { file: require('../../assets/expo.icon/Assets/images/jamia_album_03.jpg'), name: 'ক্যাম্পাস স্মৃতি ৩' },
-      { file: require('../../assets/expo.icon/Assets/images/jamia_album_04.jpg'), name: 'ক্যাম্পাস স্মৃতি ৪' },
-      { file: require('../../assets/expo.icon/Assets/images/jamia_album_05.jpg'), name: 'ক্যাম্পাস স্মৃতি ৫' },
-      { file: require('../../assets/expo.icon/Assets/images/jamia_album_06.jpg'), name: 'ক্যাম্পাস স্মৃতি ৬' },
-      { file: require('../../assets/expo.icon/Assets/images/jamia_album_07.jpg'), name: 'ক্যাম্পাস স্মৃতি ৭' },
-      { file: require('../../assets/expo.icon/Assets/images/jamia_album_08.jpg'), name: 'ক্যাম্পাস স্মৃতি ৮' },
-      { file: require('../../assets/expo.icon/Assets/images/jamia_album_09.jpg'), name: 'ক্যাম্পাস স্মৃতি ৯' },
-      { file: require('../../assets/expo.icon/Assets/images/jamia_album_10.jpg'), name: 'ক্যাম্পাস স্মৃতি ১০' },
-      { file: require('../../assets/expo.icon/Assets/images/jamia_album_11.jpg'), name: 'ক্যাম্পাস স্মৃতি ১১' },
-      { file: require('../../assets/expo.icon/Assets/images/jamia_album_12.jpg'), name: 'ক্যাম্পাস স্মৃতি ১২' },
-      { file: require('../../assets/expo.icon/Assets/images/jamia_album_13.jpg'), name: 'ক্যাম্পাস স্মৃতি ১৩' },
-      { file: require('../../assets/expo.icon/Assets/images/jamia_album_14.jpg'), name: 'ক্যাম্পাস স্মৃতি ১৪' },
-      { file: require('../../assets/expo.icon/Assets/images/jamia_album_15.jpg'), name: 'ক্যাম্পাস স্মৃতি ১৫' },
-      { file: require('../../assets/expo.icon/Assets/images/jamia_album_16.jpg'), name: 'ক্যাম্পাস স্মৃতি ১৬' },
-      { file: require('../../assets/expo.icon/Assets/images/jamia_album_17.jpg'), name: 'ক্যাম্পাস স্মৃতি ১৭' },
-      { file: require('../../assets/expo.icon/Assets/images/jamia_album_18.jpg'), name: 'ক্যাম্পাস স্মৃতি ১৮' },
-      { file: require('../../assets/expo.icon/Assets/images/jamia_album_19.jpg'), name: 'ক্যাম্পাস স্মৃতি ১৯' },
-      { file: require('../../assets/expo.icon/Assets/images/jamia_album_20.jpg'), name: 'ক্যাম্পাস স্মৃতি ২০' },
-      { file: require('../../assets/expo.icon/Assets/images/jamia_album_21.jpg'), name: 'ক্যাম্পাস স্মৃতি ২১' },
-      { file: require('../../assets/expo.icon/Assets/images/jamia_album_22.jpg'), name: 'ক্যাম্পাস স্মৃতি ২২' },
-      { file: require('../../assets/expo.icon/Assets/images/jamia_album_23.jpg'), name: 'ক্যাম্পাস স্মৃতি ২৩' },
-      { file: require('../../assets/expo.icon/Assets/images/jamia_album_24.jpg'), name: 'ক্যাম্পাস স্মৃতি ২৪' },
-      { file: require('../../assets/expo.icon/Assets/images/jamia_album_25.jpg'), name: 'ক্যাম্পাস স্মৃতি ২৫' },
-      { file: require('../../assets/expo.icon/Assets/images/jamia_album_26.jpg'), name: 'ক্যাম্পাস স্মৃতি ২৬' },
-      { file: require('../../assets/expo.icon/Assets/images/jamia_album_27.jpg'), name: 'ক্যাম্পাস স্মৃতি ২৭' },
-      { file: require('../../assets/expo.icon/Assets/images/jamia_album_28.jpg'), name: 'ক্যাম্পাস স্মৃতি ২৮' },
-      { file: require('../../assets/expo.icon/Assets/images/jamia_album_29.jpg'), name: 'ক্যাম্পাস স্মৃতি ২৯' },
-      { file: require('../../assets/expo.icon/Assets/images/jamia_album_30.jpg'), name: 'ক্যাম্পাস স্মৃতি ৩০' },
-      { file: require('../../assets/expo.icon/Assets/images/jamia_album_31.jpg'), name: 'ক্যাম্পাস স্মৃতি ৩১' },
-      { file: require('../../assets/expo.icon/Assets/images/jamia_album_32.jpg'), name: 'ক্যাম্পাস স্মৃতি ৩২' },
-      { file: require('../../assets/expo.icon/Assets/images/jamia_album_33.jpg'), name: 'ক্যাম্পাস স্মৃতি ৩৩' },
-      { file: require('../../assets/expo.icon/Assets/images/jamia_album_34.jpg'), name: 'ক্যাম্পাস স্মৃতি ৩৪' },
-      { file: require('../../assets/expo.icon/Assets/images/jamia_album_35.jpg'), name: 'ক্যাম্পাস স্মৃতি ৩৫' },
-      { file: require('../../assets/expo.icon/Assets/images/jamia_album_36.jpg'), name: 'ক্যাম্পাস স্মৃতি ৩৬' },
-      { file: require('../../assets/expo.icon/Assets/images/jamia_album_37.jpg'), name: 'ক্যাম্পাস স্মৃতি ৩৭' },
-      { file: require('../../assets/expo.icon/Assets/images/jamia_album_38.jpg'), name: 'ক্যাম্পাস স্মৃতি ৩৮' },
-      { file: require('../../assets/expo.icon/Assets/images/jamia_album_39.jpg'), name: 'ক্যাম্পাস স্মৃতি ৩৯' },
-      { file: require('../../assets/expo.icon/Assets/images/jamia_album_40.jpg'), name: 'ক্যাম্পাস স্মৃতি ৪০' },
-      { file: require('../../assets/expo.icon/Assets/images/jamia_album_41.jpg'), name: 'ক্যাম্পাস স্মৃতি ৪১' },
-      { file: require('../../assets/expo.icon/Assets/images/jamia_album_42.jpg'), name: 'ক্যাম্পাস স্মৃতি ৪২' },
-      { file: require('../../assets/expo.icon/Assets/images/jamia_album_43.jpg'), name: 'ক্যাম্পাস স্মৃতি ৪৩' },
-      { file: require('../../assets/expo.icon/Assets/images/jamia_album_44.jpg'), name: 'ক্যাম্পাস স্মৃতি ৪৪' },
-      { file: require('../../assets/expo.icon/Assets/images/jamia_album_45.jpg'), name: 'ক্যাম্পাস স্মৃতি ৪৫' },
-      { file: require('../../assets/expo.icon/Assets/images/jamia_album_46.jpg'), name: 'ক্যাম্পাস স্মৃতি ৪৬' },
-      { file: require('../../assets/expo.icon/Assets/images/jamia_album_47.jpg'), name: 'ক্যাম্পাস স্মৃতি ৪৭' },
-      { file: require('../../assets/expo.icon/Assets/images/jamia_album_48.jpg'), name: 'ক্যাম্পাস স্মৃতি ৪৮' },
-      { file: require('../../assets/expo.icon/Assets/images/jamia_album_49.jpg'), name: 'ক্যাম্পাস স্মৃতি ৪৯' },
-      { file: require('../../assets/expo.icon/Assets/images/jamia_album_50.jpg'), name: 'ক্যাম্পাস স্মৃতি ৫০' },
-      { file: require('../../assets/expo.icon/Assets/images/jamia_album_51.jpg'), name: 'ক্যাম্পাস স্মৃতি ৫১' },
+      { thumb: require('../../assets/expo.icon/Assets/images/thumbs/jamia_album_01.jpg'), file: require('../../assets/expo.icon/Assets/images/jamia_album_01.jpg'), name: 'ক্যাম্পাস স্মৃতি ১' },
+      { thumb: require('../../assets/expo.icon/Assets/images/thumbs/jamia_album_02.jpg'), file: require('../../assets/expo.icon/Assets/images/jamia_album_02.jpg'), name: 'ক্যাম্পাস স্মৃতি ২' },
+      { thumb: require('../../assets/expo.icon/Assets/images/thumbs/jamia_album_03.jpg'), file: require('../../assets/expo.icon/Assets/images/jamia_album_03.jpg'), name: 'ক্যাম্পাস স্মৃতি ৩' },
+      { thumb: require('../../assets/expo.icon/Assets/images/thumbs/jamia_album_04.jpg'), file: require('../../assets/expo.icon/Assets/images/jamia_album_04.jpg'), name: 'ক্যাম্পাস স্মৃতি ৪' },
+      { thumb: require('../../assets/expo.icon/Assets/images/thumbs/jamia_album_05.jpg'), file: require('../../assets/expo.icon/Assets/images/jamia_album_05.jpg'), name: 'ক্যাম্পাস স্মৃতি ৫' },
+      { thumb: require('../../assets/expo.icon/Assets/images/thumbs/jamia_album_06.jpg'), file: require('../../assets/expo.icon/Assets/images/jamia_album_06.jpg'), name: 'ক্যাম্পাস স্মৃতি ৬' },
+      { thumb: require('../../assets/expo.icon/Assets/images/thumbs/jamia_album_07.jpg'), file: require('../../assets/expo.icon/Assets/images/jamia_album_07.jpg'), name: 'ক্যাম্পাস স্মৃতি ৭' },
+      { thumb: require('../../assets/expo.icon/Assets/images/thumbs/jamia_album_08.jpg'), file: require('../../assets/expo.icon/Assets/images/jamia_album_08.jpg'), name: 'ক্যাম্পাস স্মৃতি ৮' },
+      { thumb: require('../../assets/expo.icon/Assets/images/thumbs/jamia_album_09.jpg'), file: require('../../assets/expo.icon/Assets/images/jamia_album_09.jpg'), name: 'ক্যাম্পাস স্মৃতি ৯' },
+      { thumb: require('../../assets/expo.icon/Assets/images/thumbs/jamia_album_10.jpg'), file: require('../../assets/expo.icon/Assets/images/jamia_album_10.jpg'), name: 'ক্যাম্পাস স্মৃতি ১০' },
+      { thumb: require('../../assets/expo.icon/Assets/images/thumbs/jamia_album_11.jpg'), file: require('../../assets/expo.icon/Assets/images/jamia_album_11.jpg'), name: 'ক্যাম্পাস স্মৃতি ১১' },
+      { thumb: require('../../assets/expo.icon/Assets/images/thumbs/jamia_album_12.jpg'), file: require('../../assets/expo.icon/Assets/images/jamia_album_12.jpg'), name: 'ক্যাম্পাস স্মৃতি ১২' },
+      { thumb: require('../../assets/expo.icon/Assets/images/thumbs/jamia_album_13.jpg'), file: require('../../assets/expo.icon/Assets/images/jamia_album_13.jpg'), name: 'ক্যাম্পাস স্মৃতি ১৩' },
+      { thumb: require('../../assets/expo.icon/Assets/images/thumbs/jamia_album_14.jpg'), file: require('../../assets/expo.icon/Assets/images/jamia_album_14.jpg'), name: 'ক্যাম্পাস স্মৃতি ১৪' },
+      { thumb: require('../../assets/expo.icon/Assets/images/thumbs/jamia_album_15.jpg'), file: require('../../assets/expo.icon/Assets/images/jamia_album_15.jpg'), name: 'ক্যাম্পাস স্মৃতি ১৫' },
+      { thumb: require('../../assets/expo.icon/Assets/images/thumbs/jamia_album_16.jpg'), file: require('../../assets/expo.icon/Assets/images/jamia_album_16.jpg'), name: 'ক্যাম্পাস স্মৃতি ১৬' },
+      { thumb: require('../../assets/expo.icon/Assets/images/thumbs/jamia_album_17.jpg'), file: require('../../assets/expo.icon/Assets/images/jamia_album_17.jpg'), name: 'ক্যাম্পাস স্মৃতি ১৭' },
+      { thumb: require('../../assets/expo.icon/Assets/images/thumbs/jamia_album_18.jpg'), file: require('../../assets/expo.icon/Assets/images/jamia_album_18.jpg'), name: 'ক্যাম্পাস স্মৃতি ১৮' },
+      { thumb: require('../../assets/expo.icon/Assets/images/thumbs/jamia_album_19.jpg'), file: require('../../assets/expo.icon/Assets/images/jamia_album_19.jpg'), name: 'ক্যাম্পাস স্মৃতি ১৯' },
+      { thumb: require('../../assets/expo.icon/Assets/images/thumbs/jamia_album_20.jpg'), file: require('../../assets/expo.icon/Assets/images/jamia_album_20.jpg'), name: 'ক্যাম্পাস স্মৃতি ২০' },
+      { thumb: require('../../assets/expo.icon/Assets/images/thumbs/jamia_album_21.jpg'), file: require('../../assets/expo.icon/Assets/images/jamia_album_21.jpg'), name: 'ক্যাম্পাস স্মৃতি ২১' },
+      { thumb: require('../../assets/expo.icon/Assets/images/thumbs/jamia_album_22.jpg'), file: require('../../assets/expo.icon/Assets/images/jamia_album_22.jpg'), name: 'ক্যাম্পাস স্মৃতি ২২' },
+      { thumb: require('../../assets/expo.icon/Assets/images/thumbs/jamia_album_23.jpg'), file: require('../../assets/expo.icon/Assets/images/jamia_album_23.jpg'), name: 'ক্যাম্পাস স্মৃতি ২৩' },
+      { thumb: require('../../assets/expo.icon/Assets/images/thumbs/jamia_album_24.jpg'), file: require('../../assets/expo.icon/Assets/images/jamia_album_24.jpg'), name: 'ক্যাম্পাস স্মৃতি ২৪' },
+      { thumb: require('../../assets/expo.icon/Assets/images/thumbs/jamia_album_25.jpg'), file: require('../../assets/expo.icon/Assets/images/jamia_album_25.jpg'), name: 'ক্যাম্পাস স্মৃতি ২৫' },
+      { thumb: require('../../assets/expo.icon/Assets/images/thumbs/jamia_album_26.jpg'), file: require('../../assets/expo.icon/Assets/images/jamia_album_26.jpg'), name: 'ক্যাম্পাস স্মৃতি ২৬' },
+      { thumb: require('../../assets/expo.icon/Assets/images/thumbs/jamia_album_27.jpg'), file: require('../../assets/expo.icon/Assets/images/jamia_album_27.jpg'), name: 'ক্যাম্পাস স্মৃতি ২৭' },
+      { thumb: require('../../assets/expo.icon/Assets/images/thumbs/jamia_album_28.jpg'), file: require('../../assets/expo.icon/Assets/images/jamia_album_28.jpg'), name: 'ক্যাম্পাস স্মৃতি ২৮' },
+      { thumb: require('../../assets/expo.icon/Assets/images/thumbs/jamia_album_29.jpg'), file: require('../../assets/expo.icon/Assets/images/jamia_album_29.jpg'), name: 'ক্যাম্পাস স্মৃতি ২৯' },
+      { thumb: require('../../assets/expo.icon/Assets/images/thumbs/jamia_album_30.jpg'), file: require('../../assets/expo.icon/Assets/images/jamia_album_30.jpg'), name: 'ক্যাম্পাস স্মৃতি ৩০' },
+      { thumb: require('../../assets/expo.icon/Assets/images/thumbs/jamia_album_31.jpg'), file: require('../../assets/expo.icon/Assets/images/jamia_album_31.jpg'), name: 'ক্যাম্পাস স্মৃতি ৩১' },
+      { thumb: require('../../assets/expo.icon/Assets/images/thumbs/jamia_album_32.jpg'), file: require('../../assets/expo.icon/Assets/images/jamia_album_32.jpg'), name: 'ক্যাম্পাস স্মৃতি ৩২' },
+      { thumb: require('../../assets/expo.icon/Assets/images/thumbs/jamia_album_33.jpg'), file: require('../../assets/expo.icon/Assets/images/jamia_album_33.jpg'), name: 'ক্যাম্পাস স্মৃতি ৩৩' },
+      { thumb: require('../../assets/expo.icon/Assets/images/thumbs/jamia_album_34.jpg'), file: require('../../assets/expo.icon/Assets/images/jamia_album_34.jpg'), name: 'ক্যাম্পাস স্মৃতি ৩৪' },
+      { thumb: require('../../assets/expo.icon/Assets/images/thumbs/jamia_album_35.jpg'), file: require('../../assets/expo.icon/Assets/images/jamia_album_35.jpg'), name: 'ক্যাম্পাস স্মৃতি ৩৫' },
+      { thumb: require('../../assets/expo.icon/Assets/images/thumbs/jamia_album_36.jpg'), file: require('../../assets/expo.icon/Assets/images/jamia_album_36.jpg'), name: 'ক্যাম্পাস স্মৃতি ৩৬' },
+      { thumb: require('../../assets/expo.icon/Assets/images/thumbs/jamia_album_37.jpg'), file: require('../../assets/expo.icon/Assets/images/jamia_album_37.jpg'), name: 'ক্যাম্পাস স্মৃতি ৩৭' },
+      { thumb: require('../../assets/expo.icon/Assets/images/thumbs/jamia_album_38.jpg'), file: require('../../assets/expo.icon/Assets/images/jamia_album_38.jpg'), name: 'ক্যাম্পাস স্মৃতি ৩৮' },
+      { thumb: require('../../assets/expo.icon/Assets/images/thumbs/jamia_album_39.jpg'), file: require('../../assets/expo.icon/Assets/images/jamia_album_39.jpg'), name: 'ক্যাম্পাস স্মৃতি ৩৯' },
+      { thumb: require('../../assets/expo.icon/Assets/images/thumbs/jamia_album_40.jpg'), file: require('../../assets/expo.icon/Assets/images/jamia_album_40.jpg'), name: 'ক্যাম্পাস স্মৃতি ৪০' },
+      { thumb: require('../../assets/expo.icon/Assets/images/thumbs/jamia_album_41.jpg'), file: require('../../assets/expo.icon/Assets/images/jamia_album_41.jpg'), name: 'ক্যাম্পাস স্মৃতি ৪১' },
+      { thumb: require('../../assets/expo.icon/Assets/images/thumbs/jamia_album_42.jpg'), file: require('../../assets/expo.icon/Assets/images/jamia_album_42.jpg'), name: 'ক্যাম্পাস স্মৃতি ৪২' },
+      { thumb: require('../../assets/expo.icon/Assets/images/thumbs/jamia_album_43.jpg'), file: require('../../assets/expo.icon/Assets/images/jamia_album_43.jpg'), name: 'ক্যাম্পাস স্মৃতি ৪৩' },
+      { thumb: require('../../assets/expo.icon/Assets/images/thumbs/jamia_album_44.jpg'), file: require('../../assets/expo.icon/Assets/images/jamia_album_44.jpg'), name: 'ক্যাম্পাস স্মৃতি ৪৪' },
+      { thumb: require('../../assets/expo.icon/Assets/images/thumbs/jamia_album_45.jpg'), file: require('../../assets/expo.icon/Assets/images/jamia_album_45.jpg'), name: 'ক্যাম্পাস স্মৃতি ৪৫' },
+      { thumb: require('../../assets/expo.icon/Assets/images/thumbs/jamia_album_46.jpg'), file: require('../../assets/expo.icon/Assets/images/jamia_album_46.jpg'), name: 'ক্যাম্পাস স্মৃতি ৪৬' },
+      { thumb: require('../../assets/expo.icon/Assets/images/thumbs/jamia_album_47.jpg'), file: require('../../assets/expo.icon/Assets/images/jamia_album_47.jpg'), name: 'ক্যাম্পাস স্মৃতি ৪৭' },
+      { thumb: require('../../assets/expo.icon/Assets/images/thumbs/jamia_album_48.jpg'), file: require('../../assets/expo.icon/Assets/images/jamia_album_48.jpg'), name: 'ক্যাম্পাস স্মৃতি ৪৮' },
+      { thumb: require('../../assets/expo.icon/Assets/images/thumbs/jamia_album_49.jpg'), file: require('../../assets/expo.icon/Assets/images/jamia_album_49.jpg'), name: 'ক্যাম্পাস স্মৃতি ৪৯' },
+      { thumb: require('../../assets/expo.icon/Assets/images/thumbs/jamia_album_50.jpg'), file: require('../../assets/expo.icon/Assets/images/jamia_album_50.jpg'), name: 'ক্যাম্পাস স্মৃতি ৫০' },
+      { thumb: require('../../assets/expo.icon/Assets/images/thumbs/jamia_album_51.jpg'), file: require('../../assets/expo.icon/Assets/images/jamia_album_51.jpg'), name: 'ক্যাম্পাস স্মৃতি ৫১' },
     ],
   },
   {
@@ -134,14 +132,14 @@ const imageCategories = [
     icon: 'school-outline',
     color: '#9333EA',
     images: [
-      { file: require('../../assets/expo.icon/Assets/images/dars.jpg'), name: 'দারস' },
-      { file: require('../../assets/expo.icon/Assets/images/dars_adab_01.jpg'), name: 'আদব দারস' },
-      { file: require('../../assets/expo.icon/Assets/images/dars_daura_01.jpg'), name: 'দওরা দারস ১' },
-      { file: require('../../assets/expo.icon/Assets/images/dars_daura_2.jpg'), name: 'দওরা দারস ২' },
-      { file: require('../../assets/expo.icon/Assets/images/dars_daura_3.jpg'), name: 'দওরা দারস ৩' },
-      { file: require('../../assets/expo.icon/Assets/images/dars_daura_4.jpg'), name: 'দওরা দারস ৪' },
-      { file: require('../../assets/expo.icon/Assets/images/dars_ifta_01.jpg'), name: 'ইফতা দারস' },
-      { file: require('../../assets/expo.icon/Assets/images/dars_ulum_01.jpg'), name: 'উলুম দারস' },
+      { thumb: require('../../assets/expo.icon/Assets/images/thumbs/dars.jpg'), file: require('../../assets/expo.icon/Assets/images/dars.jpg'), name: 'দারস' },
+      { thumb: require('../../assets/expo.icon/Assets/images/thumbs/dars_adab_01.jpg'), file: require('../../assets/expo.icon/Assets/images/dars_adab_01.jpg'), name: 'আদব দারস' },
+      { thumb: require('../../assets/expo.icon/Assets/images/thumbs/dars_daura_01.jpg'), file: require('../../assets/expo.icon/Assets/images/dars_daura_01.jpg'), name: 'দওরা দারস ১' },
+      { thumb: require('../../assets/expo.icon/Assets/images/thumbs/dars_daura_2.jpg'), file: require('../../assets/expo.icon/Assets/images/dars_daura_2.jpg'), name: 'দওরা দারস ২' },
+      { thumb: require('../../assets/expo.icon/Assets/images/thumbs/dars_daura_3.jpg'), file: require('../../assets/expo.icon/Assets/images/dars_daura_3.jpg'), name: 'দওরা দারস ৩' },
+      { thumb: require('../../assets/expo.icon/Assets/images/thumbs/dars_daura_4.jpg'), file: require('../../assets/expo.icon/Assets/images/dars_daura_4.jpg'), name: 'দওরা দারস ৪' },
+      { thumb: require('../../assets/expo.icon/Assets/images/thumbs/dars_ifta_01.jpg'), file: require('../../assets/expo.icon/Assets/images/dars_ifta_01.jpg'), name: 'ইফতা দারস' },
+      { thumb: require('../../assets/expo.icon/Assets/images/thumbs/dars_ulum_01.jpg'), file: require('../../assets/expo.icon/Assets/images/dars_ulum_01.jpg'), name: 'উলুম দারস' },
     ],
   },
   {
@@ -150,8 +148,8 @@ const imageCategories = [
     icon: 'clipboard-outline',
     color: '#059669',
     images: [
-      { file: require('../../assets/expo.icon/Assets/images/exam_hall_01.jpg'), name: 'পরীক্ষা হল ১' },
-      { file: require('../../assets/expo.icon/Assets/images/exam_hall_02.jpg'), name: 'পরীক্ষা হল ২' },
+      { thumb: require('../../assets/expo.icon/Assets/images/thumbs/exam_hall_01.jpg'), file: require('../../assets/expo.icon/Assets/images/exam_hall_01.jpg'), name: 'পরীক্ষা হল ১' },
+      { thumb: require('../../assets/expo.icon/Assets/images/thumbs/exam_hall_02.jpg'), file: require('../../assets/expo.icon/Assets/images/exam_hall_02.jpg'), name: 'পরীক্ষা হল ২' },
     ],
   },
   {
@@ -160,8 +158,8 @@ const imageCategories = [
     icon: 'bed-outline',
     color: '#D97706',
     images: [
-      { file: require('../../assets/expo.icon/Assets/images/boarding_01.jpg'), name: 'বোর্ডিং ১' },
-      { file: require('../../assets/expo.icon/Assets/images/boarding_02.jpg'), name: 'বোর্ডিং ২' },
+      { thumb: require('../../assets/expo.icon/Assets/images/thumbs/boarding_01.jpg'), file: require('../../assets/expo.icon/Assets/images/boarding_01.jpg'), name: 'বোর্ডিং ১' },
+      { thumb: require('../../assets/expo.icon/Assets/images/thumbs/boarding_02.jpg'), file: require('../../assets/expo.icon/Assets/images/boarding_02.jpg'), name: 'বোর্ডিং ২' },
     ],
   },
   {
@@ -170,10 +168,10 @@ const imageCategories = [
     icon: 'moon-outline',
     color: '#EC4899',
     images: [
-      { file: require('../../assets/expo.icon/Assets/images/masjid.png'), name: 'মসজিদ' },
-      { file: require('../../assets/expo.icon/Assets/images/masjid1.png'), name: 'মসজিদ ১' },
-      { file: require('../../assets/expo.icon/Assets/images/masjid2.png'), name: 'মসজিদ ২' },
-      { file: require('../../assets/expo.icon/Assets/images/masjid3.png'), name: 'মসজিদ ৩' },
+      { thumb: require('../../assets/expo.icon/Assets/images/thumbs/masjid.png'), file: require('../../assets/expo.icon/Assets/images/masjid.png'), name: 'মসজিদ' },
+      { thumb: require('../../assets/expo.icon/Assets/images/thumbs/masjid1.png'), file: require('../../assets/expo.icon/Assets/images/masjid1.png'), name: 'মসজিদ ১' },
+      { thumb: require('../../assets/expo.icon/Assets/images/thumbs/masjid2.png'), file: require('../../assets/expo.icon/Assets/images/masjid2.png'), name: 'মসজিদ ২' },
+      { thumb: require('../../assets/expo.icon/Assets/images/thumbs/masjid3.png'), file: require('../../assets/expo.icon/Assets/images/masjid3.png'), name: 'মসজিদ ৩' },
     ],
   },
   {
@@ -182,20 +180,19 @@ const imageCategories = [
     icon: 'images-outline',
     color: '#DC2626',
     images: [
-      { file: require('../../assets/expo.icon/Assets/images/1.jpg'), name: 'ছবি ১' },
-      { file: require('../../assets/expo.icon/Assets/images/2.jpg'), name: 'ছবি ২' },
-      { file: require('../../assets/expo.icon/Assets/images/3.jpg'), name: 'ছবি ৩' },
-      { file: require('../../assets/expo.icon/Assets/images/4.jpg'), name: 'ছবি ৪' },
-      { file: require('../../assets/expo.icon/Assets/images/44.jpg'), name: 'ছবি ৪৪' },
-      { file: require('../../assets/expo.icon/Assets/images/hefz.png'), name: 'হিফজ' },
-      { file: require('../../assets/expo.icon/Assets/images/muallim.png'), name: 'মুআল্লিম' },
-      { file: require('../../assets/expo.icon/Assets/images/staf.jpg'), name: 'স্টাফ' },
-      { file: require('../../assets/expo.icon/Assets/images/staf1.png'), name: 'স্টাফ পিএনজি' },
-      { file: require('../../assets/expo.icon/Assets/images/office_01.jpg'), name: 'অফিস' },
+      { thumb: require('../../assets/expo.icon/Assets/images/thumbs/1.jpg'), file: require('../../assets/expo.icon/Assets/images/1.jpg'), name: 'ছবি ১' },
+      { thumb: require('../../assets/expo.icon/Assets/images/thumbs/2.jpg'), file: require('../../assets/expo.icon/Assets/images/2.jpg'), name: 'ছবি ২' },
+      { thumb: require('../../assets/expo.icon/Assets/images/thumbs/3.jpg'), file: require('../../assets/expo.icon/Assets/images/3.jpg'), name: 'ছবি ৩' },
+      { thumb: require('../../assets/expo.icon/Assets/images/thumbs/4.jpg'), file: require('../../assets/expo.icon/Assets/images/4.jpg'), name: 'ছবি ৪' },
+      { thumb: require('../../assets/expo.icon/Assets/images/thumbs/44.jpg'), file: require('../../assets/expo.icon/Assets/images/44.jpg'), name: 'ছবি ৪৪' },
+      { thumb: require('../../assets/expo.icon/Assets/images/thumbs/hefz.png'), file: require('../../assets/expo.icon/Assets/images/hefz.png'), name: 'হিফজ' },
+      { thumb: require('../../assets/expo.icon/Assets/images/thumbs/muallim.png'), file: require('../../assets/expo.icon/Assets/images/muallim.png'), name: 'মুআল্লিম' },
+      { thumb: require('../../assets/expo.icon/Assets/images/thumbs/staf.jpg'), file: require('../../assets/expo.icon/Assets/images/staf.jpg'), name: 'স্টাফ' },
+      { thumb: require('../../assets/expo.icon/Assets/images/thumbs/staf1.png'), file: require('../../assets/expo.icon/Assets/images/staf1.png'), name: 'স্টাফ পিএনজি' },
+      { thumb: require('../../assets/expo.icon/Assets/images/thumbs/office_01.jpg'), file: require('../../assets/expo.icon/Assets/images/office_01.jpg'), name: 'অফিস' },
     ],
   },
 ];
-
 const chunkArray = (items, size) => {
   const result = [];
   for (let i = 0; i < items.length; i += size) {
@@ -205,34 +202,18 @@ const chunkArray = (items, size) => {
 };
 
 function GalleryImage({ source, label }) {
-  const [isLoaded, setIsLoaded] = useState(false);
-  const [hasError, setHasError] = useState(false);
-
   return (
     <View style={styles.imageCardContent}>
-      {!isLoaded && !hasError && (
-        <View style={styles.imagePlaceholder}>
-          <Ionicons name="images-outline" size={24} color="#94a3b8" />
-        </View>
-      )}
-
-      {!hasError && (
-        <Image
-          source={source}
-          style={[styles.galleryImage, isLoaded ? styles.galleryImageVisible : styles.galleryImageHidden]}
-          resizeMode="cover"
-          onLoad={() => setIsLoaded(true)}
-          onError={() => setHasError(true)}
-        />
-      )}
-
-      {(isLoaded || hasError) && (
-        <View style={styles.imageOverlay}>
-          <Text style={styles.imageLabel} numberOfLines={1}>
-            {label}
-          </Text>
-        </View>
-      )}
+      <Image
+        source={source}
+        style={styles.galleryImage}
+        resizeMode="cover"
+      />
+      <View style={styles.imageOverlay}>
+        <Text style={styles.imageLabel} numberOfLines={1}>
+          {label}
+        </Text>
+      </View>
     </View>
   );
 }
@@ -272,7 +253,7 @@ export default function GalleryScreen() {
           style={styles.imageCard}
           pointerEvents="box-only"
         >
-          <GalleryImage source={img.file} label={img.name} />
+          <GalleryImage source={img.thumb || img.file} label={img.name} />
         </TouchableOpacity>
       ))}
       {rowImages.length === 1 && <View style={styles.emptyCard} />}
@@ -322,8 +303,8 @@ export default function GalleryScreen() {
         scrollEnabled={!modalVisible}
         initialNumToRender={6}
         windowSize={5}
-        maxToRenderPerBatch={8}
-        removeClippedSubviews={false}
+        maxToRenderPerBatch={6}
+        removeClippedSubviews={true}
         ListHeaderComponent={
           <View>
             <View style={[styles.heroOuter, { backgroundColor: colors.blueCardBg, borderColor: colors.blueCardBorder }]}>
@@ -354,7 +335,7 @@ export default function GalleryScreen() {
         }
       />
 
-      {/* Full Screen Image Modal */}
+      {/* Full-Screen Image Modal */}
       <Modal
         visible={modalVisible}
         transparent={true}
@@ -522,28 +503,25 @@ const styles = StyleSheet.create({
   },
   imageCard: {
     flex: 1,
-    minHeight: 200,
+    height: 160,
     borderRadius: 18,
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.25)',
-    backgroundColor: 'transparent',
+    backgroundColor: '#0F172A',
     elevation: 5,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
+    shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.14,
-    shadowRadius: 10,
+    shadowRadius: 8,
   },
   imageCardContent: {
-    flex: 1,
-    borderRadius: 18,
-    overflow: 'hidden',
-    backgroundColor: 'transparent',
+    width: '100%',
+    height: '100%',
+    position: 'relative',
+    backgroundColor: '#0F172A',
   },
   galleryImage: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
     width: '100%',
     height: '100%',
   },
@@ -553,8 +531,8 @@ const styles = StyleSheet.create({
     right: 10,
     bottom: 10,
     paddingHorizontal: 10,
-    paddingVertical: 8,
-    backgroundColor: 'rgba(15, 23, 42, 0.7)',
+    paddingVertical: 6,
+    backgroundColor: 'rgba(15, 23, 42, 0.75)',
     borderRadius: 999,
     alignSelf: 'flex-start',
   },
@@ -585,7 +563,6 @@ const styles = StyleSheet.create({
     flex: 1,
     fontStyle: 'italic',
   },
-  // Modal Styles
   modalOverlay: {
     flex: 1,
     justifyContent: 'center',
@@ -641,23 +618,5 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.6)',
     fontSize: 12,
     fontWeight: '500',
-  },
-  imagePlaceholder: {
-    width: '100%',
-    height: '100%',
-    backgroundColor: '#F3F4F6',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  galleryImageVisible: {
-    opacity: 1,
-  },
-  galleryImageHidden: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    width: '100%',
-    height: '100%',
-    opacity: 0,
   },
 });
