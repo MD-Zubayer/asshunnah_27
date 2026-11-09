@@ -1,10 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { StyleSheet, Text, View, ScrollView, useColorScheme, TouchableOpacity, ImageBackground, Animated, ActivityIndicator, Image } from 'react-native';
-
-const AnimatedImageBackground = Animated.createAnimatedComponent(ImageBackground);
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Colors } from '../../constants/theme';
 import { 
@@ -19,13 +17,17 @@ import {
 import { API_BASE_URL } from '../../constants/api';
 import TopNavbar from '../../components/TopNavbar';
 import AcquaintanceCarousel from '../../components/AcquaintanceCarousel';
+import FavoriteUstadsSection from '../../components/FavoriteUstadsSection';
+import PrayerCheckModal from '../../components/PrayerCheckModal';
 import acquaintanceService from '../../services/acquaintance-service';
 import diaryService from '../../services/diary-service';
 import articleService from '../../services/article-service';
 import statsService, { toBengaliNumber } from '../../services/stats-service';
+import { getPrayerStats } from '../../services/prayer-tracker-service';
 import { useAuth } from '../../context/AuthContext';
-
 import { getImageUri } from '../../utils/image';
+
+const AnimatedImageBackground = Animated.createAnimatedComponent(ImageBackground);
 
 export default function HomeScreen() {
   const scheme = useColorScheme();
@@ -58,6 +60,8 @@ export default function HomeScreen() {
   const [recentDiaries, setRecentDiaries] = useState([]);
   const [popularArticles, setPopularArticles] = useState([]);
   const [userStats, setUserStats] = useState(null);
+  const [showPrayerModal, setShowPrayerModal] = useState(false);
+  const [localPrayerStats, setLocalPrayerStats] = useState({ today: 0, streak: 0 });
   const { token } = useAuth();
 
   // AI Summary States
@@ -237,6 +241,11 @@ export default function HomeScreen() {
     loadRecentDiaries();
     loadPopularArticles();
     loadUserStats();
+    getPrayerStats().then((pStats) => {
+      setLocalPrayerStats({ today: pStats.today, streak: pStats.streak });
+    }).catch((e) => {
+      console.log('[Home] Failed to load prayer stats:', e.message);
+    });
 
     const prayerTimer = setInterval(() => {
       if (currentLocRef.current) {
@@ -258,6 +267,23 @@ export default function HomeScreen() {
       console.log('[Home] Failed to load user stats:', e.message);
     }
   };
+
+  // Load real-time prayer tracker stats
+  const loadPrayerStats = async () => {
+    try {
+      const pStats = await getPrayerStats();
+      setLocalPrayerStats({ today: pStats.today, streak: pStats.streak });
+    } catch (e) {
+      console.log('[Home] Failed to load prayer stats:', e.message);
+    }
+  };
+
+  useFocusEffect(
+    useCallback(() => {
+      loadPrayerStats();
+      loadUserStats();
+    }, [token])
+  );
 
   // Load selected acquaintances and check for reminder
   const loadAcquaintances = async () => {
@@ -429,6 +455,9 @@ export default function HomeScreen() {
           <AcquaintanceCarousel acquaintances={acquaintances} />
         )}
 
+        {/* Favorite Ustads Showcase */}
+        <FavoriteUstadsSection />
+
         {/* Quick Stats Grid - Tailwind Glassmorphic Card Style */}
         <Text style={[styles.sectionTitle, { color: colors.text }]}>আপনার অগ্রগতি</Text>
 
@@ -469,23 +498,30 @@ export default function HomeScreen() {
             </View>
           </View>
 
-          {/* Card 3: Emerald Glow - Prayer Stats */}
-          <View style={[styles.statOuterCard, { backgroundColor: colors.emeraldCardBg, borderColor: colors.emeraldCardBorder }]}>
+          {/* Card 3: Emerald Glow - Interactive Prayer Stats */}
+          <TouchableOpacity
+            activeOpacity={0.85}
+            onPress={() => setShowPrayerModal(true)}
+            style={[styles.statOuterCard, { backgroundColor: colors.emeraldCardBg, borderColor: colors.emeraldCardBorder }]}
+          >
             <View style={[styles.statInnerCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
               <View style={[styles.statIconBadge, { backgroundColor: 'rgba(5, 150, 105, 0.12)', borderColor: 'rgba(5, 150, 105, 0.25)' }]}>
                 <Ionicons name="time-outline" size={22} color="#059669" />
               </View>
-              <Text style={[styles.statCardTitle, { color: colors.textSecondary }]}>সালাত</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                <Text style={[styles.statCardTitle, { color: colors.textSecondary }]}>সালাত</Text>
+                <Ionicons name="chevron-forward" size={13} color={colors.textMuted} />
+              </View>
               <Text style={[styles.statCardValue, { color: colors.text }]}>
-                {toBengaliNumber(userStats?.prayer?.today || 0)}/৫ ওয়াক্ত
+                {toBengaliNumber(localPrayerStats.today || userStats?.prayer?.today || 0)}/৫ ওয়াক্ত
               </Text>
               <View style={[styles.statSubPill, { backgroundColor: colors.inputBg, borderColor: colors.inputBorder }]}>
                 <Text style={[styles.statSubPillText, { color: colors.textSecondary }]}>
-                  স্ট্রীক: {toBengaliNumber(userStats?.prayer?.streak || 0)} দিন
+                  স্ট্রীক: {toBengaliNumber(localPrayerStats.streak || userStats?.prayer?.streak || 0)} দিন
                 </Text>
               </View>
             </View>
-          </View>
+          </TouchableOpacity>
 
           {/* Card 4: Amber Glow - Social Stats */}
           <View style={[styles.statOuterCard, { backgroundColor: colors.amberCardBg, borderColor: colors.amberCardBorder }]}>
@@ -734,6 +770,14 @@ export default function HomeScreen() {
           </View>
         )}
 
+        {/* Prayer Check Modal */}
+        <PrayerCheckModal
+          visible={showPrayerModal}
+          onClose={() => setShowPrayerModal(false)}
+          onUpdate={({ today, streak }) => {
+            setLocalPrayerStats({ today, streak });
+          }}
+        />
       </ScrollView>
     </View>
   );
