@@ -520,8 +520,8 @@ export default function PrayerScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Admin Alert Panel Button (visible only for staff) */}
-        {user?.is_staff && (
+        {/* Admin Alert Panel Button (visible for staff or admin profile) */}
+        {(user?.is_staff || user?.profile_type === 'admin') && (
           <TouchableOpacity
             onPress={() => setShowAdminPanel(true)}
             style={[styles.adminPanelBtn, { backgroundColor: '#7C3AED', borderColor: '#6D28D9' }]}

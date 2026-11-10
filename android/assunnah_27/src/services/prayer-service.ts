@@ -679,6 +679,16 @@ export async function scheduleAdhanNotifications(
     const { status } = await Notifications.requestPermissionsAsync();
     if (status !== 'granted') return;
 
+    if (typeof Notifications?.setNotificationChannelAsync === 'function') {
+      await Notifications.setNotificationChannelAsync('default', {
+        name: 'নামাজের সময় অ্যালার্ট',
+        importance: Notifications.AndroidImportance?.MAX ?? 5,
+        vibrationPattern: [0, 250, 250, 250],
+        lightColor: '#059669',
+        sound: true,
+      }).catch(() => {});
+    }
+
     await Notifications.cancelAllScheduledNotificationsAsync();
 
     const coordinates = new Coordinates(latitude, longitude);
@@ -702,6 +712,7 @@ export async function scheduleAdhanNotifications(
             title: `নামাজের সময় হয়েছে (${prayer.label})`,
             body: `হালকা বিরতি নিন এবং নামাজের জন্য প্রস্তুতি নিন। এখন ${prayer.label}-এর ওয়াক্ত।`,
             sound: true,
+            channelId: 'default',
           },
           trigger: { date: prayer.time },
         });

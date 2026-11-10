@@ -638,7 +638,32 @@ class AdminSendPushNotificationView(APIView):
 
         tokens = list(tokens_qs.values_list('token', flat=True))
 
-        # For now, log the notification (FCM integration will be added in Phase 4)
+        # Send notifications to tokens (supporting Expo Push Service if tokens are present)
+        expo_tokens = [t for t in tokens if t.startswith('ExponentPushToken[') or t.startswith('ExpoPushToken[')]
+        delivered_count = 0
+        if expo_tokens:
+            import urllib.request
+            import json as py_json
+            payload = [{
+                'to': token,
+                'title': title,
+                'body': body,
+                'sound': 'default' if sound else None,
+                'data': data,
+            } for token in expo_tokens[:100]]
+            try:
+                req = urllib.request.Request(
+                    'https://exp.host/--/api/v2/push/send',
+                    data=py_json.dumps(payload).encode('utf-8'),
+                    headers={'Content-Type': 'application/json', 'Accept': 'application/json'},
+                    method='POST'
+                )
+                with urllib.request.urlopen(req, timeout=5) as resp:
+                    if resp.status == 200:
+                        delivered_count = len(payload)
+            except Exception as e:
+                print(f"[AdminSendPushNotificationView] Push delivery error: {e}")
+
         # Store as alert logs for tracking
         target_users = User.objects.all()
         if target == 'takmil':
@@ -646,7 +671,7 @@ class AdminSendPushNotificationView(APIView):
         elif target == 'non_takmil':
             target_users = target_users.filter(profile_type='non_takmil_student')
 
-        # Create a log entry for each target user (placeholder for FCM)
+        # Create a log entry for each target user
         notification_logs = []
         for user in target_users[:500]:  # Limit to avoid performance issues
             log = PrayerAlertLog(
@@ -663,13 +688,13 @@ class AdminSendPushNotificationView(APIView):
         PrayerAlertLog.objects.bulk_create(notification_logs, ignore_conflicts=True)
 
         return Response({
-            'message': f'পুশ নোটিফিকেশন পাঠানোর প্রস্তুত হয়েছে',
+            'message': f'পুশ নোটিফিকেশন পাঠানো হয়েছে',
             'data': {
                 'title': title,
                 'body': body,
                 'target': target,
                 'tokens_count': len(tokens),
-                'note': 'FCM integration pending - notifications logged for tracking'
+                'delivered_count': delivered_count,
             }
         }, status=status.HTTP_200_OK)
 

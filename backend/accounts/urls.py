@@ -20,6 +20,20 @@ from .views import (
     DiaryDetailView,
     UserStatsView,
     JamiaGraduateViewSet,
+    UserPrayerAlertPreferencesView,
+    UserPrayerAlertSingleView,
+    UserPrayerAlertTodayView,
+    PrayerAlertLogCreateView,
+    PrayerAlertMarkReadView,
+    UserPrayerAlertLogsView,
+    DeviceTokenRegisterView,
+    AdminGlobalAlertConfigView,
+    AdminGlobalAlertSingleView,
+    AdminAlertAnalyticsView,
+    AdminUserAlertStatsView,
+    AdminSendPushNotificationView,
+    AdminAdhanUploadView,
+    AdminAlertToggleGlobalView,
 )
 
 urlpatterns = [
@@ -57,4 +71,24 @@ urlpatterns = [
     # Jamia Graduates (Sokol Faregin) endpoints
     path('jamia-graduates/', JamiaGraduateViewSet.as_view({'get': 'list', 'post': 'create'}), name='jamia_graduate_list_create'),
     path('jamia-graduates/<int:pk>/', JamiaGraduateViewSet.as_view({'get': 'retrieve', 'put': 'update', 'patch': 'partial_update', 'delete': 'destroy'}), name='jamia_graduate_detail'),
+
+    # Prayer Alerts (User)
+    path('alerts/preferences/', UserPrayerAlertPreferencesView.as_view(), name='alert_preferences'),
+    path('alerts/preferences/<str:prayer_name>/', UserPrayerAlertSingleView.as_view(), name='alert_preference_single'),
+    path('alerts/today/', UserPrayerAlertTodayView.as_view(), name='alert_today'),
+    path('alerts/logs/', UserPrayerAlertLogsView.as_view(), name='alert_logs'),
+    path('alerts/logs/create/', PrayerAlertLogCreateView.as_view(), name='alert_log_create'),
+    path('alerts/logs/<int:log_id>/read/', PrayerAlertMarkReadView.as_view(), name='alert_log_mark_read'),
+
+    # Device Token (Push Notifications)
+    path('device-token/', DeviceTokenRegisterView.as_view(), name='device_token'),
+
+    # Prayer Alerts (Admin)
+    path('admin/alerts/global-config/', AdminGlobalAlertConfigView.as_view(), name='admin_alert_global_config'),
+    path('admin/alerts/global-config/<str:prayer_name>/', AdminGlobalAlertSingleView.as_view(), name='admin_alert_global_single'),
+    path('admin/alerts/analytics/', AdminAlertAnalyticsView.as_view(), name='admin_alert_analytics'),
+    path('admin/alerts/user-stats/', AdminUserAlertStatsView.as_view(), name='admin_alert_user_stats'),
+    path('admin/alerts/send-push/', AdminSendPushNotificationView.as_view(), name='admin_alert_send_push'),
+    path('admin/alerts/toggle-global/', AdminAlertToggleGlobalView.as_view(), name='admin_alert_toggle_global'),
+    path('admin/alerts/upload-adhan/<str:prayer_name>/', AdminAdhanUploadView.as_view(), name='admin_alert_upload_adhan'),
 ]
