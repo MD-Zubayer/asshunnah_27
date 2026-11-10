@@ -1,5 +1,6 @@
 import { Coordinates, CalculationMethod, PrayerTimes, Madhab } from 'adhan';
 import * as Location from 'expo-location';
+import { Platform } from 'react-native';
 
 // Dynamically load expo-notifications to prevent crashes in Expo Go environments (SDK 53+)
 let Notifications: any = null;
@@ -662,63 +663,499 @@ export function getBengaliDate(date: Date = new Date()): string {
 }
 
 // ============================================
-// Adhan Notifications
+// Adhan & Prayer Alerts (Notifications)
 // ============================================
+
+export type AlertSoundMode = 'sound' | 'vibrate' | 'silent';
+
+export interface PrayerAlertConfig {
+  enabled: boolean;
+  daysAhead: number;
+  prayers: {
+    fajr: boolean;
+    dhuhr: boolean;
+    asr: boolean;
+    maghrib: boolean;
+    isha: boolean;
+  };
+  preReminderMinutes: number; // 0, 5, 10, 15, 30
+  extras: {
+    tahajjud: boolean;
+    tahajjudMinutesBefore: number;
+    ishraq: boolean;
+    makruhWarning: boolean;
+    jummah: boolean;
+  };
+  soundMode: AlertSoundMode;
+}
+
+export const DEFAULT_PRAYER_ALERT_CONFIG: PrayerAlertConfig = {
+  enabled: false,
+  daysAhead: 5,
+  prayers: {
+    fajr: true,
+    dhuhr: true,
+    asr: true,
+    maghrib: true,
+    isha: true,
+  },
+  preReminderMinutes: 10,
+  extras: {
+    tahajjud: false,
+    tahajjudMinutesBefore: 30,
+    ishraq: false,
+    makruhWarning: false,
+    jummah: true,
+  },
+  soundMode: 'sound',
+};
+
+export interface ScheduleAlertResult {
+  success: boolean;
+  reason?: 'unsupported' | 'permission_denied' | 'error';
+  scheduledCount: number;
+  daysScheduled: number;
+  nextAlertTime?: Date | null;
+  nextAlertTitle?: string;
+  errorMessage?: string;
+}
+
+const ALERT_CHANNELS: Record<AlertSoundMode, string> = {
+  sound: 'prayer-alert-sound',
+  vibrate: 'prayer-alert-vibrate',
+  silent: 'prayer-alert-silent',
+};
+
+const MAX_SCHEDULED_ALERTS = 50;
+
+function isNotificationsSupported(): boolean {
+  return Boolean(
+    Notifications &&
+    typeof Notifications.requestPermissionsAsync === 'function' &&
+    typeof Notifications.scheduleNotificationAsync === 'function'
+  );
+}
+
+async function ensureNotificationPermission(): Promise<{ granted: boolean; status: string }> {
+  if (!isNotificationsSupported()) {
+    return { granted: false, status: 'unsupported' };
+  }
+
+  try {
+    if (typeof Notifications.getPermissionsAsync === 'function') {
+      const current = await Notifications.getPermissionsAsync();
+      if (current?.status === 'granted') {
+        return { granted: true, status: 'granted' };
+      }
+    }
+    const requested = await Notifications.requestPermissionsAsync({
+      ios: { allowAlert: true, allowBadge: true, allowSound: true },
+    });
+    return {
+      granted: requested?.status === 'granted',
+      status: requested?.status || 'denied',
+    };
+  } catch (_e) {
+    return { granted: false, status: 'error' };
+  }
+}
+
+async function ensurePrayerNotificationChannels(): Promise<void> {
+  if (Platform.OS !== 'android' || typeof Notifications?.setNotificationChannelAsync !== 'function') {
+    return;
+  }
+
+  const maxImportance = Notifications.AndroidImportance?.MAX ?? 5;
+  const highImportance = Notifications.AndroidImportance?.HIGH ?? 4;
+  const lowImportance = Notifications.AndroidImportance?.LOW ?? 2;
+  const publicVisibility = Notifications.AndroidNotificationVisibility?.PUBLIC ?? 1;
+
+  await Promise.all([
+    Notifications.setNotificationChannelAsync(ALERT_CHANNELS.sound, {
+      name: 'নামাজের সময় অ্যালার্ট (শব্দসহ)',
+      importance: maxImportance,
+      sound: 'default',
+      enableVibrate: true,
+      vibrationPattern: [0, 300, 200, 300],
+      lightColor: '#059669',
+      lockscreenVisibility: publicVisibility,
+    }).catch(() => {}),
+    Notifications.setNotificationChannelAsync(ALERT_CHANNELS.vibrate, {
+      name: 'নামাজের সময় অ্যালার্ট (ভাইব্রেশন)',
+      importance: highImportance,
+      sound: null,
+      enableVibrate: true,
+      vibrationPattern: [0, 350, 200, 350],
+      lightColor: '#059669',
+      lockscreenVisibility: publicVisibility,
+    }).catch(() => {}),
+    Notifications.setNotificationChannelAsync(ALERT_CHANNELS.silent, {
+      name: 'নামাজের সময় অ্যালার্ট (নীরব)',
+      importance: lowImportance,
+      sound: null,
+      enableVibrate: false,
+      lightColor: '#059669',
+      lockscreenVisibility: publicVisibility,
+    }).catch(() => {}),
+  ]);
+}
+
+function buildDateTrigger(date: Date, channelId: string): any {
+  const trigger: any = {
+    type: Notifications?.SchedulableTriggerInputTypes?.DATE ?? 'date',
+    date,
+  };
+  if (Platform.OS === 'android') {
+    trigger.channelId = channelId;
+  }
+  return trigger;
+}
+
+export async function cancelPrayerAlerts(): Promise<number> {
+  if (!Notifications) return 0;
+
+  try {
+    if (
+      typeof Notifications.getAllScheduledNotificationsAsync === 'function' &&
+      typeof Notifications.cancelScheduledNotificationAsync === 'function'
+    ) {
+      const scheduled = await Notifications.getAllScheduledNotificationsAsync();
+      let canceled = 0;
+      for (const item of scheduled || []) {
+        const isPrayerAlert =
+          item?.content?.data?.type === 'prayer_alert' ||
+          (typeof item?.content?.title === 'string' && item.content.title.startsWith('নামাজের সময় হয়েছে'));
+        if (isPrayerAlert && item?.identifier) {
+          await Notifications.cancelScheduledNotificationAsync(item.identifier).catch(() => {});
+          canceled++;
+        }
+      }
+      return canceled;
+    }
+  } catch (e) {
+    console.log('Error canceling prayer alerts:', e);
+  }
+  return 0;
+}
+
+export async function getScheduledPrayerAlertsSummary(): Promise<{
+  count: number;
+  nextTriggerDate: Date | null;
+  nextTitle: string;
+}> {
+  if (!Notifications || typeof Notifications.getAllScheduledNotificationsAsync !== 'function') {
+    return { count: 0, nextTriggerDate: null, nextTitle: '' };
+  }
+
+  try {
+    const scheduled = await Notifications.getAllScheduledNotificationsAsync();
+    const prayerAlerts = (scheduled || []).filter(
+      (item: any) => item?.content?.data?.type === 'prayer_alert'
+    );
+
+    let nextDate: Date | null = null;
+    let nextTitle = '';
+
+    for (const item of prayerAlerts) {
+      const rawVal = item?.trigger?.value ?? item?.trigger?.date;
+      if (rawVal) {
+        const d = new Date(rawVal);
+        if (!isNaN(d.getTime()) && d.getTime() > Date.now()) {
+          if (!nextDate || d.getTime() < nextDate.getTime()) {
+            nextDate = d;
+            nextTitle = item?.content?.title || '';
+          }
+        }
+      }
+    }
+
+    return {
+      count: prayerAlerts.length,
+      nextTriggerDate: nextDate,
+      nextTitle,
+    };
+  } catch (_e) {
+    return { count: 0, nextTriggerDate: null, nextTitle: '' };
+  }
+}
+
+export async function sendTestPrayerAlert(
+  soundMode: AlertSoundMode = 'sound'
+): Promise<{ success: boolean; reason?: string }> {
+  if (!isNotificationsSupported()) {
+    return { success: false, reason: 'unsupported' };
+  }
+
+  const perm = await ensureNotificationPermission();
+  if (!perm.granted) {
+    return { success: false, reason: 'permission_denied' };
+  }
+
+  await ensurePrayerNotificationChannels();
+  const channelId = ALERT_CHANNELS[soundMode] || ALERT_CHANNELS.sound;
+
+  try {
+    const trigger: any = {
+      type: Notifications?.SchedulableTriggerInputTypes?.TIME_INTERVAL ?? 'timeInterval',
+      seconds: 2,
+      repeats: false,
+    };
+    if (Platform.OS === 'android') {
+      trigger.channelId = channelId;
+    }
+
+    await Notifications.scheduleNotificationAsync({
+      content: {
+        title: '🔔 নামাজের টেস্ট অ্যালার্ট সফল',
+        body: 'আপনার ডিভাইসে আস-সুন্নাহ নামাজের অ্যালার্ট সঠিকভাবে কাজ করছে।',
+        sound: soundMode === 'sound' ? 'default' : undefined,
+        priority: Notifications.AndroidNotificationPriority?.MAX ?? 'max',
+        data: { type: 'prayer_alert_test' },
+      },
+      trigger,
+    });
+    return { success: true };
+  } catch (_e) {
+    return { success: false, reason: 'error' };
+  }
+}
+
+interface CandidateAlert {
+  key: string;
+  category: 'fard' | 'pre' | 'extra' | 'makruh';
+  time: Date;
+  title: string;
+  body: string;
+}
+
+export async function schedulePrayerAlerts(
+  latitude: number,
+  longitude: number,
+  method: CalculationMethodName = 'Karachi',
+  madhab: MadhabName = 'Hanafi',
+  config: PrayerAlertConfig = DEFAULT_PRAYER_ALERT_CONFIG
+): Promise<ScheduleAlertResult> {
+  if (!config.enabled) {
+    await cancelPrayerAlerts();
+    return {
+      success: true,
+      scheduledCount: 0,
+      daysScheduled: 0,
+      nextAlertTime: null,
+      nextAlertTitle: '',
+    };
+  }
+
+  if (!isNotificationsSupported()) {
+    return {
+      success: false,
+      reason: 'unsupported',
+      scheduledCount: 0,
+      daysScheduled: 0,
+    };
+  }
+
+  try {
+    const perm = await ensureNotificationPermission();
+    if (!perm.granted) {
+      return {
+        success: false,
+        reason: 'permission_denied',
+        scheduledCount: 0,
+        daysScheduled: 0,
+      };
+    }
+
+    await ensurePrayerNotificationChannels();
+    await cancelPrayerAlerts();
+
+    const coordinates = new Coordinates(latitude, longitude);
+    const params = getCalculationParams(method, madhab);
+    const now = new Date();
+    const minTriggerMs = now.getTime() + 10000;
+    const channelId = ALERT_CHANNELS[config.soundMode] || ALERT_CHANNELS.sound;
+    const maxDays = Math.min(Math.max(1, config.daysAhead || 5), 7);
+
+    let scheduledCount = 0;
+    let daysScheduled = 0;
+    let nextAlertTime: Date | null = null;
+    let nextAlertTitle = '';
+
+    for (let dayOffset = 0; dayOffset < maxDays; dayOffset++) {
+      if (scheduledCount >= MAX_SCHEDULED_ALERTS) break;
+
+      const targetDay = new Date(now.getFullYear(), now.getMonth(), now.getDate() + dayOffset);
+      const rawTimes = new PrayerTimes(coordinates, targetDay, params);
+
+      const fajr = adhanTimeToLocal(rawTimes.fajr);
+      const sunrise = adhanTimeToLocal(rawTimes.sunrise);
+      const dhuhr = adhanTimeToLocal(rawTimes.dhuhr);
+      const asr = adhanTimeToLocal(rawTimes.asr);
+      const sunset = adhanTimeToLocal(rawTimes.sunset);
+      const maghrib = addMinutes(adhanTimeToLocal(rawTimes.maghrib), 1);
+      const isha = adhanTimeToLocal(rawTimes.isha);
+      const isFriday = targetDay.getDay() === 5;
+
+      const candidates: CandidateAlert[] = [];
+
+      const fardList: { key: keyof PrayerAlertConfig['prayers']; label: string; time: Date }[] = [
+        { key: 'fajr', label: 'ফজর', time: fajr },
+        { key: 'dhuhr', label: isFriday ? 'জুমুআ / যোহর' : 'যোহর', time: dhuhr },
+        { key: 'asr', label: 'আসর', time: asr },
+        { key: 'maghrib', label: 'মাগরিব', time: maghrib },
+        { key: 'isha', label: 'এশা', time: isha },
+      ];
+
+      for (const prayer of fardList) {
+        if (!config.prayers?.[prayer.key]) continue;
+
+        candidates.push({
+          key: prayer.key,
+          category: 'fard',
+          time: prayer.time,
+          title: `🕌 ${prayer.label}-এর ওয়াক্ত হয়েছে`,
+          body: `এখন ${prayer.label}-এর নামাজের সময় (${formatTime(prayer.time, 'bn')})। ওযু ও নামাজের জন্য প্রস্তুতি নিন।`,
+        });
+
+        if (config.preReminderMinutes > 0) {
+          const preTime = addMinutes(prayer.time, -config.preReminderMinutes);
+          candidates.push({
+            key: `${prayer.key}_pre`,
+            category: 'pre',
+            time: preTime,
+            title: `⏳ ${toBanglaDigits(config.preReminderMinutes)} মিনিট পর ${prayer.label}`,
+            body: `${formatTime(prayer.time, 'bn')} মিনিটে ${prayer.label}-এর ওয়াক্ত শুরু হবে। জামাতের জন্য প্রস্তুতি নিন।`,
+          });
+        }
+      }
+
+      if (config.extras?.tahajjud) {
+        const minsBefore = config.extras.tahajjudMinutesBefore || 30;
+        const tahajjudTime = addMinutes(fajr, -minsBefore);
+        candidates.push({
+          key: 'tahajjud',
+          category: 'extra',
+          time: tahajjudTime,
+          title: '🌙 তাহাজ্জুদ ও সেহরির শেষ সময়',
+          body: `ফজরের ${toBanglaDigits(minsBefore)} মিনিট বাকি (${formatTime(fajr, 'bn')})। তাহাজ্জুদ ও সেহরি সম্পন্ন করুন।`,
+        });
+      }
+
+      if (config.extras?.ishraq) {
+        const ishraqTime = addMinutes(sunrise, 15);
+        candidates.push({
+          key: 'ishraq',
+          category: 'extra',
+          time: ishraqTime,
+          title: '☀️ ইশরাক ও চাশতের ওয়াক্ত শুরু',
+          body: `সূর্যোদয়ের মাকরূহ সময় শেষ হয়েছে (${formatTime(ishraqTime, 'bn')})। এখন নফল নামাজ পড়তে পারেন।`,
+        });
+      }
+
+      if (config.extras?.jummah && isFriday) {
+        const jummahPrep = addMinutes(dhuhr, -30);
+        candidates.push({
+          key: 'jummah',
+          category: 'extra',
+          time: jummahPrep,
+          title: '🕌 জুমুআর প্রস্তুতির সময়',
+          body: `জুমুআ মোবারক! যোহরের ৩০ মিনিট বাকি (${formatTime(dhuhr, 'bn')})। গোসল, সুগন্ধি ও মসজিদে যাওয়ার প্রস্তুতি নিন।`,
+        });
+      }
+
+      if (config.extras?.makruhWarning) {
+        const sunriseWarn = addMinutes(sunrise, -5);
+        const zawalWarn = addMinutes(dhuhr, -12);
+        const sunsetWarn = addMinutes(sunset, -5);
+
+        candidates.push(
+          {
+            key: 'makruh_sunrise',
+            category: 'makruh',
+            time: sunriseWarn,
+            title: '⚠️ শীঘ্রই সূর্যোদয়ের মাকরূহ সময়',
+            body: `${formatTime(sunrise, 'bn')} মিনিটে সূর্যোদয় হবে। ফজরের বাকি নামাজ দ্রুত আদায় করুন।`,
+          },
+          {
+            key: 'makruh_zawal',
+            category: 'makruh',
+            time: zawalWarn,
+            title: '⚠️ যাওয়াল (মধ্যাহ্নের মাকরূহ) সময় শুরু',
+            body: `আগামী ১০ মিনিট যেকোনো নামাজ পড়া থেকে বিরত থাকুন।`,
+          },
+          {
+            key: 'makruh_sunset',
+            category: 'makruh',
+            time: sunsetWarn,
+            title: '⚠️ শীঘ্রই সূর্যাস্তের মাকরূহ সময়',
+            body: `মাগরিবের ৫ মিনিট বাকি। আসরের নামাজ বাকি থাকলে দ্রুত আদায় করে নিন।`,
+          }
+        );
+      }
+
+      candidates.sort((a, b) => a.time.getTime() - b.time.getTime());
+
+      let scheduledThisDay = 0;
+      for (const alert of candidates) {
+        if (scheduledCount >= MAX_SCHEDULED_ALERTS) break;
+        if (alert.time.getTime() <= minTriggerMs) continue;
+
+        await Notifications.scheduleNotificationAsync({
+          content: {
+            title: alert.title,
+            body: alert.body,
+            sound: config.soundMode === 'sound' ? 'default' : undefined,
+            priority: Notifications.AndroidNotificationPriority?.MAX ?? 'max',
+            data: {
+              type: 'prayer_alert',
+              key: alert.key,
+              category: alert.category,
+            },
+          },
+          trigger: buildDateTrigger(alert.time, channelId),
+        });
+
+        scheduledCount++;
+        scheduledThisDay++;
+
+        if (!nextAlertTime || alert.time.getTime() < nextAlertTime.getTime()) {
+          nextAlertTime = alert.time;
+          nextAlertTitle = alert.title;
+        }
+      }
+
+      if (scheduledThisDay > 0) {
+        daysScheduled++;
+      }
+    }
+
+    return {
+      success: true,
+      scheduledCount,
+      daysScheduled,
+      nextAlertTime,
+      nextAlertTitle,
+    };
+  } catch (error: any) {
+    console.log('Error scheduling prayer notifications:', error);
+    return {
+      success: false,
+      reason: 'error',
+      scheduledCount: 0,
+      daysScheduled: 0,
+      errorMessage: error?.message || 'Unknown scheduling error',
+    };
+  }
+}
 
 export async function scheduleAdhanNotifications(
   latitude: number,
   longitude: number,
   method: CalculationMethodName = 'Karachi',
   madhab: MadhabName = 'Hanafi'
-): Promise<void> {
-  if (!Notifications?.requestPermissionsAsync || !Notifications?.cancelAllScheduledNotificationsAsync || !Notifications?.scheduleNotificationAsync) {
-    return;
-  }
-
-  try {
-    const { status } = await Notifications.requestPermissionsAsync();
-    if (status !== 'granted') return;
-
-    if (typeof Notifications?.setNotificationChannelAsync === 'function') {
-      await Notifications.setNotificationChannelAsync('default', {
-        name: 'নামাজের সময় অ্যালার্ট',
-        importance: Notifications.AndroidImportance?.MAX ?? 5,
-        vibrationPattern: [0, 250, 250, 250],
-        lightColor: '#059669',
-        sound: true,
-      }).catch(() => {});
-    }
-
-    await Notifications.cancelAllScheduledNotificationsAsync();
-
-    const coordinates = new Coordinates(latitude, longitude);
-    const params = getCalculationParams(method, madhab);
-    const date = new Date();
-    const rawTimes = new PrayerTimes(coordinates, date, params);
-
-    const prayers = [
-      { name: 'fajr', label: 'ফজর', time: adhanTimeToLocal(rawTimes.fajr) },
-      { name: 'dhuhr', label: 'যোহর', time: adhanTimeToLocal(rawTimes.dhuhr) },
-      { name: 'asr', label: 'আসর', time: adhanTimeToLocal(rawTimes.asr) },
-      { name: 'maghrib', label: 'মাগরিব', time: adhanTimeToLocal(rawTimes.maghrib) },
-      { name: 'isha', label: 'এশা', time: adhanTimeToLocal(rawTimes.isha) },
-    ];
-
-    const now = new Date();
-    for (const prayer of prayers) {
-      if (prayer.time > now) {
-        await Notifications.scheduleNotificationAsync({
-          content: {
-            title: `নামাজের সময় হয়েছে (${prayer.label})`,
-            body: `হালকা বিরতি নিন এবং নামাজের জন্য প্রস্তুতি নিন। এখন ${prayer.label}-এর ওয়াক্ত।`,
-            sound: true,
-            channelId: 'default',
-          },
-          trigger: { date: prayer.time },
-        });
-      }
-    }
-  } catch (error) {
-    console.log('Error scheduling notifications', error);
-  }
+): Promise<ScheduleAlertResult> {
+  return schedulePrayerAlerts(latitude, longitude, method, madhab, {
+    ...DEFAULT_PRAYER_ALERT_CONFIG,
+    enabled: true,
+  });
 }

@@ -12,6 +12,7 @@ import { Colors } from '../../constants/theme';
 import TopNavbar from '../../components/TopNavbar';
 import AdminAlertPanel from '../../components/AdminAlertPanel';
 import PrayerCheckModal from '../../components/PrayerCheckModal';
+import PrayerAlertModal from '../../components/PrayerAlertModal';
 import { useAuth } from '../../context/AuthContext';
 import {
   calculateFullPrayerData,
@@ -21,7 +22,9 @@ import {
   formatTime,
   toBanglaDigits,
   CALCULATION_METHODS,
-  scheduleAdhanNotifications,
+  DEFAULT_PRAYER_ALERT_CONFIG,
+  schedulePrayerAlerts,
+  getScheduledPrayerAlertsSummary,
 } from '../../services/prayer-service';
 import {
   PRAYER_KEYS,
@@ -64,6 +67,7 @@ const STORAGE_KEYS = {
   LOCATION: 'prayer_location',
   METHOD: 'prayer_method',
   MADHAB: 'prayer_madhab',
+  ALERT_CONFIG: 'prayer_alert_config',
 };
 
 // ============================================
@@ -109,6 +113,9 @@ export default function PrayerScreen() {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [suggestions, setSuggestions] = useState([]);
   const [showAdminPanel, setShowAdminPanel] = useState(false);
+  const [showAlertModal, setShowAlertModal] = useState(false);
+  const [alertConfig, setAlertConfig] = useState(DEFAULT_PRAYER_ALERT_CONFIG);
+  const [activeAlertCount, setActiveAlertCount] = useState(0);
   const [showPrayerCheckModal, setShowPrayerCheckModal] = useState(false);
   const [prayerTrackerState, setPrayerTrackerState] = useState({
     fajr: false,
@@ -200,6 +207,18 @@ export default function PrayerScreen() {
     calculatePrayerData();
   }, [location, selectedDate, method, madhab]);
 
+  // Keep prayer alerts synced automatically if enabled when location/method/madhab updates
+  useEffect(() => {
+    if (loading || !alertConfig?.enabled) return;
+    schedulePrayerAlerts(location.latitude, location.longitude, method, madhab, alertConfig)
+      .then((res) => {
+        if (res?.success) {
+          setActiveAlertCount(res.scheduledCount || 0);
+        }
+      })
+      .catch(() => {});
+  }, [loading, location.latitude, location.longitude, method, madhab]);
+
   const loadSavedSettings = async () => {
     try {
       const savedLocation = await AsyncStorage.getItem(STORAGE_KEYS.LOCATION);
@@ -218,7 +237,25 @@ export default function PrayerScreen() {
         setMadhab(savedMadhab);
       }
 
-      // Auto-Silent settings loading removed (moved to More tab)
+      const savedAlertConfig = await AsyncStorage.getItem(STORAGE_KEYS.ALERT_CONFIG);
+      if (savedAlertConfig) {
+        const parsedAlert = JSON.parse(savedAlertConfig);
+        setAlertConfig({
+          ...DEFAULT_PRAYER_ALERT_CONFIG,
+          ...parsedAlert,
+          prayers: {
+            ...DEFAULT_PRAYER_ALERT_CONFIG.prayers,
+            ...(parsedAlert?.prayers || {}),
+          },
+          extras: {
+            ...DEFAULT_PRAYER_ALERT_CONFIG.extras,
+            ...(parsedAlert?.extras || {}),
+          },
+        });
+      }
+
+      const summary = await getScheduledPrayerAlertsSummary();
+      setActiveAlertCount(summary.count || 0);
     } catch (e) {
       console.log('Error loading settings', e);
     } finally {
@@ -349,9 +386,24 @@ export default function PrayerScreen() {
     setRefreshing(false);
   };
 
-  const handleScheduleNotifications = async () => {
-    await scheduleAdhanNotifications(location.latitude, location.longitude, method, madhab);
-    Alert.alert('সফল', 'নামাজের সময় অ্যালার্ট সেট করা হয়েছে');
+  const handleScheduleNotifications = () => {
+    setShowAlertModal(true);
+  };
+
+  const handleSaveAlertConfig = async (newConfig) => {
+    setAlertConfig(newConfig);
+    await saveSettings(STORAGE_KEYS.ALERT_CONFIG, newConfig);
+    const result = await schedulePrayerAlerts(
+      location.latitude,
+      location.longitude,
+      method,
+      madhab,
+      newConfig
+    );
+    if (result?.success) {
+      setActiveAlertCount(result.scheduledCount || 0);
+    }
+    return result;
   };
 
   // Get prayer timing status for each prayer
@@ -560,10 +612,24 @@ export default function PrayerScreen() {
 
           <TouchableOpacity
             onPress={handleScheduleNotifications}
-            style={[styles.quickActionCard, { backgroundColor: colors.amberCardBg, borderColor: colors.amberCardBorder }]}
+            style={[
+              styles.quickActionCard,
+              {
+                backgroundColor: alertConfig?.enabled && activeAlertCount > 0 ? colors.emeraldCardBg : colors.amberCardBg,
+                borderColor: alertConfig?.enabled && activeAlertCount > 0 ? colors.emeraldCardBorder : colors.amberCardBorder,
+              },
+            ]}
           >
-            <Ionicons name="notifications-outline" size={20} color="#D97706" />
-            <Text style={[styles.quickActionText, { color: colors.text }]}>অ্যালার্ট সেট</Text>
+            <Ionicons
+              name={alertConfig?.enabled && activeAlertCount > 0 ? 'notifications' : 'notifications-outline'}
+              size={20}
+              color={alertConfig?.enabled && activeAlertCount > 0 ? '#059669' : '#D97706'}
+            />
+            <Text style={[styles.quickActionText, { color: colors.text }]}>
+              {alertConfig?.enabled && activeAlertCount > 0
+                ? `অ্যালার্ট (${toBanglaDigits(activeAlertCount)})`
+                : 'অ্যালার্ট সেট'}
+            </Text>
           </TouchableOpacity>
         </View>
 
@@ -1111,6 +1177,15 @@ export default function PrayerScreen() {
             setPrayerTrackerStats({ today: updated.today, streak: updated.streak });
           }
         }}
+      />
+
+      {/* Prayer Alert Settings Modal */}
+      <PrayerAlertModal
+        visible={showAlertModal}
+        onClose={() => setShowAlertModal(false)}
+        config={alertConfig}
+        prayerItems={prayerData?.items || []}
+        onSaveAndSchedule={handleSaveAlertConfig}
       />
     </View>
   );
