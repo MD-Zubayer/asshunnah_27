@@ -1,15 +1,17 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   StyleSheet, Text, View, ScrollView, useColorScheme, TouchableOpacity,
   TextInput, Alert, ActivityIndicator, RefreshControl
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useFocusEffect } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Colors } from '../../constants/theme';
 import TopNavbar from '../../components/TopNavbar';
 import AdminAlertPanel from '../../components/AdminAlertPanel';
+import PrayerCheckModal from '../../components/PrayerCheckModal';
 import { useAuth } from '../../context/AuthContext';
 import {
   calculateFullPrayerData,
@@ -21,6 +23,11 @@ import {
   CALCULATION_METHODS,
   scheduleAdhanNotifications,
 } from '../../services/prayer-service';
+import {
+  PRAYER_KEYS,
+  getPrayerStats,
+  togglePrayer,
+} from '../../services/prayer-tracker-service';
 
 import RingerModeService from '../../services/native/RingerModeModule';
 import HabitTracker from '../../services/habit-tracker';
@@ -102,6 +109,46 @@ export default function PrayerScreen() {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [suggestions, setSuggestions] = useState([]);
   const [showAdminPanel, setShowAdminPanel] = useState(false);
+  const [showPrayerCheckModal, setShowPrayerCheckModal] = useState(false);
+  const [prayerTrackerState, setPrayerTrackerState] = useState({
+    fajr: false,
+    dhuhr: false,
+    asr: false,
+    maghrib: false,
+    isha: false,
+  });
+  const [prayerTrackerStats, setPrayerTrackerStats] = useState({ today: 0, streak: 0 });
+
+  // Load prayer tracker state
+  const loadPrayerTracker = async () => {
+    try {
+      const stats = await getPrayerStats();
+      if (stats?.state) {
+        setPrayerTrackerState(stats.state);
+        setPrayerTrackerStats({ today: stats.today, streak: stats.streak });
+      }
+    } catch (e) {
+      console.log('[Prayer] Failed to load prayer tracker:', e.message);
+    }
+  };
+
+  useFocusEffect(
+    useCallback(() => {
+      loadPrayerTracker();
+    }, [])
+  );
+
+  const handleTogglePrayer = async (waqtKey) => {
+    try {
+      const res = await togglePrayer(waqtKey);
+      if (res?.state) {
+        setPrayerTrackerState(res.state);
+        setPrayerTrackerStats({ today: res.count, streak: res.streak });
+      }
+    } catch (e) {
+      console.log('[Prayer] Error toggling prayer:', e.message);
+    }
+  };
 
   // (Auto-Silent states removed and moved to More tab)
 
@@ -504,11 +551,11 @@ export default function PrayerScreen() {
           </TouchableOpacity>
 
           <TouchableOpacity
-            onPress={() => setShowLocationSearch(!showLocationSearch)}
+            onPress={() => setShowPrayerCheckModal(true)}
             style={[styles.quickActionCard, { backgroundColor: colors.emeraldCardBg, borderColor: colors.emeraldCardBorder }]}
           >
-            <Ionicons name="search-outline" size={20} color="#059669" />
-            <Text style={[styles.quickActionText, { color: colors.text }]}>অবস্থান খুঁজুন</Text>
+            <Ionicons name="checkbox-outline" size={20} color="#059669" />
+            <Text style={[styles.quickActionText, { color: colors.text }]}>সালাত চেকলিস্ট</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -622,10 +669,24 @@ export default function PrayerScreen() {
           </View>
         )}
 
-        {/* Prayer Times List */}
-        <Text style={[styles.sectionTitle, { color: colors.text }]}>
-          {isToday ? 'আজকের সময়সূচী' : 'নির্বাচিত দিনের সময়সূচী'}
-        </Text>
+        {/* Prayer Times List & Tracker Header */}
+        <View style={styles.sectionHeaderRow}>
+          <Text style={[styles.sectionTitle, { color: colors.text, marginBottom: 0 }]}>
+            {isToday ? 'আজকের সময়সূচী' : 'নির্বাচিত দিনের সময়সূচী'}
+          </Text>
+          {isToday && (
+            <TouchableOpacity
+              onPress={() => setShowPrayerCheckModal(true)}
+              style={[styles.trackerPill, { backgroundColor: colors.emeraldCardBg, borderColor: colors.emeraldCardBorder }]}
+            >
+              <Ionicons name="shield-checkmark" size={14} color="#059669" />
+              <Text style={[styles.trackerPillText, { color: '#059669' }]}>
+                আদায়: {toBanglaDigits(prayerTrackerStats.today)}/৫ • স্ট্রীক: {toBanglaDigits(prayerTrackerStats.streak)} দিন
+              </Text>
+              <Ionicons name="chevron-forward" size={12} color="#059669" />
+            </TouchableOpacity>
+          )}
+        </View>
 
         <View style={[styles.prayerListCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
           {prayerData.items.map((item, index) => {
@@ -634,6 +695,8 @@ export default function PrayerScreen() {
             const isUpcoming = status.status === 'upcoming' && isToday;
             const isPassed = status.status === 'passed' && isToday;
             const isInfoItem = item.key === 'sunrise' || item.key === 'sunset' || item.key === 'zawal';
+            const isFarz = PRAYER_KEYS.includes(item.key);
+            const isDone = isFarz && prayerTrackerState[item.key];
 
             return (
               <View
@@ -705,6 +768,35 @@ export default function PrayerScreen() {
                     >
                       {formatTime(item.time, 'bn')}
                     </Text>
+
+                    {/* Interactive prayer completion toggle for 5 farz prayers */}
+                    {isToday && isFarz && (
+                      <TouchableOpacity
+                        onPress={() => handleTogglePrayer(item.key)}
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                        style={[
+                          styles.prayerCheckBtn,
+                          isDone
+                            ? { backgroundColor: '#10B981', borderColor: '#059669' }
+                            : { backgroundColor: colors.inputBg, borderColor: colors.inputBorder },
+                        ]}
+                        activeOpacity={0.7}
+                      >
+                        <Ionicons
+                          name={isDone ? 'checkmark' : 'ellipse-outline'}
+                          size={14}
+                          color={isDone ? '#ffffff' : colors.textMuted}
+                        />
+                        <Text
+                          style={[
+                            styles.prayerCheckBtnText,
+                            { color: isDone ? '#ffffff' : colors.textSecondary },
+                          ]}
+                        >
+                          {isDone ? 'আদায় সম্পন্ন' : 'আদায় করুন'}
+                        </Text>
+                      </TouchableOpacity>
+                    )}
                   </View>
                 </View>
 
@@ -1009,7 +1101,17 @@ export default function PrayerScreen() {
       {/* Admin Alert Panel Modal */}
       <AdminAlertPanel visible={showAdminPanel} onClose={() => setShowAdminPanel(false)} />
 
-      {/* Map Selector Modal removed */}
+      {/* Prayer Check Modal */}
+      <PrayerCheckModal
+        visible={showPrayerCheckModal}
+        onClose={() => setShowPrayerCheckModal(false)}
+        onUpdate={(updated) => {
+          if (updated?.state) {
+            setPrayerTrackerState(updated.state);
+            setPrayerTrackerStats({ today: updated.today, streak: updated.streak });
+          }
+        }}
+      />
     </View>
   );
 }
@@ -1071,12 +1173,28 @@ const styles = StyleSheet.create({
   heroIconBox: { width: 60, height: 60, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.1)', justifyContent: 'center', alignItems: 'center' },
 
   // Prayer List
-  sectionTitle: { fontSize: 14, fontWeight: '900', marginTop: 16, marginBottom: 10, textTransform: 'uppercase' },
+  sectionHeaderRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 16, marginBottom: 10 },
+  sectionTitle: { fontSize: 14, fontWeight: '900', textTransform: 'uppercase' },
+  trackerPill: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, borderWidth: 1 },
+  trackerPillText: { fontSize: 11, fontWeight: '700' },
   prayerListCard: { borderRadius: 20, padding: 4, borderWidth: 1, overflow: 'hidden' },
   prayerItemContainer: { paddingVertical: 14, paddingHorizontal: 12, borderRadius: 12, marginVertical: 2 },
   prayerItemRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   prayerItemLeft: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
-  prayerItemRight: { alignItems: 'flex-end' },
+  prayerItemRight: { alignItems: 'flex-end', gap: 6 },
+  prayerCheckBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  prayerCheckBtnText: {
+    fontSize: 10,
+    fontWeight: '700',
+  },
   prayerIconBadge: { width: 40, height: 40, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
   prayerNameRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   prayerName: { fontSize: 15 },
