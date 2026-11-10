@@ -28,9 +28,9 @@ from .views import (
     UserPrayerAlertLogsView,
     DeviceTokenRegisterView,
     AdminGlobalAlertConfigView,
-    AdminGlobalAlertSingleView,
+    AdminGlobalAlertConfigSingleView,
     AdminAlertAnalyticsView,
-    AdminUserAlertStatsView,
+    AdminAlertUserStatsView,
     AdminSendPushNotificationView,
     AdminAdhanUploadView,
     AdminAlertToggleGlobalView,
@@ -85,9 +85,9 @@ urlpatterns = [
 
     # Prayer Alerts (Admin)
     path('admin/alerts/global-config/', AdminGlobalAlertConfigView.as_view(), name='admin_alert_global_config'),
-    path('admin/alerts/global-config/<str:prayer_name>/', AdminGlobalAlertSingleView.as_view(), name='admin_alert_global_single'),
+    path('admin/alerts/global-config/<str:prayer_name>/', AdminGlobalAlertConfigSingleView.as_view(), name='admin_alert_global_single'),
     path('admin/alerts/analytics/', AdminAlertAnalyticsView.as_view(), name='admin_alert_analytics'),
-    path('admin/alerts/user-stats/', AdminUserAlertStatsView.as_view(), name='admin_alert_user_stats'),
+    path('admin/alerts/user-stats/', AdminAlertUserStatsView.as_view(), name='admin_alert_user_stats'),
     path('admin/alerts/send-push/', AdminSendPushNotificationView.as_view(), name='admin_alert_send_push'),
     path('admin/alerts/toggle-global/', AdminAlertToggleGlobalView.as_view(), name='admin_alert_toggle_global'),
     path('admin/alerts/upload-adhan/<str:prayer_name>/', AdminAdhanUploadView.as_view(), name='admin_alert_upload_adhan'),
