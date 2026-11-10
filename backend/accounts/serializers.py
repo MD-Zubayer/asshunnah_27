@@ -292,7 +292,7 @@ class UserSerializer(serializers.ModelSerializer):
         fields = ['id', 'email', 'first_name', 'last_name', 'father_name', 'phone_number',
                   'district', 'upazila', 'profile_type', 'profile_completed', 'profile_image',
                   'cover_image', 'bio', 'jamat', 'designation', 'department', 'dakhila_number',
-                  'blood_group', 'occupation', 'takmil_year_type', 'custom_graduation_year',
+                  'blood_group', 'occupation', 'fuzalaye_jamia_name', 'takmil_year_type', 'custom_graduation_year',
                   'takmil_profile', 'non_takmil_profile']
 
     def get_profile_image(self, obj):

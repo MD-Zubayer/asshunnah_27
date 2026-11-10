@@ -14,6 +14,7 @@ export const API_ENDPOINTS = {
   LOGIN: `${API_BASE_URL}/api/auth/login/`,
   LOGOUT: `${API_BASE_URL}/api/auth/logout/`,
   PROFILE: `${API_BASE_URL}/api/auth/profile/`,
+  SWITCH_PROFILE_TYPE: `${API_BASE_URL}/api/auth/switch-profile-type/`,
   UPLOAD_PROFILE_PHOTO: `${API_BASE_URL}/api/auth/profile/upload-photo/`,
   UPLOAD_COVER_PHOTO: `${API_BASE_URL}/api/auth/profile/upload-cover/`,
   DUAS: `${API_BASE_URL}/api/duas/`,

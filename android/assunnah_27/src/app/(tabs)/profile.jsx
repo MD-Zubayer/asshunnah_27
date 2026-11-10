@@ -23,6 +23,7 @@ import followService from '../../services/follow-service';
 import ShareOptionsModal from '../../components/ShareOptionsModal';
 import StyledPostContent from '../../components/StyledPostContent';
 import { getImageUri } from '../../utils/image';
+import { getAccountTypeInfo } from '../../constants/accountTypes';
 
 const DEFAULT_COVER = require('../../../assets/expo.icon/Assets/images/madrasa1.jpg');
 const DEFAULT_AVATAR = require('../../../assets/expo.icon/Assets/images/icon.png');
@@ -495,14 +496,17 @@ export default function ProfileScreen() {
           <View style={styles.actionBtns}>
             <TouchableOpacity
               style={[styles.editBtn, { backgroundColor: colors.primary }]}
+              onPress={() => router.push('/switch-account-type')}
+            >
+              <Ionicons name="swap-horizontal-outline" size={16} color="#fff" />
+              <Text style={styles.editBtnText}>ধরন পরিবর্তন</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.shareBtn, { backgroundColor: colors.backgroundElement, borderColor: colors.cardBorder }]}
               onPress={() => router.push('/settings')}
             >
-              <Ionicons name="create-outline" size={16} color="#fff" />
-              <Text style={styles.editBtnText}>সম্পাদনা</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={[styles.shareBtn, { backgroundColor: colors.backgroundElement, borderColor: colors.cardBorder }]}>
-              <Ionicons name="share-outline" size={16} color={colors.text} />
-              <Text style={[styles.shareBtnText, { color: colors.text }]}>শেয়ার</Text>
+              <Ionicons name="settings-outline" size={16} color={colors.text} />
+              <Text style={[styles.shareBtnText, { color: colors.text }]}>সেটিংস</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -678,14 +682,69 @@ export default function ProfileScreen() {
 
             <View style={styles.aboutRow}>
               <Ionicons name="person-outline" size={20} color={colors.textMuted} />
-              <View style={styles.aboutInfo}>
-                <Text style={[styles.aboutLabel, { color: colors.textSecondary }]}>ধরন</Text>
-                <Text style={[styles.aboutValue, { color: colors.text }]}>
-                  {user?.profile_type === 'takmil_student' ? 'তাকমিল ছাত্র' :
-                    user?.profile_type === 'non_takmil_student' ? 'নন-তাকমিল ছাত্র' : 'ছাত্র'}
-                </Text>
+              <View style={[styles.aboutInfo, { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }]}>
+                <View>
+                  <Text style={[styles.aboutLabel, { color: colors.textSecondary }]}>ধরন</Text>
+                  <Text style={[styles.aboutValue, { color: colors.text }]}>
+                    {getAccountTypeInfo(user?.profile_type).title}
+                  </Text>
+                </View>
+                <TouchableOpacity
+                  onPress={() => router.push('/switch-account-type')}
+                  style={{
+                    paddingHorizontal: 10,
+                    paddingVertical: 5,
+                    borderRadius: 8,
+                    backgroundColor: `${getAccountTypeInfo(user?.profile_type).color}18`,
+                  }}
+                >
+                  <Text style={{ fontSize: 12, fontWeight: '700', color: getAccountTypeInfo(user?.profile_type).color }}>
+                    পরিবর্তন করুন
+                  </Text>
+                </TouchableOpacity>
               </View>
             </View>
+
+            {user?.jamat ? (
+              <>
+                <View style={[styles.aboutDivider, { backgroundColor: colors.cardBorder }]} />
+                <View style={styles.aboutRow}>
+                  <Ionicons name="book-outline" size={20} color={colors.textMuted} />
+                  <View style={styles.aboutInfo}>
+                    <Text style={[styles.aboutLabel, { color: colors.textSecondary }]}>জামাত</Text>
+                    <Text style={[styles.aboutValue, { color: colors.text }]}>{user.jamat}</Text>
+                  </View>
+                </View>
+              </>
+            ) : null}
+
+            {user?.designation ? (
+              <>
+                <View style={[styles.aboutDivider, { backgroundColor: colors.cardBorder }]} />
+                <View style={styles.aboutRow}>
+                  <Ionicons name="ribbon-outline" size={20} color={colors.textMuted} />
+                  <View style={styles.aboutInfo}>
+                    <Text style={[styles.aboutLabel, { color: colors.textSecondary }]}>পদবী ও বিভাগ</Text>
+                    <Text style={[styles.aboutValue, { color: colors.text }]}>
+                      {user.designation}{user.department ? ` • ${user.department}` : ''}
+                    </Text>
+                  </View>
+                </View>
+              </>
+            ) : null}
+
+            {user?.dakhila_number ? (
+              <>
+                <View style={[styles.aboutDivider, { backgroundColor: colors.cardBorder }]} />
+                <View style={styles.aboutRow}>
+                  <Ionicons name="card-outline" size={20} color={colors.textMuted} />
+                  <View style={styles.aboutInfo}>
+                    <Text style={[styles.aboutLabel, { color: colors.textSecondary }]}>দাখিলা নম্বর</Text>
+                    <Text style={[styles.aboutValue, { color: colors.text }]}>{user.dakhila_number}</Text>
+                  </View>
+                </View>
+              </>
+            ) : null}
 
             {user?.district && (
               <>

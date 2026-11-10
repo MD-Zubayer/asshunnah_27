@@ -661,6 +661,41 @@ export const AuthProvider = ({ children }) => {
     setUser(prev => ({ ...prev, ...userData }));
   };
 
+  const switchProfileType = async (payload) => {
+    if (!token) {
+      return { success: false, message: 'লগইন করা প্রয়োজন' };
+    }
+    try {
+      const response = await fetch(API_ENDPOINTS.SWITCH_PROFILE_TYPE, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Token ${token}`,
+        },
+        body: JSON.stringify(payload),
+      });
+      const text = await response.text();
+      let result;
+      try {
+        result = JSON.parse(text);
+      } catch (e) {
+        result = { error: 'সার্ভার থেকে সঠিক উত্তর পাওয়া যায়নি।' };
+      }
+
+      if (response.ok && result.user) {
+        setUser(result.user);
+        return { success: true, user: result.user, message: result.message };
+      }
+      return {
+        success: false,
+        message: result.error || result.detail || 'অ্যাকাউন্ট টাইপ পরিবর্তন করা যায়নি।',
+      };
+    } catch (error) {
+      console.error('Switch profile type error:', error);
+      return { success: false, message: 'নেটওয়ার্ক সংযোগ ত্রুটি' };
+    }
+  };
+
   const confirmPasswordReset = async (email, otp, password, passwordConfirm) => {
     setIsLoading(true);
     try {
@@ -713,6 +748,7 @@ export const AuthProvider = ({ children }) => {
     uploadProfilePhoto,
     uploadCoverPhoto,
     updateUser,
+    switchProfileType,
     fetchProfile,
     fetchProfileBackground,
     isSignedIn: !!token || isGuest,

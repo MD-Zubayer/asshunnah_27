@@ -8,7 +8,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
-from rest_framework.parsers import MultiPartParser, FormParser
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from django.contrib.auth import get_user_model, authenticate
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
@@ -149,9 +149,9 @@ class LoginView(APIView):
 
 
 class UserProfileView(APIView):
-    """API view to get current user profile"""
+    """API view to get or update current user profile"""
     permission_classes = [IsAuthenticated]
-    parser_classes = [MultiPartParser, FormParser]
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
 
     def get(self, request):
         user = request.user
@@ -165,6 +165,102 @@ class UserProfileView(APIView):
             serializer.save()
             return Response(serializer.data, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def patch(self, request):
+        return self.put(request)
+
+
+class SwitchProfileTypeView(APIView):
+    """Switch the authenticated user's account/profile type while keeping all account data intact."""
+    permission_classes = [IsAuthenticated]
+    parser_classes = [JSONParser, MultiPartParser, FormParser]
+
+    ALLOWED_TYPES = {'jamia_faregin', 'current_student', 'jamia_ustad', 'general_user'}
+
+    def post(self, request):
+        return self._handle_switch(request)
+
+    def patch(self, request):
+        return self._handle_switch(request)
+
+    def _handle_switch(self, request):
+        user = request.user
+        data = request.data
+        new_type = data.get('profile_type')
+
+        if new_type not in self.ALLOWED_TYPES:
+            return Response(
+                {'error': 'সঠিক অ্যাকাউন্ট টাইপ নির্বাচন করুন।'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Role-specific validation
+        if new_type == 'current_student':
+            jamat = (data.get('jamat') or user.jamat or '').strip()
+            dakhila = (data.get('dakhila_number') or user.dakhila_number or '').strip()
+            if not jamat:
+                return Response({'error': 'ছাত্র অ্যাকাউন্টের জন্য জামাত নির্বাচন করুন।'}, status=status.HTTP_400_BAD_REQUEST)
+            if not dakhila:
+                return Response({'error': 'দাখিলা নম্বর দিন।'}, status=status.HTTP_400_BAD_REQUEST)
+            user.jamat = jamat
+            user.dakhila_number = dakhila
+
+        elif new_type == 'jamia_faregin':
+            dakhila = (data.get('dakhila_number') or user.dakhila_number or '').strip()
+            if not dakhila:
+                return Response({'error': 'ফারেগীন অ্যাকাউন্টের জন্য দাখিলা নম্বর আবশ্যক।'}, status=status.HTTP_400_BAD_REQUEST)
+            user.dakhila_number = dakhila
+            if 'blood_group' in data and data.get('blood_group') is not None:
+                user.blood_group = str(data.get('blood_group')).strip()
+            if 'takmil_year_type' in data and data.get('takmil_year_type'):
+                user.takmil_year_type = data.get('takmil_year_type')
+            if 'custom_graduation_year' in data:
+                user.custom_graduation_year = (data.get('custom_graduation_year') or '').strip() or None
+            if 'fuzalaye_jamia_name' in data:
+                f_name = (data.get('fuzalaye_jamia_name') or '').strip()
+                user.fuzalaye_jamia_name = f_name if f_name else None
+
+            TakmilStudentProfile.objects.update_or_create(
+                user=user,
+                defaults={
+                    'dakhila_number': dakhila,
+                    'blood_group': user.blood_group or '',
+                }
+            )
+
+        elif new_type == 'jamia_ustad':
+            designation = (data.get('designation') or user.designation or '').strip()
+            department = (data.get('department') or user.department or '').strip()
+            if not designation:
+                return Response({'error': 'উস্তাদ অ্যাকাউন্টের জন্য পদবী লিখুন।'}, status=status.HTTP_400_BAD_REQUEST)
+            user.designation = designation
+            if department:
+                user.department = department
+
+        elif new_type == 'general_user':
+            occupation = (data.get('occupation') or user.occupation or '').strip()
+            if occupation:
+                user.occupation = occupation
+            NonTakmilStudentProfile.objects.update_or_create(
+                user=user,
+                defaults={'occupation': user.occupation or ''}
+            )
+
+        user.profile_type = new_type
+        user.profile_completed = True
+        try:
+            user.save()
+        except IntegrityError:
+            return Response(
+                {'error': 'এই ফুজালায়ে জামিয়া নাম ইতোমধ্যে অন্য অ্যাকাউন্টে ব্যবহৃত হয়েছে।'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        serializer = UserSerializer(user, context={'request': request})
+        return Response({
+            'message': 'অ্যাকাউন্টের ধরন সফলভাবে পরিবর্তন করা হয়েছে!',
+            'user': serializer.data,
+        }, status=status.HTTP_200_OK)
 
 
 

@@ -363,6 +363,13 @@ export default function MoreScreen() {
       color: '#0084FF',
       route: '/chat',
     },
+    {
+      id: 'switch-account',
+      title: 'অ্যাকাউন্টের ধরন পরিবর্তন (ছাত্র / ফারেগীন / উস্তাদ)',
+      icon: 'swap-horizontal-outline',
+      color: '#7C3AED',
+      route: '/switch-account-type',
+    },
   ];
 
   const handleMenuPress = (item) => {

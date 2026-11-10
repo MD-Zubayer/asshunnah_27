@@ -6,6 +6,7 @@ import { useRouter } from 'expo-router';
 import { Colors } from '../../constants/theme';
 import { useAuth } from '../../context/AuthContext';
 import { API_BASE_URL } from '../../constants/api';
+import { getAccountTypeInfo } from '../../constants/accountTypes';
 
 export default function SettingsScreen() {
     const scheme = useColorScheme();
@@ -45,6 +46,10 @@ export default function SettingsScreen() {
     }, [darkModeEnabled]);
 
     const handleMenuItemPress = (item) => {
+        if (item.id === 'switch_account') {
+            router.push('/switch-account-type');
+            return;
+        }
         if (item.id === 3) {
             const nextValue = !darkModeEnabled;
             setDarkModeEnabled(nextValue);
@@ -87,7 +92,21 @@ export default function SettingsScreen() {
         );
     }
 
+    const accountInfo = getAccountTypeInfo(user?.profile_type);
+
     const menuItems = [
+        {
+            section: 'অ্যাকাউন্ট',
+            items: [
+                {
+                    id: 'switch_account',
+                    icon: 'swap-horizontal-outline',
+                    label: 'অ্যাকাউন্টের ধরন পরিবর্তন',
+                    color: accountInfo.color,
+                    value: accountInfo.shortLabel,
+                },
+            ],
+        },
         {
             section: 'সাধারণ',
             items: [
