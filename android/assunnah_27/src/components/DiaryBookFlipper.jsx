@@ -19,6 +19,7 @@ import Animated, {
   Extrapolation,
 } from 'react-native-reanimated';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import PhysicalDiaryPage from './PhysicalDiaryPage';
 import { toBanglaDigits, getFullDiaryDateMeta } from '../utils/diaryDate';
@@ -42,6 +43,7 @@ export default function DiaryBookFlipper({
   onToggleChecklistLine,
   colors,
 }) {
+  const insets = useSafeAreaInsets();
   const [currentIndex, setCurrentIndex] = useState(
     Math.max(0, Math.min(initialIndex, Math.max(0, entries.length - 1)))
   );
@@ -88,10 +90,10 @@ export default function DiaryBookFlipper({
       setIsFlipping(true);
       setUnderIndex(target);
 
-      const destAngle = direction === 'next' ? -105 : 105;
+      const destAngle = direction === 'next' ? -135 : 135;
       flipAngle.value = withTiming(
         destAngle,
-        { duration: 360, easing: Easing.out(Easing.cubic) },
+        { duration: 580, easing: Easing.bezier(0.25, 1, 0.45, 1) },
         (finished) => {
           if (finished) {
             runOnJS(notifyIndex)(target);
@@ -157,21 +159,23 @@ export default function DiaryBookFlipper({
     [currentIndex, entries.length, isFlipping, flipSinglePage, flipAngle, notifyIndex]
   );
 
-  // Interactive Pan Gesture on the page (drag to curl & turn)
+  // Interactive Pan Gesture on the page (drag to curl & turn like a real paper leaf)
   const panGesture = Gesture.Pan()
-    .activeOffsetX([-18, 18])
-    .failOffsetY([-15, 15])
+    .activeOffsetX([-14, 14])
+    .failOffsetY([-20, 20])
     .onUpdate((e) => {
       if (isFlipping || entries.length <= 1) return;
-      const ratio = e.translationX / (PAGE_WIDTH * 0.75);
+      // Map drag translation to natural flip angle (-135 to 135)
+      const ratio = e.translationX / PAGE_WIDTH;
       const clampedRatio = Math.max(-1, Math.min(1, ratio));
-      // Can't drag past first or last page
+
+      // Resistance at first or last page
       if (clampedRatio < 0 && currentIndex >= entries.length - 1) {
-        flipAngle.value = clampedRatio * 12; // slight elastic resistance
+        flipAngle.value = clampedRatio * 15;
       } else if (clampedRatio > 0 && currentIndex <= 0) {
-        flipAngle.value = clampedRatio * 12;
+        flipAngle.value = clampedRatio * 15;
       } else {
-        flipAngle.value = clampedRatio * 95;
+        flipAngle.value = clampedRatio * 135;
         const previewTarget = clampedRatio < 0 ? currentIndex + 1 : currentIndex - 1;
         if (previewTarget >= 0 && previewTarget < entries.length) {
           runOnJS(setUnderIndex)(previewTarget);
@@ -181,18 +185,18 @@ export default function DiaryBookFlipper({
     .onEnd((e) => {
       if (isFlipping || entries.length <= 1) return;
       const shouldNext =
-        (e.translationX < -PAGE_WIDTH * 0.22 || e.velocityX < -450) &&
+        (e.translationX < -PAGE_WIDTH * 0.2 || e.velocityX < -400) &&
         currentIndex < entries.length - 1;
       const shouldPrev =
-        (e.translationX > PAGE_WIDTH * 0.22 || e.velocityX > 450) &&
+        (e.translationX > PAGE_WIDTH * 0.2 || e.velocityX > 400) &&
         currentIndex > 0;
 
       if (shouldNext) {
         runOnJS(setIsFlipping)(true);
         runOnJS(setUnderIndex)(currentIndex + 1);
         flipAngle.value = withTiming(
-          -105,
-          { duration: 240, easing: Easing.out(Easing.cubic) },
+          -135,
+          { duration: 420, easing: Easing.bezier(0.25, 1, 0.45, 1) },
           (fin) => {
             if (fin) runOnJS(notifyIndex)(currentIndex + 1);
           }
@@ -201,14 +205,14 @@ export default function DiaryBookFlipper({
         runOnJS(setIsFlipping)(true);
         runOnJS(setUnderIndex)(currentIndex - 1);
         flipAngle.value = withTiming(
-          105,
-          { duration: 240, easing: Easing.out(Easing.cubic) },
+          135,
+          { duration: 420, easing: Easing.bezier(0.25, 1, 0.45, 1) },
           (fin) => {
             if (fin) runOnJS(notifyIndex)(currentIndex - 1);
           }
         );
       } else {
-        flipAngle.value = withTiming(0, { duration: 180, easing: Easing.out(Easing.quad) });
+        flipAngle.value = withTiming(0, { duration: 280, easing: Easing.out(Easing.quad) });
         runOnJS(setUnderIndex)(currentIndex);
       }
     });
@@ -238,35 +242,80 @@ export default function DiaryBookFlipper({
       runOnJS(setScrubberPreviewIdx)(null);
     });
 
-  // Animated 3D turning leaf style
+  // Animated 3D realistic physical curling leaf style
   const topPageAnimatedStyle = useAnimatedStyle(() => {
-    const deg = flipAngle.value;
-    const pivot = PAGE_WIDTH / 2;
-    const opacity = interpolate(Math.abs(deg), [0, 82, 105], [1, 0.85, 0], Extrapolation.CLAMP);
-    const scale = interpolate(Math.abs(deg), [0, 50, 105], [1, 0.97, 0.94], Extrapolation.CLAMP);
+    const angle = flipAngle.value; // negative = flipping to next (curling left), positive = flipping to prev (curling right)
+    const isTurningNext = angle < 0;
+
+    // Anchor hinge pinned at the left binding spine when turning next, or right edge when turning prev
+    const pivotX = isTurningNext ? -PAGE_WIDTH / 2 : PAGE_WIDTH / 2;
+
+    // Soft cylindrical paper curl (skew & horizontal compression arch)
+    const curlSkew = interpolate(
+      angle,
+      [-135, -75, -30, 0, 30, 75, 135],
+      [0, -7.5, -4.5, 0, 4.5, 7.5, 0],
+      Extrapolation.CLAMP
+    );
+
+    const curlScale = interpolate(
+      Math.abs(angle),
+      [0, 50, 90, 135],
+      [1, 0.985, 0.965, 0.94],
+      Extrapolation.CLAMP
+    );
+
+    // Arch translation (simulates the paper arching towards the viewer as it bends)
+    const archLift = interpolate(
+      Math.abs(angle),
+      [0, 65, 135],
+      [0, -18, 0],
+      Extrapolation.CLAMP
+    );
+
+    // Page opacity: stays fully visible and bends, then gently fades out as it completes 135 deg flat on left stack
+    const opacity = interpolate(
+      Math.abs(angle),
+      [0, 95, 125, 135],
+      [1, 1, 0.75, 0],
+      Extrapolation.CLAMP
+    );
 
     return {
       opacity,
       transform: [
-        { perspective: 1400 },
-        { translateX: -pivot },
-        { rotateY: `${deg}deg` },
-        { translateX: pivot },
-        { scale },
+        { perspective: 1200 },
+        { translateX: pivotX },
+        { rotateY: `${angle}deg` },
+        { translateY: archLift },
+        { skewY: `${curlSkew}deg` },
+        { translateX: -pivotX },
+        { scale: curlScale },
       ],
     };
   });
 
-  // Dynamic curl shadow overlay on the turning page
+  // Dynamic cylindrical curl highlight & shadow overlay on the bending paper
   const curlShadowStyle = useAnimatedStyle(() => {
-    const shadowOpacity = interpolate(Math.abs(flipAngle.value), [0, 45, 95], [0, 0.28, 0.45], Extrapolation.CLAMP);
+    const absDeg = Math.abs(flipAngle.value);
+    const shadowOpacity = interpolate(
+      absDeg,
+      [0, 35, 75, 120, 135],
+      [0, 0.35, 0.6, 0.25, 0],
+      Extrapolation.CLAMP
+    );
     return { opacity: shadowOpacity };
   });
 
-  // Subtle depth reveal on the underlying page
+  // Smooth, subtle reveal on the underlying page as the top sheet rolls away
   const underPageStyle = useAnimatedStyle(() => {
-    const scale = interpolate(Math.abs(flipAngle.value), [0, 95], [0.975, 1], Extrapolation.CLAMP);
-    return { transform: [{ scale }] };
+    const absDeg = Math.abs(flipAngle.value);
+    const scale = interpolate(absDeg, [0, 90], [0.985, 1], Extrapolation.CLAMP);
+    const opacity = interpolate(absDeg, [0, 15, 90], [0.88, 0.96, 1], Extrapolation.CLAMP);
+    return {
+      opacity,
+      transform: [{ scale }],
+    };
   });
 
   if (!entries || entries.length === 0) return null;
@@ -319,7 +368,16 @@ export default function DiaryBookFlipper({
       </View>
 
       {/* Bottom Book Navigation & Multi-Page Scrubber */}
-      <View style={[styles.navDock, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
+      <View
+        style={[
+          styles.navDock,
+          {
+            backgroundColor: colors.card,
+            borderColor: colors.cardBorder,
+            paddingBottom: Math.max(14, insets.bottom + 8),
+          },
+        ]}
+      >
         {/* Floating Scrubber Preview Bubble */}
         {previewEntry && (
           <View style={[styles.scrubberTooltip, { backgroundColor: activeTheme.accentColor }]}>

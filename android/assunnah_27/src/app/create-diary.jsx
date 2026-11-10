@@ -349,7 +349,10 @@ export default function CreateDiaryScreen() {
       {/* Main Physical Paper Canvas */}
       <ScrollView
         style={styles.editorScroll}
-        contentContainerStyle={styles.editorScrollContent}
+        contentContainerStyle={[
+          styles.editorScrollContent,
+          { paddingBottom: Math.max(40, insets.bottom + 30) },
+        ]}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
