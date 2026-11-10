@@ -147,10 +147,13 @@ export async function getArticleDetail(token, articleId) {
  * Create a new article
  * Uses XMLHttpRequest for reliable file upload (same pattern as profile photo upload)
  */
-export function createArticle(token, content, imageUri = null) {
+export function createArticle(token, content, imageUri = null, backgroundTheme = '') {
   const formData = new FormData();
   formData.append('content', content);
   formData.append('is_published', 'true');
+  if (backgroundTheme && !imageUri) {
+    formData.append('background_theme', backgroundTheme);
+  }
 
   if (imageUri) {
     // Ensure file:// prefix - required for React Native file uploads

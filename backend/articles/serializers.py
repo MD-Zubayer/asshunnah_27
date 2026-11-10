@@ -65,7 +65,7 @@ class ArticleSerializer(serializers.ModelSerializer):
         model = Article
         fields = [
             'id', 'user', 'content', 'summary', 'image', 'image_url',
-            'is_published', 'reaction_count', 'comment_count',
+            'background_theme', 'is_published', 'reaction_count', 'comment_count',
             'view_count', 'share_count', 'user_reaction', 'reaction_counts',
             'created_at', 'updated_at'
         ]
@@ -117,7 +117,7 @@ class ArticleCreateSerializer(serializers.ModelSerializer):
     """Serializer for creating articles"""
     class Meta:
         model = Article
-        fields = ['id', 'content', 'image', 'is_published']
+        fields = ['id', 'content', 'image', 'background_theme', 'is_published']
         read_only_fields = ['id']
 
     def validate_content(self, value):

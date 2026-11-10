@@ -19,6 +19,13 @@ class Article(models.Model):
         blank=True,
         null=True
     )
+    background_theme = models.CharField(
+        _('background theme'),
+        max_length=50,
+        blank=True,
+        default='',
+        help_text=_('Optional Facebook-style background theme key for short posts')
+    )
     is_published = models.BooleanField(_('published'), default=True)
     summary = models.TextField(_('summary'), blank=True, null=True, help_text=_('AI generated summary of the post'))
     embedding = VectorField(dimensions=768, null=True, blank=True, help_text=_('Gemini embedding vector'))

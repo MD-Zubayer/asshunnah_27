@@ -25,7 +25,7 @@ import CommentItem from '../components/CommentItem';
 import ShareOptionsModal from '../components/ShareOptionsModal';
 import { getDirectionStyle } from '../utils/textDirection';
 import { getImageUri } from '../utils/image';
-import ArticleRenderer from '../components/ArticleRenderer';
+import StyledPostContent from '../components/StyledPostContent';
 
 const REACTIONS = [
   { type: 'like', emoji: '👍', label: 'Like' },
@@ -399,8 +399,8 @@ export default function ArticleDetailScreen() {
           )}
         </View>
 
-        {/* Article Content - Auto RTL/LTR & Markdown */}
-        <ArticleRenderer text={article.content} colors={colors} />
+        {/* Article Content - Facebook-style short theme / auto-large / Markdown */}
+        <StyledPostContent article={article} colors={colors} isDark={isDark} mode="detail" />
 
         {/* Article Image */}
         {(article.image_url || article.image) && (

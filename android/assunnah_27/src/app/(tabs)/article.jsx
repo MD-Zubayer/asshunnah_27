@@ -23,7 +23,7 @@ import articleService from '../../services/article-service';
 import { useArticlesWebSocket } from '../../hooks/useArticlesWebSocket';
 import { useAuth } from '../../context/AuthContext';
 import { getDirectionStyle } from '../../utils/textDirection';
-import ExpandableText from '../../components/ExpandableText';
+import StyledPostContent from '../../components/StyledPostContent';
 import ShareOptionsModal from '../../components/ShareOptionsModal';
 import { SHARE_BASE_URL } from '../../constants/api';
 
@@ -385,13 +385,13 @@ export default function ArticleScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* Article Content - Expandable (Facebook-style) */}
-      <ExpandableText
-        text={article.content}
-        initialLines={4}
-        expandStep={4}
+      {/* Article Content - Facebook-style short post theme / auto-large / expandable */}
+      <StyledPostContent
+        article={article}
         colors={colors}
-        style={styles.articleContent}
+        isDark={isDark}
+        mode="feed"
+        textStyle={styles.articleContent}
       />
 
       {/* AI Summary Card */}

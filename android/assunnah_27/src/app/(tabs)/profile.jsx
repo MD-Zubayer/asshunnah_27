@@ -21,7 +21,7 @@ import { useAuth } from '../../context/AuthContext';
 import articleService from '../../services/article-service';
 import followService from '../../services/follow-service';
 import ShareOptionsModal from '../../components/ShareOptionsModal';
-import ExpandableText from '../../components/ExpandableText';
+import StyledPostContent from '../../components/StyledPostContent';
 import { getImageUri } from '../../utils/image';
 
 const DEFAULT_COVER = require('../../../assets/expo.icon/Assets/images/madrasa1.jpg');
@@ -574,7 +574,7 @@ export default function ProfileScreen() {
                     </Text>
                   </View>
                 </View>
-                <ExpandableText text={article.content} initialLines={4} expandStep={4} colors={colors} style={styles.postContent} />
+                <StyledPostContent article={article} colors={colors} isDark={isDark} mode="feed" textStyle={styles.postContent} />
                 {article.image_url && typeof article.image_url === 'string' && <Image source={{ uri: article.image_url }} style={styles.postImage} contentFit="cover" />}
                 <View style={[styles.postStats, { borderBottomColor: colors.cardBorder }]}>
                   <View style={{ flexDirection: 'row', alignItems: 'center' }}>
