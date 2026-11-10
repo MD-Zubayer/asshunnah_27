@@ -361,6 +361,45 @@ function DoyaScreen() {
           </View>
         </View>
 
+        {/* Full Daily Amol & Dua Book Banner */}
+        <TouchableOpacity
+          activeOpacity={0.85}
+          onPress={() => router.push('/doinondin-amol')}
+          style={{
+            backgroundColor: '#065F46',
+            borderRadius: 18,
+            padding: 14,
+            marginBottom: 16,
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 12,
+            borderWidth: 1,
+            borderColor: 'rgba(253,230,138,0.45)',
+          }}
+        >
+          <View
+            style={{
+              width: 44,
+              height: 44,
+              borderRadius: 12,
+              backgroundColor: 'rgba(253,230,138,0.18)',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <Ionicons name="book" size={22} color="#FDE68A" />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={{ color: '#FFFBEB', fontSize: 15, fontWeight: '900' }}>
+              দৈনন্দিন আমল ও দু‘আসমূহ (সম্পূর্ণ কিতাব)
+            </Text>
+            <Text style={{ color: 'rgba(254,243,199,0.85)', fontSize: 11.5, marginTop: 2 }}>
+              সকাল-সন্ধ্যা, নামাযের পর, ইস্তিগফার, দুরূদ, সফর, বিশেষ আমল ও ৯৯ নাম
+            </Text>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color="#FDE68A" />
+        </TouchableOpacity>
+
         {/* Duas List */}
         {duaList.map((dua) => (
           <TouchableOpacity

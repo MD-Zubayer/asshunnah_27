@@ -75,6 +75,8 @@ export default function CreateDiaryScreen() {
   const [selection, setSelection] = useState({ start: 0, end: 0 });
   const contentInputRef = useRef(null);
 
+  const hasPrefillParams = Boolean(params?.title || params?.content);
+
   // Load saved user preferences & draft when creating a new entry
   useEffect(() => {
     if (isEditMode) return;
@@ -88,7 +90,7 @@ export default function CreateDiaryScreen() {
       if (prefs?.fontFamily) setFontFamily(prefs.fontFamily);
       if (prefs?.paperTheme) setPaperTheme(prefs.paperTheme);
 
-      if (draft && (draft.title || draft.content)) {
+      if (!hasPrefillParams && draft && (draft.title || draft.content)) {
         setTitle(draft.title || '');
         setContent(draft.content || '');
         if (draft.tag) {
@@ -102,7 +104,7 @@ export default function CreateDiaryScreen() {
     return () => {
       mounted = false;
     };
-  }, [isEditMode]);
+  }, [isEditMode, hasPrefillParams]);
 
   // Auto-save draft while typing in create mode
   useEffect(() => {

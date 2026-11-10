@@ -21,6 +21,7 @@ import { useAuth } from '../../context/AuthContext';
 import { TAG_COLORS, TAG_OPTIONS, getDiaryFont, getPaperTheme } from '../../constants/diaryThemes';
 import { getFullDiaryDateMeta, getMonthYearKey, toBanglaDigits } from '../../utils/diaryDate';
 import { exportDiaryToPdf, exportDiaryToWord } from '../../utils/diaryExport';
+import { getTotalAmolStats } from '../../data/dailyAmol';
 
 export default function DiaryScreen() {
   const scheme = useColorScheme();
@@ -115,6 +116,8 @@ export default function DiaryScreen() {
     });
     return groups;
   }, [filteredDiaries, diaryEntries]);
+
+  const amolStats = useMemo(() => getTotalAmolStats(), []);
 
   const pinnedCount = useMemo(
     () => diaryEntries.filter((d) => d.is_pinned).length,
@@ -258,6 +261,94 @@ export default function DiaryScreen() {
             </View>
           </>
         )}
+
+        {/* Daily Amol & Dua Book Cover Card */}
+        <LinearGradient
+          colors={isDark ? ['#064E3B', '#022C22'] : ['#065F46', '#047857']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.diaryCoverCard}
+        >
+          <View style={styles.coverSpine} />
+          <View style={styles.coverGoldBorder}>
+            <View style={styles.coverTopRow}>
+              <View style={styles.coverBadge}>
+                <Ionicons name="sparkles" size={14} color="#FDE68A" />
+                <Text style={styles.coverBadgeText}>দৈনন্দিন মাসনূন ওযীফা</Text>
+              </View>
+              <View style={styles.coverStatsRow}>
+                <Text style={styles.coverStatText}>
+                  📖 {toBanglaDigits(amolStats.totalDuasCount)}+ দু‘আ • {toBanglaDigits(amolStats.asmaulHusnaCount)} নাম
+                </Text>
+              </View>
+            </View>
+
+            <Text style={[styles.coverTitle, { fontFamily: 'Atma-Bold' }]}>
+              দৈনন্দিন আমল ও দু‘আসমূহ
+            </Text>
+            <Text style={styles.coverSubtitle}>
+              কুরআন ও হাদীসে বর্ণিত • সকাল-সন্ধ্যা, নামাযের পর, ইস্তিগফার, দুরূদ, সফর ও আসমাউল হুসনা
+            </Text>
+
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={{ marginBottom: 12 }}
+              contentContainerStyle={{ gap: 6 }}
+            >
+              {[
+                { id: 'ch1-morning-evening', label: '☀️ সকাল-সন্ধ্যা' },
+                { id: 'ch1-after-prayer', label: '🕌 নামাযের পর' },
+                { id: 'ch3-daily-safar', label: '🧭 দৈনন্দিন ও সফর' },
+                { id: 'ch4-istighfar', label: '💧 ইস্তিগফার' },
+                { id: 'ch5-durood', label: '🌹 দুরূদ শরীফ' },
+                { id: 'ch6-special-amol', label: '⭐ বিশেষ আমল' },
+                { id: 'asmaul-husna', label: '✨ ৯৯ নাম' },
+              ].map((cat) => (
+                <TouchableOpacity
+                  key={cat.id}
+                  activeOpacity={0.85}
+                  onPress={() =>
+                    router.push({ pathname: '/doinondin-amol', params: { chapter: cat.id } })
+                  }
+                  style={styles.amolQuickChip}
+                >
+                  <Text style={styles.amolQuickChipText}>{cat.label}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+
+            <View style={styles.coverActionsRow}>
+              <TouchableOpacity
+                activeOpacity={0.85}
+                style={[styles.coverWriteBtn, { backgroundColor: '#FDE68A' }]}
+                onPress={() =>
+                  router.push(
+                    normalizedQuery
+                      ? { pathname: '/doinondin-amol', params: { q: searchQuery.trim() } }
+                      : '/doinondin-amol'
+                  )
+                }
+              >
+                <Ionicons name="book-outline" size={17} color="#064E3B" />
+                <Text style={[styles.coverWriteBtnText, { color: '#064E3B' }]}>
+                  {normalizedQuery ? `কিতাবে “${searchQuery.trim()}” খুঁজুন` : 'কিতাব ও দু‘আ খুলুন'}
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                activeOpacity={0.85}
+                style={styles.coverReadBtn}
+                onPress={() =>
+                  router.push({ pathname: '/doinondin-amol', params: { chapter: 'favorites' } })
+                }
+              >
+                <Ionicons name="bookmark" size={16} color="#FDE68A" />
+                <Text style={styles.coverReadBtnText}>প্রিয় আমল</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </LinearGradient>
 
         {/* Physical Leather Diary Cover Card */}
         <LinearGradient
@@ -688,6 +779,19 @@ const styles = StyleSheet.create({
     color: '#FDE68A',
     fontSize: 13,
     fontWeight: '800',
+  },
+  amolQuickChip: {
+    backgroundColor: 'rgba(255,255,255,0.14)',
+    borderWidth: 1,
+    borderColor: 'rgba(253,230,138,0.35)',
+    borderRadius: 14,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+  amolQuickChipText: {
+    color: '#FFFBEB',
+    fontSize: 11.5,
+    fontWeight: '700',
   },
   coverExportBtn: {
     width: 42,
