@@ -247,6 +247,14 @@ export default function HomeScreen() {
       console.log('[Home] Failed to load prayer stats:', e.message);
     });
 
+    acquaintanceService.shouldShowReminder().then((shouldShow) => {
+      if (shouldShow) {
+        setTimeout(() => {
+          router.push('/select-acquaintances');
+        }, 1000);
+      }
+    }).catch((e) => console.log('[Home] reminder error:', e));
+
     const prayerTimer = setInterval(() => {
       if (currentLocRef.current) {
         updateTimes(currentLocRef.current.latitude, currentLocRef.current.longitude);
@@ -282,22 +290,14 @@ export default function HomeScreen() {
     useCallback(() => {
       loadPrayerStats();
       loadUserStats();
+      loadAcquaintances();
     }, [token])
   );
 
-  // Load selected acquaintances and check for reminder
+  // Load selected acquaintances
   const loadAcquaintances = async () => {
     const { selected } = await acquaintanceService.getSelectedAcquaintances();
     setAcquaintances(selected || []);
-
-    // Check if we should show reminder
-    const shouldShow = await acquaintanceService.shouldShowReminder();
-    if (shouldShow) {
-      // Show reminder after a short delay
-      setTimeout(() => {
-        router.push('/select-acquaintances');
-      }, 1000);
-    }
   };
 
   // Load recent diary entries
@@ -451,9 +451,7 @@ export default function HomeScreen() {
         </View>
 
         {/* Acquaintance Carousel */}
-        {acquaintances.length > 0 && (
-          <AcquaintanceCarousel acquaintances={acquaintances} />
-        )}
+        <AcquaintanceCarousel acquaintances={acquaintances} />
 
         {/* Favorite Ustads Showcase */}
         <FavoriteUstadsSection />

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   StyleSheet,
   Text,
@@ -25,6 +25,8 @@ export default function FavoriteUstadsSection() {
 
   const [favorites, setFavorites] = useState([]);
   const [modalVisible, setModalVisible] = useState(false);
+  const scrollViewRef = useRef(null);
+  const [currentIndex, setCurrentIndex] = useState(0);
 
   const loadFavorites = async () => {
     const list = await getFavoriteUstads();
@@ -37,6 +39,32 @@ export default function FavoriteUstadsSection() {
     }, 0);
     return () => clearTimeout(timer);
   }, []);
+
+  // Auto-scroll every 4 seconds
+  useEffect(() => {
+    if (favorites.length <= 1) return;
+
+    const interval = setInterval(() => {
+      setCurrentIndex((prev) => {
+        const nextIndex = (prev + 1) % favorites.length;
+        scrollViewRef.current?.scrollTo({
+          x: nextIndex * (CARD_WIDTH + 14),
+          animated: true,
+        });
+        return nextIndex;
+      });
+    }, 4000);
+
+    return () => clearInterval(interval);
+  }, [favorites.length]);
+
+  const handleScroll = (event) => {
+    const scrollPosition = event.nativeEvent.contentOffset.x;
+    const index = Math.round(scrollPosition / (CARD_WIDTH + 14));
+    if (index >= 0 && index < favorites.length) {
+      setCurrentIndex(index);
+    }
+  };
 
   const handleCall = (name, phone) => {
     if (!phone) {
@@ -96,91 +124,112 @@ export default function FavoriteUstadsSection() {
           </TouchableOpacity>
         </View>
       ) : (
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.carouselContent}
-          decelerationRate="fast"
-          snapToInterval={CARD_WIDTH + 14}
-        >
-          {favorites.map((ustad) => (
-            <View
-              key={ustad.id}
+        <View>
+          <ScrollView
+            ref={scrollViewRef}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.carouselContent}
+            decelerationRate="fast"
+            snapToInterval={CARD_WIDTH + 14}
+            onScroll={handleScroll}
+            scrollEventThrottle={16}
+          >
+            {favorites.map((ustad) => (
+              <View
+                key={ustad.id}
+                style={[
+                  styles.ustadCard,
+                  {
+                    width: CARD_WIDTH,
+                    backgroundColor: colors.card,
+                    borderColor: isDark ? '#334155' : '#E2E8F0',
+                  },
+                ]}
+              >
+                {/* Card Top: Avatar and Badge */}
+                <View style={styles.cardHeader}>
+                  <View style={[styles.cardAvatar, { backgroundColor: isDark ? 'rgba(124, 58, 237, 0.2)' : '#EDE9FE' }]}>
+                    <Ionicons name="person" size={22} color="#7C3AED" />
+                  </View>
+                  <View style={[styles.cardCategoryBadge, { backgroundColor: isDark ? 'rgba(5, 150, 105, 0.15)' : '#ECFDF5' }]}>
+                    <Text style={styles.cardCategoryText}>{ustad.category || 'উস্তাদ'}</Text>
+                  </View>
+                </View>
+
+                {/* Ustad Details */}
+                <View style={styles.cardBody}>
+                  <Text style={[styles.cardName, { color: colors.text }]} numberOfLines={2}>
+                    {ustad.name}
+                  </Text>
+                  <Text style={[styles.cardTitle, { color: colors.textSecondary }]} numberOfLines={1}>
+                    {ustad.title}
+                  </Text>
+
+                  {ustad.address ? (
+                    <View style={styles.cardAddressRow}>
+                      <Ionicons name="location-outline" size={12} color={colors.textMuted} />
+                      <Text style={[styles.cardAddressText, { color: colors.textMuted }]}>{ustad.address}</Text>
+                    </View>
+                  ) : null}
+                </View>
+
+                {/* Action Buttons: Direct Call */}
+                <View style={[styles.cardFooter, { borderTopColor: isDark ? '#334155' : '#F1F5F9' }]}>
+                  {ustad.phone ? (
+                    <TouchableOpacity
+                      style={styles.cardCallBtn}
+                      onPress={() => handleCall(ustad.name, ustad.phone)}
+                      activeOpacity={0.8}
+                    >
+                      <Ionicons name="call" size={13} color="#FFFFFF" />
+                      <Text style={styles.cardCallBtnText}>সরাসরি কল</Text>
+                    </TouchableOpacity>
+                  ) : (
+                    <View style={[styles.noPhoneBadge, { backgroundColor: isDark ? '#1E293B' : '#F8FAFC' }]}>
+                      <Ionicons name="call-outline" size={12} color={colors.textMuted} />
+                      <Text style={[styles.noPhoneText, { color: colors.textMuted }]}>ফোন নম্বর নেই</Text>
+                    </View>
+                  )}
+                </View>
+              </View>
+            ))}
+
+            {/* Quick Add More Card at end of carousel */}
+            <TouchableOpacity
               style={[
-                styles.ustadCard,
+                styles.addMoreCard,
                 {
-                  width: CARD_WIDTH,
-                  backgroundColor: colors.card,
+                  backgroundColor: isDark ? '#1E293B' : '#F8FAFC',
                   borderColor: isDark ? '#334155' : '#E2E8F0',
                 },
               ]}
+              onPress={() => setModalVisible(true)}
+              activeOpacity={0.8}
             >
-              {/* Card Top: Avatar and Badge */}
-              <View style={styles.cardHeader}>
-                <View style={[styles.cardAvatar, { backgroundColor: isDark ? 'rgba(124, 58, 237, 0.2)' : '#EDE9FE' }]}>
-                  <Ionicons name="person" size={22} color="#7C3AED" />
-                </View>
-                <View style={[styles.cardCategoryBadge, { backgroundColor: isDark ? 'rgba(5, 150, 105, 0.15)' : '#ECFDF5' }]}>
-                  <Text style={styles.cardCategoryText}>{ustad.category || 'উস্তাদ'}</Text>
-                </View>
+              <View style={[styles.addMoreIconBox, { backgroundColor: isDark ? 'rgba(124, 58, 237, 0.15)' : '#EDE9FE' }]}>
+                <Ionicons name="add" size={24} color="#7C3AED" />
               </View>
+              <Text style={[styles.addMoreText, { color: colors.text }]}>আরও যোগ করুন</Text>
+            </TouchableOpacity>
+          </ScrollView>
 
-              {/* Ustad Details */}
-              <View style={styles.cardBody}>
-                <Text style={[styles.cardName, { color: colors.text }]} numberOfLines={2}>
-                  {ustad.name}
-                </Text>
-                <Text style={[styles.cardTitle, { color: colors.textSecondary }]} numberOfLines={1}>
-                  {ustad.title}
-                </Text>
-
-                {ustad.address ? (
-                  <View style={styles.cardAddressRow}>
-                    <Ionicons name="location-outline" size={12} color={colors.textMuted} />
-                    <Text style={[styles.cardAddressText, { color: colors.textMuted }]}>{ustad.address}</Text>
-                  </View>
-                ) : null}
-              </View>
-
-              {/* Action Buttons: Direct Call */}
-              <View style={[styles.cardFooter, { borderTopColor: isDark ? '#334155' : '#F1F5F9' }]}>
-                {ustad.phone ? (
-                  <TouchableOpacity
-                    style={styles.cardCallBtn}
-                    onPress={() => handleCall(ustad.name, ustad.phone)}
-                    activeOpacity={0.8}
-                  >
-                    <Ionicons name="call" size={13} color="#FFFFFF" />
-                    <Text style={styles.cardCallBtnText}>সরাসরি কল</Text>
-                  </TouchableOpacity>
-                ) : (
-                  <View style={[styles.noPhoneBadge, { backgroundColor: isDark ? '#1E293B' : '#F8FAFC' }]}>
-                    <Ionicons name="call-outline" size={12} color={colors.textMuted} />
-                    <Text style={[styles.noPhoneText, { color: colors.textMuted }]}>ফোন নম্বর নেই</Text>
-                  </View>
-                )}
-              </View>
+          {/* Pagination Dots */}
+          {favorites.length > 1 && (
+            <View style={styles.pagination}>
+              {favorites.map((_, index) => (
+                <View
+                  key={index}
+                  style={[
+                    styles.dot,
+                    { backgroundColor: index === currentIndex ? '#7C3AED' : (isDark ? '#334155' : '#CBD5E1') },
+                    index === currentIndex && styles.dotActive,
+                  ]}
+                />
+              ))}
             </View>
-          ))}
-
-          {/* Quick Add More Card at end of carousel */}
-          <TouchableOpacity
-            style={[
-              styles.addMoreCard,
-              {
-                backgroundColor: isDark ? '#1E293B' : '#F8FAFC',
-                borderColor: isDark ? '#334155' : '#E2E8F0',
-              },
-            ]}
-            onPress={() => setModalVisible(true)}
-            activeOpacity={0.8}
-          >
-            <View style={[styles.addMoreIconBox, { backgroundColor: isDark ? 'rgba(124, 58, 237, 0.15)' : '#EDE9FE' }]}>
-              <Ionicons name="add" size={24} color="#7C3AED" />
-            </View>
-            <Text style={[styles.addMoreText, { color: colors.text }]}>আরও যোগ করুন</Text>
-          </TouchableOpacity>
-        </ScrollView>
+          )}
+        </View>
       )}
 
       {/* Selection Modal */}
@@ -394,5 +443,21 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
     textAlign: 'center',
+  },
+  pagination: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 12,
+  },
+  dot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  dotActive: {
+    width: 18,
+    borderRadius: 3,
   },
 });
