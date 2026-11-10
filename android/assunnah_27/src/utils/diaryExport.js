@@ -6,11 +6,18 @@
  */
 
 import { Platform, Share, Alert } from 'react-native';
-import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system/legacy';
 import { getFullDiaryDateMeta, toBanglaDigits } from './diaryDate';
 import { getDiaryFont, getPaperTheme } from '../constants/diaryThemes';
+
+// Safely resolve expo-print if available (prevent bundler / runtime crash if package is missing)
+let Print = null;
+try {
+  Print = require('expo-print');
+} catch (_err) {
+  Print = null;
+}
 
 function escapeHtml(str) {
   return String(str ?? '')
@@ -309,6 +316,14 @@ async function saveFileToAndroidDownloads(fileUri, fileName, mimeType) {
  * Generate PDF and either Share or Download to device folder
  */
 export async function exportDiaryToPdf(entries, { mode = 'share', fileNameBase = 'Assunnah_Diary' } = {}) {
+  if (!Print?.printToFileAsync) {
+    Alert.alert(
+      'PDF ফিচার অনুপলব্ধ',
+      'আপনার ডিভাইসের এই বিল্ডে PDF তৈরি করার সুবিধা এই মুহূর্তে প্রস্তুত নয়। অনুগ্রহ করে Word (.doc) বা টেক্সট আকারে শেয়ার করুন।'
+    );
+    return { saved: false, unsupported: true };
+  }
+
   const html = buildDiaryPdfHtml(entries);
   const { uri } = await Print.printToFileAsync({ html, base64: false });
   const fileName = `${sanitizeFileName(fileNameBase)}.pdf`;
@@ -331,7 +346,11 @@ export async function exportDiaryToPdf(entries, { mode = 'share', fileNameBase =
     return { saved: true, uri };
   }
 
-  await Print.printAsync({ html });
+  if (Print.printAsync) {
+    await Print.printAsync({ html });
+    return { saved: true, uri };
+  }
+
   return { saved: true, uri };
 }
 
