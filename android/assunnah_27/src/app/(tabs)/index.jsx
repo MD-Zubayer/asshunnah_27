@@ -26,6 +26,7 @@ import statsService, { toBengaliNumber } from '../../services/stats-service';
 import { getPrayerStats } from '../../services/prayer-tracker-service';
 import { useAuth } from '../../context/AuthContext';
 import { getImageUri } from '../../utils/image';
+import { stripMarkdown } from '../../utils/socialEmbed';
 
 const AnimatedImageBackground = Animated.createAnimatedComponent(ImageBackground);
 
@@ -696,7 +697,7 @@ export default function HomeScreen() {
                 {/* Header Row with Content Preview & AI Sparkles Icon */}
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 }}>
                   <Text style={[styles.articleCardTitle, { color: colors.text, flex: 1, marginRight: 8 }]} numberOfLines={2}>
-                    {article.content || 'আর্টিকেল'}
+                    {stripMarkdown(article.content) || 'আর্টিকেল'}
                   </Text>
                   <TouchableOpacity 
                     onPress={() => handleToggleSummary(article.id)}

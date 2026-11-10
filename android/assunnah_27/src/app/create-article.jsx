@@ -28,7 +28,6 @@ import {
   getShortPostTypography,
 } from '../constants/postThemes';
 import StyledPostContent, { ThemeDecorOverlay } from '../components/StyledPostContent';
-import ArticleRenderer from '../components/ArticleRenderer';
 import SocialEmbedCard from '../components/SocialEmbedCard';
 import { getTextDirection } from '../utils/textDirection';
 import { extractSocialEmbeds, hasMarkdownOrEmbeds } from '../utils/socialEmbed';
@@ -730,6 +729,66 @@ const styles = StyleSheet.create({
   },
   addPhotoText: {
     fontSize: 14,
+    fontWeight: '700',
+  },
+  modeBar: {
+    flexDirection: 'row',
+    borderRadius: 12,
+    padding: 4,
+    borderWidth: 1,
+    marginBottom: 12,
+    gap: 4,
+  },
+  modeBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 8,
+    borderRadius: 9,
+  },
+  modeBtnText: {
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  previewCard: {
+    borderRadius: 16,
+    borderWidth: 1,
+    padding: 14,
+    minHeight: 190,
+    marginBottom: 16,
+  },
+  previewEmpty: {
+    fontSize: 14,
+    textAlign: 'center',
+    marginTop: 50,
+    lineHeight: 22,
+  },
+  mdToolbar: {
+    gap: 8,
+    paddingVertical: 2,
+  },
+  mdToolChip: {
+    paddingHorizontal: 11,
+    paddingVertical: 7,
+    borderRadius: 9,
+    borderWidth: 1,
+  },
+  mdToolText: {
+    fontSize: 12,
+  },
+  embedPreviewSection: {
+    marginBottom: 16,
+  },
+  embedPreviewHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 6,
+  },
+  embedPreviewTitle: {
+    fontSize: 12,
     fontWeight: '700',
   },
 });

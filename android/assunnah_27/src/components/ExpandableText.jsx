@@ -1,21 +1,21 @@
 /**
  * ExpandableText - Facebook-style expandable text component
- * Shows truncated text with "Read More" / "Show Less" toggle
+ * Supports Markdown formatting and YouTube/Facebook embeds directly in feed & expanded view.
  */
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { StyleSheet, Text, View, TouchableOpacity, LayoutAnimation, Platform, UIManager } from 'react-native';
 import { getDirectionStyle } from '../utils/textDirection';
+import { hasMarkdownOrEmbeds, extractSocialEmbeds } from '../utils/socialEmbed';
 import ArticleRenderer from './ArticleRenderer';
 
 // Enable LayoutAnimation on Android if not in New Architecture
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   try {
-    // Only execute if not running under the New Architecture (Fabric) where it warns/no-ops
     if (!global.RN$Bridgeless && !global.__nativeFabricPageToRootNodesMap) {
       UIManager.setLayoutAnimationEnabledExperimental(true);
     }
-  } catch (e) {
+  } catch (_e) {
     // Ignore error
   }
 }
@@ -30,58 +30,84 @@ export default function ExpandableText({
 }) {
   const [expandedLines, setExpandedLines] = useState(initialLines);
   const [isFullyExpanded, setIsFullyExpanded] = useState(false);
-  const [needsExpansion, setNeedsExpansion] = useState(false);
+  const [plainNeedsExpansion, setPlainNeedsExpansion] = useState(false);
   const [measured, setMeasured] = useState(false);
 
-  // Measure text to determine if expansion is needed
-  const handleTextLayout = useCallback((event) => {
-    if (measured) return;
-    
-    const { height } = event.nativeEvent.layout;
-    // Approximate line height from font size (15 * 1.5 = 22.5)
-    const lineHeight = 22.5;
-    const totalLines = Math.ceil(height / lineHeight);
-    
-    if (totalLines > initialLines) {
-      setNeedsExpansion(true);
-    }
-    setMeasured(true);
-  }, [initialLines, measured]);
+  const isRichContent = useMemo(() => hasMarkdownOrEmbeds(text), [text]);
 
-  const handleExpand = useCallback((e) => {
-    e?.stopPropagation?.();
-    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-    
-    if (isFullyExpanded) {
-      // Collapse back to initial
+  const richNeedsExpansion = useMemo(() => {
+    if (!text || !isRichContent) return false;
+    const nonEmptyLines = text.split('\n').filter((l) => l.trim().length > 0);
+    const embeds = extractSocialEmbeds(text);
+    return nonEmptyLines.length > initialLines || text.length > 260 || embeds.length > 1;
+  }, [text, isRichContent, initialLines]);
+
+  const needsExpansion = isRichContent ? richNeedsExpansion : plainNeedsExpansion;
+
+  // Measure plain text to determine if expansion is needed
+  const handleTextLayout = useCallback(
+    (event) => {
+      if (measured || isRichContent) return;
+
+      const { height } = event.nativeEvent.layout;
+      const lineHeight = 22.5;
+      const totalLines = Math.ceil(height / lineHeight);
+
+      if (totalLines > initialLines) {
+        setPlainNeedsExpansion(true);
+      }
+      setMeasured(true);
+    },
+    [initialLines, measured, isRichContent]
+  );
+
+  const handleExpand = useCallback(
+    (e) => {
+      e?.stopPropagation?.();
+      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+
+      if (isFullyExpanded) {
+        setExpandedLines(initialLines);
+        setIsFullyExpanded(false);
+      } else if (isRichContent) {
+        const nonEmptyCount = text.split('\n').filter((l) => l.trim().length > 0).length;
+        const newLines = expandedLines + expandStep;
+        if (newLines >= nonEmptyCount) {
+          setExpandedLines(9999);
+          setIsFullyExpanded(true);
+        } else {
+          setExpandedLines(newLines);
+        }
+      } else {
+        setExpandedLines(expandedLines + expandStep);
+      }
+
+      onToggle?.();
+    },
+    [expandedLines, expandStep, initialLines, isFullyExpanded, isRichContent, text, onToggle]
+  );
+
+  const handleShowFull = useCallback(
+    (e) => {
+      e?.stopPropagation?.();
+      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+      setExpandedLines(9999);
+      setIsFullyExpanded(true);
+      onToggle?.();
+    },
+    [onToggle]
+  );
+
+  const handleCollapse = useCallback(
+    (e) => {
+      e?.stopPropagation?.();
+      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
       setExpandedLines(initialLines);
       setIsFullyExpanded(false);
-    } else {
-      // Expand by step
-      const newLines = expandedLines + expandStep;
-      // Check if we should fully expand (if remaining text is small)
-      // We'll fully expand when the user clicks and the text fits
-      setExpandedLines(newLines);
-    }
-    
-    onToggle?.();
-  }, [expandedLines, expandStep, initialLines, isFullyExpanded, onToggle]);
-
-  const handleShowFull = useCallback((e) => {
-    e?.stopPropagation?.();
-    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-    setExpandedLines(9999);
-    setIsFullyExpanded(true);
-    onToggle?.();
-  }, [onToggle]);
-
-  const handleCollapse = useCallback((e) => {
-    e?.stopPropagation?.();
-    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-    setExpandedLines(initialLines);
-    setIsFullyExpanded(false);
-    onToggle?.();
-  }, [initialLines, onToggle]);
+      onToggle?.();
+    },
+    [initialLines, onToggle]
+  );
 
   if (!text) return null;
 
@@ -91,6 +117,14 @@ export default function ExpandableText({
     <View style={styles.container}>
       {isFullyExpanded ? (
         <ArticleRenderer text={text} colors={colors} />
+      ) : isRichContent ? (
+        <ArticleRenderer
+          text={text}
+          colors={colors}
+          compact
+          maxBlocks={expandedLines}
+          maxEmbeds={1}
+        />
       ) : (
         <Text
           style={[styles.text, { color: colors.text }, directionStyle, style, { lineHeight: 22.5 }]}
@@ -104,38 +138,19 @@ export default function ExpandableText({
       {/* Read More / Show Less buttons */}
       {needsExpansion && !isFullyExpanded && (
         <View style={styles.buttonRow}>
-          <TouchableOpacity 
-            onPress={handleExpand} 
-            style={styles.readMoreBtn}
-            activeOpacity={0.7}
-          >
-            <Text style={[styles.readMoreText, { color: colors.primary }]}>
-              আরো দেখুন
-            </Text>
+          <TouchableOpacity onPress={handleExpand} style={styles.readMoreBtn} activeOpacity={0.7}>
+            <Text style={[styles.readMoreText, { color: colors.primary }]}>আরো দেখুন</Text>
           </TouchableOpacity>
 
-          {/* Show full text option */}
-          <TouchableOpacity 
-            onPress={handleShowFull} 
-            style={styles.readMoreBtn}
-            activeOpacity={0.7}
-          >
-            <Text style={[styles.readMoreText, { color: colors.textMuted }]}>
-              পুরোটা পড়ুন
-            </Text>
+          <TouchableOpacity onPress={handleShowFull} style={styles.readMoreBtn} activeOpacity={0.7}>
+            <Text style={[styles.readMoreText, { color: colors.textMuted }]}>পুরোটা পড়ুন</Text>
           </TouchableOpacity>
         </View>
       )}
 
       {isFullyExpanded && needsExpansion && (
-        <TouchableOpacity 
-          onPress={handleCollapse} 
-          style={styles.readMoreBtn}
-          activeOpacity={0.7}
-        >
-          <Text style={[styles.readMoreText, { color: colors.primary }]}>
-            সংক্ষিপ্ত করুন
-          </Text>
+        <TouchableOpacity onPress={handleCollapse} style={styles.readMoreBtn} activeOpacity={0.7}>
+          <Text style={[styles.readMoreText, { color: colors.primary }]}>সংক্ষিপ্ত করুন</Text>
         </TouchableOpacity>
       )}
     </View>

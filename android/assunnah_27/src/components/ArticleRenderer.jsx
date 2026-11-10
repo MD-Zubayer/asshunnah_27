@@ -1,8 +1,19 @@
 import React from 'react';
-import { StyleSheet, Text, View, ScrollView, Alert, Platform, TouchableOpacity } from 'react-native';
+import {
+  StyleSheet,
+  Text,
+  View,
+  ScrollView,
+  Alert,
+  Platform,
+  TouchableOpacity,
+  Linking,
+} from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { Ionicons } from '@expo/vector-icons';
 import { getTextDirection } from '../utils/textDirection';
+import { parseSocialEmbedUrl, extractSocialEmbeds } from '../utils/socialEmbed';
+import SocialEmbedCard from './SocialEmbedCard';
 
 /**
  * Checks if a string contains only emojis.
@@ -10,16 +21,12 @@ import { getTextDirection } from '../utils/textDirection';
 function isOnlyEmojis(str) {
   const cleanStr = str.replace(/\s/g, '');
   if (!cleanStr) return false;
-  
-  // Safe emoji check supporting standard unicode emoji ranges and surrogate pairs
-  // \u2000-\u3300 covers miscellaneous symbols, shapes, dingbats, and CJK symbols
-  // \ud800-\udfff covers all UTF-16 surrogate pairs (where all modern emojis reside)
   const emojiRegex = /^[\u2000-\u3300\ud800-\udfff]+$/;
   return emojiRegex.test(cleanStr);
 }
 
 /**
- * Copies text to clipboard and shows an Alert
+ * Copies text to clipboard and shows an Alert.
  */
 async function copyToClipboard(text, typeLabel) {
   try {
@@ -30,41 +37,146 @@ async function copyToClipboard(text, typeLabel) {
   }
 }
 
+function openExternalUrl(url, e) {
+  e?.stopPropagation?.();
+  Linking.openURL(url).catch(() => {
+    Alert.alert('ত্রুটি', 'লিংকটি খোলা যায়নি।');
+  });
+}
+
 /**
- * Tokenizes a line of text to handle inline elements:
- * - Bold (**text**)
- * - Italic (*text*)
- * - Inline code (`text`)
- * - Emails (email@domain.com)
- * - Phone numbers (e.g. +8801700000000)
+ * Tokenizes inline Markdown elements:
+ * - Markdown links: [label](https://...)
+ * - Bold+Italic: ***text***
+ * - Bold: **text** or __text__
+ * - Italic: *text*
+ * - Strikethrough: ~~text~~
+ * - Highlight: ==text==
+ * - Inline code: `code`
+ * - Plain URLs: https://... / http://...
+ * - Emails & Phone numbers
  */
 function renderInlineContent(text, colors, isDark, keyPrefix, baseFontSize) {
   if (!text) return null;
 
-  // Regex to match emails, phone numbers, bold, italic, and inline code
-  // Email: matches standard email patterns
-  // Phone: matches numbers with spaces/hyphens/plus, minimum 8 digits to avoid short number matches
-  const tokenRegex = /(\*\*.*?\*\*|\*.*?\*|`.*?`|[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,32}|\+?\d[\d\-\s]{7,}\d)/g;
+  const tokenRegex =
+    /(\[[^\]]+\]\(https?:\/\/[^\s)]+\)|\*\*\*.*?\*\*\*|\*\*.*?\*\*|__.*?__|~~.*?~~|==.*?==|\*[^*\n]+?\*|`[^`\n]+?`|https?:\/\/[^\s<>"'`\)\]]+|[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,32}|\+?\d[\d\-\s]{7,}\d)/g;
 
-  const parts = text.split(tokenRegex);
-  return parts.map((part, index) => {
+  const parts = [];
+  let lastIdx = 0;
+  let match;
+
+  while ((match = tokenRegex.exec(text)) !== null) {
+    if (match.index > lastIdx) {
+      parts.push({ type: 'plain', value: text.slice(lastIdx, match.index) });
+    }
+    parts.push({ type: 'token', value: match[0] });
+    lastIdx = tokenRegex.lastIndex;
+  }
+
+  if (lastIdx < text.length) {
+    parts.push({ type: 'plain', value: text.slice(lastIdx) });
+  }
+
+  return parts.map((item, index) => {
     const key = `${keyPrefix}-inline-${index}`;
+    const part = item.value;
 
-    if (part.startsWith('**') && part.endsWith('**')) {
+    if (item.type === 'plain') {
       return (
-        <Text key={key} style={{ fontWeight: '700', fontSize: baseFontSize }}>
+        <Text key={key} style={{ fontSize: baseFontSize }}>
+          {part}
+        </Text>
+      );
+    }
+
+    // Markdown link [label](url)
+    const mdLinkMatch = part.match(/^\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)$/);
+    if (mdLinkMatch) {
+      const label = mdLinkMatch[1];
+      const url = mdLinkMatch[2];
+      return (
+        <Text
+          key={key}
+          style={{
+            color: '#2563EB',
+            textDecorationLine: 'underline',
+            fontWeight: '600',
+            fontSize: baseFontSize,
+          }}
+          onPress={(e) => openExternalUrl(url, e)}
+          onLongPress={() => copyToClipboard(url, 'লিংক')}
+        >
+          {label}
+        </Text>
+      );
+    }
+
+    // Bold + Italic ***text***
+    if (part.startsWith('***') && part.endsWith('***') && part.length > 6) {
+      return (
+        <Text key={key} style={{ fontWeight: '800', fontStyle: 'italic', fontSize: baseFontSize }}>
+          {part.slice(3, -3)}
+        </Text>
+      );
+    }
+
+    // Bold **text** or __text__
+    if (
+      ((part.startsWith('**') && part.endsWith('**')) || (part.startsWith('__') && part.endsWith('__'))) &&
+      part.length > 4
+    ) {
+      return (
+        <Text key={key} style={{ fontWeight: '800', fontSize: baseFontSize }}>
           {part.slice(2, -2)}
         </Text>
       );
     }
-    if (part.startsWith('*') && part.endsWith('*')) {
+
+    // Strikethrough ~~text~~
+    if (part.startsWith('~~') && part.endsWith('~~') && part.length > 4) {
+      return (
+        <Text
+          key={key}
+          style={{
+            textDecorationLine: 'line-through',
+            color: colors?.textMuted || '#94A3B8',
+            fontSize: baseFontSize,
+          }}
+        >
+          {part.slice(2, -2)}
+        </Text>
+      );
+    }
+
+    // Highlight ==text==
+    if (part.startsWith('==') && part.endsWith('==') && part.length > 4) {
+      return (
+        <Text
+          key={key}
+          style={{
+            backgroundColor: isDark ? 'rgba(250, 204, 21, 0.25)' : '#FEF08A',
+            color: isDark ? '#FEF08A' : '#854D0E',
+            fontWeight: '600',
+            fontSize: baseFontSize,
+          }}
+        >
+          {part.slice(2, -2)}
+        </Text>
+      );
+    }
+
+    // Italic *text*
+    if (part.startsWith('*') && part.endsWith('*') && part.length > 2) {
       return (
         <Text key={key} style={{ fontStyle: 'italic', fontSize: baseFontSize }}>
           {part.slice(1, -1)}
         </Text>
       );
     }
-    if (part.startsWith('`') && part.endsWith('`')) {
+
+    // Inline code `code`
+    if (part.startsWith('`') && part.endsWith('`') && part.length > 2) {
       return (
         <Text
           key={key}
@@ -72,19 +184,35 @@ function renderInlineContent(text, colors, isDark, keyPrefix, baseFontSize) {
             fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace',
             backgroundColor: isDark ? '#334155' : '#E2E8F0',
             color: isDark ? '#38BDF8' : '#0369A1',
-            paddingHorizontal: 4,
-            borderRadius: 4,
             fontSize: baseFontSize - 1,
           }}
         >
-          {part.slice(1, -1)}
+          {` ${part.slice(1, -1)} `}
         </Text>
       );
     }
 
-    // Email Check
-    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,32}$/;
-    if (emailRegex.test(part)) {
+    // Plain URL
+    if (/^https?:\/\//i.test(part)) {
+      return (
+        <Text
+          key={key}
+          style={{
+            color: '#2563EB',
+            textDecorationLine: 'underline',
+            fontWeight: '600',
+            fontSize: baseFontSize,
+          }}
+          onPress={(e) => openExternalUrl(part, e)}
+          onLongPress={() => copyToClipboard(part, 'লিংক')}
+        >
+          {part}
+        </Text>
+      );
+    }
+
+    // Email
+    if (/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,32}$/.test(part)) {
       return (
         <Text
           key={key}
@@ -101,9 +229,8 @@ function renderInlineContent(text, colors, isDark, keyPrefix, baseFontSize) {
       );
     }
 
-    // Phone / Number check (minimum 8 digits, starts with optional +)
-    const phoneRegex = /^\+?\d[\d\-\s]{7,}\d$/;
-    if (phoneRegex.test(part)) {
+    // Phone number
+    if (/^\+?\d[\d\-\s]{7,}\d$/.test(part)) {
       return (
         <Text
           key={key}
@@ -120,48 +247,82 @@ function renderInlineContent(text, colors, isDark, keyPrefix, baseFontSize) {
       );
     }
 
-    // Normal Text
-    return <Text key={key} style={{ fontSize: baseFontSize }}>{part}</Text>;
+    return (
+      <Text key={key} style={{ fontSize: baseFontSize }}>
+        {part}
+      </Text>
+    );
   });
 }
 
-export default function ArticleRenderer({ text, colors, isDark: explicitIsDark }) {
-  const isDark = explicitIsDark ?? (colors.background === '#0f172a' || colors.background === '#121212' || colors.background === '#1E293B');
-  
+export default function ArticleRenderer({
+  text,
+  colors,
+  isDark: explicitIsDark,
+  compact = false,
+  maxBlocks = null,
+  maxEmbeds = null,
+}) {
+  const isDark =
+    explicitIsDark ??
+    (colors?.background === '#0B0F19' ||
+      colors?.background === '#0f172a' ||
+      colors?.background === '#121212' ||
+      colors?.background === '#1E293B');
+
   if (!text) return null;
 
-  // 1. Separate code blocks from normal blocks
-  const blocks = [];
-  const codeBlockRegex = /```([\s\S]*?)```/g;
+  // 1. Separate fenced code blocks ```lang ... ``` from normal blocks
+  const rawBlocks = [];
+  const codeBlockRegex = /```([a-zA-Z0-9_-]*)\n?([\s\S]*?)```/g;
   let lastIndex = 0;
   let match;
 
   while ((match = codeBlockRegex.exec(text)) !== null) {
     if (match.index > lastIndex) {
-      blocks.push({
+      rawBlocks.push({
         type: 'text',
         content: text.substring(lastIndex, match.index),
       });
     }
-    blocks.push({
+    rawBlocks.push({
       type: 'code',
-      content: match[1].trim(),
+      lang: match[1] ? match[1].toUpperCase() : 'CODE',
+      content: match[2].trim(),
     });
     lastIndex = codeBlockRegex.lastIndex;
   }
 
   if (lastIndex < text.length) {
-    blocks.push({
+    rawBlocks.push({
       type: 'text',
       content: text.substring(lastIndex),
     });
   }
 
-  // 2. Render each block
+  let renderedBlockCount = 0;
+  let renderedEmbedCount = 0;
+  const seenEmbedKeys = new Set();
+
+  const canRenderMoreBlocks = () => maxBlocks === null || renderedBlockCount < maxBlocks;
+  const canRenderMoreEmbeds = () => maxEmbeds === null || renderedEmbedCount < maxEmbeds;
+
+  const markEmbedRendered = (embed) => {
+    const k = embed.platform === 'youtube' ? `yt:${embed.videoId}` : `fb:${embed.url}`;
+    if (seenEmbedKeys.has(k)) return false;
+    seenEmbedKeys.add(k);
+    renderedEmbedCount++;
+    return true;
+  };
+
+  // 2. Render blocks
   return (
     <View style={styles.container}>
-      {blocks.map((block, bIdx) => {
+      {rawBlocks.map((block, bIdx) => {
+        if (!canRenderMoreBlocks()) return null;
+
         if (block.type === 'code') {
+          renderedBlockCount++;
           return (
             <View
               key={`code-${bIdx}`}
@@ -175,10 +336,15 @@ export default function ArticleRenderer({ text, colors, isDark: explicitIsDark }
             >
               <View style={styles.codeHeader}>
                 <Ionicons name="code-slash" size={14} color={isDark ? '#9CA3AF' : '#64748B'} />
-                <Text style={[styles.codeHeaderTitle, { color: isDark ? '#9CA3AF' : '#64748B' }]}>CODE SNIPPET</Text>
+                <Text style={[styles.codeHeaderTitle, { color: isDark ? '#9CA3AF' : '#64748B' }]}>
+                  {block.lang || 'CODE'}
+                </Text>
                 <TouchableOpacity
                   style={styles.copyBtn}
-                  onPress={() => copyToClipboard(block.content, 'কোড')}
+                  onPress={(e) => {
+                    e?.stopPropagation?.();
+                    copyToClipboard(block.content, 'কোড');
+                  }}
                 >
                   <Ionicons name="copy-outline" size={14} color="#3B82F6" />
                 </TouchableOpacity>
@@ -199,58 +365,96 @@ export default function ArticleRenderer({ text, colors, isDark: explicitIsDark }
           );
         }
 
-        // Process lines in text block
         const lines = block.content.split('\n');
         return lines.map((line, lIdx) => {
+          if (!canRenderMoreBlocks()) return null;
+
           const key = `text-${bIdx}-${lIdx}`;
           const trimmedLine = line.trim();
 
           if (!trimmedLine) {
-            return <View key={key} style={styles.emptyLine} />;
+            return compact ? null : <View key={key} style={styles.emptyLine} />;
           }
 
-          // Check primary language & direction
+          // Standalone YouTube / Facebook URL line -> directly render embed card
+          const standaloneEmbed = parseSocialEmbedUrl(trimmedLine);
+          if (standaloneEmbed) {
+            if (!canRenderMoreEmbeds()) return null;
+            if (!markEmbedRendered(standaloneEmbed)) return null;
+            renderedBlockCount++;
+            return (
+              <SocialEmbedCard
+                key={`${key}-embed`}
+                embed={standaloneEmbed}
+                colors={colors}
+                isDark={isDark}
+                compact={compact}
+              />
+            );
+          }
+
+          renderedBlockCount++;
+
           const direction = getTextDirection(line);
           const isArabic = direction === 'rtl';
 
-          // Base font configurations based on language
-          const baseFontSize = isArabic ? 21 : 16;
-          const baseLineHeight = isArabic ? 36 : 24;
+          const baseFontSize = compact ? (isArabic ? 19 : 15) : isArabic ? 21 : 16;
+          const baseLineHeight = compact ? (isArabic ? 30 : 22.5) : isArabic ? 36 : 25;
           const textStyle = {
             writingDirection: direction,
             textAlign: isArabic ? 'right' : 'left',
-            color: colors.text,
+            color: colors?.text || '#0F172A',
             lineHeight: baseLineHeight,
           };
 
-          // A. Headers (# to ######)
+          // Horizontal Rule (---, ***, ___)
+          if (/^([-*_])\1{2,}$/.test(trimmedLine)) {
+            return (
+              <View
+                key={key}
+                style={[styles.divider, { backgroundColor: isDark ? '#334155' : '#E2E8F0' }]}
+              />
+            );
+          }
+
+          // Headers (# to ######)
           const headerMatch = trimmedLine.match(/^(#{1,6})\s+(.*)$/);
           if (headerMatch) {
             const level = headerMatch[1].length;
             const headerContent = headerMatch[2];
-            const headerSizes = [28, 24, 21, 18, 16, 14];
-            const fontSize = isArabic ? headerSizes[level - 1] + 4 : headerSizes[level - 1];
+            const headerSizes = compact ? [21, 19, 17, 16, 15, 14] : [25, 22, 19, 17, 16, 15];
+            const fontSize = isArabic ? headerSizes[level - 1] + 3 : headerSizes[level - 1];
 
             return (
-              <Text
+              <View
                 key={key}
                 style={[
-                  textStyle,
-                  {
-                    fontWeight: '800',
-                    fontSize,
-                    marginTop: 14,
-                    marginBottom: 6,
-                    color: isDark ? '#F8FAFC' : '#0F172A',
+                  level <= 2 && !compact && {
+                    borderBottomWidth: 1,
+                    borderBottomColor: isDark ? 'rgba(255,255,255,0.08)' : '#E2E8F0',
+                    paddingBottom: 4,
                   },
+                  { marginTop: compact ? 4 : 10, marginBottom: compact ? 4 : 6 },
                 ]}
               >
-                {renderInlineContent(headerContent, colors, isDark, key, fontSize)}
-              </Text>
+                <Text
+                  style={[
+                    textStyle,
+                    {
+                      fontWeight: '800',
+                      fontSize,
+                      lineHeight: Math.round(fontSize * 1.38),
+                      color: isDark ? '#F8FAFC' : '#0F172A',
+                    },
+                  ]}
+                >
+                  {renderInlineContent(headerContent, colors, isDark, key, fontSize)}
+                </Text>
+              </View>
             );
           }
 
-          // B. Blockquotes (>)
+          // Blockquotes (>)
           if (trimmedLine.startsWith('>')) {
             const quoteContent = trimmedLine.substring(1).trim();
             return (
@@ -258,22 +462,60 @@ export default function ArticleRenderer({ text, colors, isDark: explicitIsDark }
                 key={key}
                 style={[
                   styles.quoteContainer,
+                  isArabic ? styles.quoteRtl : styles.quoteLtr,
                   {
-                    borderLeftColor: colors.primary || '#008080',
+                    borderLeftColor: isArabic ? undefined : colors?.primary || '#059669',
+                    borderRightColor: isArabic ? colors?.primary || '#059669' : undefined,
                     backgroundColor: isDark ? '#1E293B' : '#F8FAFC',
-                    alignSelf: isArabic ? 'flex-end' : 'flex-start',
                   },
                 ]}
               >
-                <Text style={[textStyle, { fontStyle: 'italic', color: colors.textSecondary }]}>
+                <Text style={[textStyle, { fontStyle: 'italic', color: colors?.textSecondary || '#64748B' }]}>
                   {renderInlineContent(quoteContent, colors, isDark, key, baseFontSize)}
                 </Text>
               </View>
             );
           }
 
-          // C. Bullet Lists (- or *)
-          const listMatch = trimmedLine.match(/^([\-\*])\s+(.*)$/);
+          // Task List (- [ ] / - [x])
+          const taskMatch = trimmedLine.match(/^[-*+]\s+\[([ xX])\]\s+(.*)$/);
+          if (taskMatch) {
+            const checked = taskMatch[1].toLowerCase() === 'x';
+            const taskContent = taskMatch[2];
+            return (
+              <View
+                key={key}
+                style={[
+                  styles.listItemContainer,
+                  { flexDirection: isArabic ? 'row-reverse' : 'row' },
+                ]}
+              >
+                <Ionicons
+                  name={checked ? 'checkbox' : 'square-outline'}
+                  size={18}
+                  color={checked ? '#10B981' : colors?.textMuted || '#94A3B8'}
+                  style={{ marginTop: 3 }}
+                />
+                <Text
+                  style={[
+                    textStyle,
+                    {
+                      flex: 1,
+                      marginLeft: isArabic ? 0 : 8,
+                      marginRight: isArabic ? 8 : 0,
+                      textDecorationLine: checked ? 'line-through' : 'none',
+                      color: checked ? colors?.textMuted || '#94A3B8' : colors?.text || '#0F172A',
+                    },
+                  ]}
+                >
+                  {renderInlineContent(taskContent, colors, isDark, key, baseFontSize)}
+                </Text>
+              </View>
+            );
+          }
+
+          // Bullet Lists (-, *, +)
+          const listMatch = trimmedLine.match(/^([-*+])\s+(.*)$/);
           if (listMatch) {
             const listContent = listMatch[2];
             return (
@@ -284,8 +526,8 @@ export default function ArticleRenderer({ text, colors, isDark: explicitIsDark }
                   { flexDirection: isArabic ? 'row-reverse' : 'row' },
                 ]}
               >
-                <Text style={[styles.bullet, { color: colors.primary || '#008080', fontSize: baseFontSize }]}>
-                  {isArabic ? '•' : '•'}
+                <Text style={[styles.bullet, { color: colors?.primary || '#059669', fontSize: baseFontSize }]}>
+                  •
                 </Text>
                 <Text style={[textStyle, { flex: 1, marginLeft: isArabic ? 0 : 8, marginRight: isArabic ? 8 : 0 }]}>
                   {renderInlineContent(listContent, colors, isDark, key, baseFontSize)}
@@ -294,7 +536,30 @@ export default function ArticleRenderer({ text, colors, isDark: explicitIsDark }
             );
           }
 
-          // D. Emojis only
+          // Numbered Lists (1. , 2. )
+          const numMatch = trimmedLine.match(/^(\d+[.)])\s+(.*)$/);
+          if (numMatch) {
+            const numMarker = numMatch[1];
+            const numContent = numMatch[2];
+            return (
+              <View
+                key={key}
+                style={[
+                  styles.listItemContainer,
+                  { flexDirection: isArabic ? 'row-reverse' : 'row' },
+                ]}
+              >
+                <Text style={[styles.bullet, { color: colors?.primary || '#059669', fontSize: baseFontSize - 1 }]}>
+                  {numMarker}
+                </Text>
+                <Text style={[textStyle, { flex: 1, marginLeft: isArabic ? 0 : 8, marginRight: isArabic ? 8 : 0 }]}>
+                  {renderInlineContent(numContent, colors, isDark, key, baseFontSize)}
+                </Text>
+              </View>
+            );
+          }
+
+          // Emoji-only line
           if (isOnlyEmojis(trimmedLine)) {
             return (
               <Text
@@ -302,10 +567,10 @@ export default function ArticleRenderer({ text, colors, isDark: explicitIsDark }
                 style={[
                   textStyle,
                   {
-                    fontSize: 40,
-                    lineHeight: 52,
+                    fontSize: compact ? 32 : 40,
+                    lineHeight: compact ? 42 : 52,
                     textAlign: isArabic ? 'right' : 'left',
-                    marginVertical: 10,
+                    marginVertical: compact ? 4 : 10,
                   },
                 ]}
               >
@@ -314,11 +579,27 @@ export default function ArticleRenderer({ text, colors, isDark: explicitIsDark }
             );
           }
 
-          // E. Normal Paragraph
+          // Paragraph (with optional inline embeds discovered inside the line)
+          const inlineEmbeds = extractSocialEmbeds(line);
           return (
-            <Text key={key} style={[styles.paragraph, textStyle]}>
-              {renderInlineContent(line, colors, isDark, key, baseFontSize)}
-            </Text>
+            <View key={key}>
+              <Text style={[styles.paragraph, compact && { marginBottom: 6 }, textStyle]}>
+                {renderInlineContent(line, colors, isDark, key, baseFontSize)}
+              </Text>
+              {inlineEmbeds.map((emb, eIdx) => {
+                if (!canRenderMoreEmbeds()) return null;
+                if (!markEmbedRendered(emb)) return null;
+                return (
+                  <SocialEmbedCard
+                    key={`${key}-inline-embed-${eIdx}`}
+                    embed={emb}
+                    colors={colors}
+                    isDark={isDark}
+                    compact={compact}
+                  />
+                );
+              })}
+            </View>
           );
         });
       })}
@@ -331,47 +612,57 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   paragraph: {
-    marginBottom: 10,
+    marginBottom: 8,
   },
   emptyLine: {
     height: 8,
   },
+  divider: {
+    height: 1,
+    width: '100%',
+    marginVertical: 10,
+  },
   quoteContainer: {
-    borderLeftWidth: 4,
     paddingHorizontal: 12,
     paddingVertical: 8,
-    marginVertical: 10,
-    borderRadius: 4,
+    marginVertical: 6,
+    borderRadius: 6,
     width: '100%',
+  },
+  quoteLtr: {
+    borderLeftWidth: 4,
+  },
+  quoteRtl: {
+    borderRightWidth: 4,
   },
   listItemContainer: {
     alignItems: 'flex-start',
-    marginVertical: 4,
+    marginVertical: 3,
     width: '100%',
   },
   bullet: {
     fontWeight: 'bold',
-    width: 14,
+    lineHeight: 24,
   },
   codeBlockContainer: {
+    borderRadius: 10,
     borderWidth: 1,
-    borderRadius: 8,
-    padding: 12,
-    marginVertical: 12,
+    marginVertical: 8,
+    overflow: 'hidden',
   },
   codeHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
-    borderBottomWidth: 0.5,
-    borderBottomColor: '#9CA3AF',
-    paddingBottom: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(148, 163, 184, 0.2)',
+    gap: 6,
   },
   codeHeaderTitle: {
     fontSize: 10,
     fontWeight: '800',
     letterSpacing: 1,
-    marginLeft: 6,
     flex: 1,
   },
   copyBtn: {
@@ -379,7 +670,8 @@ const styles = StyleSheet.create({
   },
   codeText: {
     fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace',
-    fontSize: 14,
+    fontSize: 13,
     lineHeight: 20,
+    padding: 12,
   },
 });
