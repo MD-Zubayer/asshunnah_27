@@ -552,7 +552,12 @@ class DiarySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Diary
-        fields = ['id', 'title', 'content', 'tag', 'emoji', 'date_display', 'created_at', 'updated_at']
+        fields = [
+            'id', 'title', 'content', 'tag', 'emoji',
+            'entry_date', 'hijri_date', 'mood', 'weather',
+            'paper_theme', 'font_family', 'is_pinned', 'page_number',
+            'date_display', 'created_at', 'updated_at',
+        ]
         read_only_fields = ['id', 'date_display', 'created_at', 'updated_at']
 
     def get_date_display(self, obj):
@@ -561,7 +566,7 @@ class DiarySerializer(serializers.ModelSerializer):
             'জানুয়ারি', 'ফেব্রুয়ারি', 'মার্চ', 'এপ্রিল', 'মে', 'জুন',
             'জুলাই', 'আগস্ট', 'সেপ্টেম্বর', 'অক্টোবর', 'নভেম্বর', 'ডিসেম্বর'
         ]
-        d = obj.created_at
+        d = obj.entry_date or obj.created_at
         digits = {'0': '০', '1': '১', '2': '২', '3': '৩', '4': '৪', '5': '৫', '6': '৬', '7': '৭', '8': '৮', '9': '৯'}
         to_bn = lambda n: ''.join(digits.get(c, c) for c in str(n))
         return f"{to_bn(d.day)} {months[d.month - 1]}, {to_bn(d.year)}"

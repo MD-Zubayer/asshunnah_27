@@ -1,6 +1,8 @@
 import { useEffect } from 'react';
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
+import { useFonts } from 'expo-font';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useColorScheme, View, ActivityIndicator, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import NetInfo from '@react-native-community/netinfo';
 import { AuthProvider, useAuth } from '../context/AuthContext';
@@ -96,19 +98,34 @@ function FloatingCallBanner() {
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
+  const [fontsLoaded, fontError] = useFonts({
+    'Atma-Regular': require('../../assets/fonts/Atma-Regular.ttf'),
+    'Atma-Bold': require('../../assets/fonts/Atma-Bold.ttf'),
+    'Galada-Regular': require('../../assets/fonts/Galada-Regular.ttf'),
+    'HindSiliguri-Regular': require('../../assets/fonts/HindSiliguri-Regular.ttf'),
+    'HindSiliguri-Bold': require('../../assets/fonts/HindSiliguri-Bold.ttf'),
+    'NotoSerifBengali-Regular': require('../../assets/fonts/NotoSerifBengali-Regular.ttf'),
+    'Amiri-Regular': require('../../assets/fonts/Amiri-Regular.ttf'),
+  });
+
+  if (!fontsLoaded && !fontError) {
+    return null;
+  }
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <AuthProvider>
-        <CallProvider>
-          <OfflineSyncListener />
-          <AuthGate>
-            <Stack screenOptions={{ headerShown: false }} />
-            <FloatingCallBanner />
-          </AuthGate>
-        </CallProvider>
-      </AuthProvider>
-    </ThemeProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+        <AuthProvider>
+          <CallProvider>
+            <OfflineSyncListener />
+            <AuthGate>
+              <Stack screenOptions={{ headerShown: false }} />
+              <FloatingCallBanner />
+            </AuthGate>
+          </CallProvider>
+        </AuthProvider>
+      </ThemeProvider>
+    </GestureHandlerRootView>
   );
 }
 

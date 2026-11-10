@@ -1242,6 +1242,22 @@ class DiaryDetailView(APIView):
         serializer = DiarySerializer(diary)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
+    def patch(self, request, pk):
+        """Partially update a diary entry."""
+        try:
+            diary = Diary.objects.get(pk=pk, user=request.user)
+        except Diary.DoesNotExist:
+            return Response({'error': 'ডায়েরি পাওয়া যায়নি'}, status=status.HTTP_404_NOT_FOUND)
+        serializer = DiarySerializer(diary, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def put(self, request, pk):
+        """Update a diary entry."""
+        return self.patch(request, pk)
+
     def delete(self, request, pk):
         """Delete a diary entry."""
         try:

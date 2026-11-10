@@ -1,28 +1,31 @@
-import { StyleSheet, Text, View, ScrollView, useColorScheme, TextInput, TouchableOpacity, ActivityIndicator } from 'react-native';
+import {
+  StyleSheet,
+  Text,
+  View,
+  ScrollView,
+  useColorScheme,
+  TextInput,
+  TouchableOpacity,
+  ActivityIndicator,
+  Alert,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect } from 'expo-router';
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Colors } from '../../constants/theme';
 import TopNavbar from '../../components/TopNavbar';
 import diaryService from '../../services/diary-service';
 import cacheService, { CacheKeys } from '../../services/cacheService';
 import { useAuth } from '../../context/AuthContext';
-
-const TAG_COLORS = {
-  'আমল': { tagColor: '#2563EB', colorBg: '#2563EB15', colorBorder: '#2563EB30' },
-  'নামাজ': { tagColor: '#9333EA', colorBg: '#9333EA15', colorBorder: '#9333EA30' },
-  'কুরআন': { tagColor: '#059669', colorBg: '#05966915', colorBorder: '#05966930' },
-  'দোয়া': { tagColor: '#D97706', colorBg: '#D9770615', colorBorder: '#D9770630' },
-  'ইলম': { tagColor: '#EC4899', colorBg: '#EC489915', colorBorder: '#EC489930' },
-  'সাধারণ': { tagColor: '#6B7280', colorBg: '#6B728015', colorBorder: '#6B728030' },
-};
+import { TAG_COLORS, TAG_OPTIONS, getDiaryFont, getPaperTheme } from '../../constants/diaryThemes';
+import { getFullDiaryDateMeta, getMonthYearKey, toBanglaDigits } from '../../utils/diaryDate';
+import { exportDiaryToPdf, exportDiaryToWord } from '../../utils/diaryExport';
 
 export default function DiaryScreen() {
   const scheme = useColorScheme();
   const isDark = scheme === 'dark';
   const colors = Colors[isDark ? 'dark' : 'light'];
-  const insets = useSafeAreaInsets();
   const router = useRouter();
   const { token } = useAuth();
 
@@ -43,24 +46,22 @@ export default function DiaryScreen() {
   const [diaryEntries, setDiaryEntries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedFilter, setSelectedFilter] = useState('all'); // 'all' | 'pinned' | tag label
+  const [exportingAll, setExportingAll] = useState(false);
 
   const loadDiaries = async () => {
-    // ১. আগে ক্যাশ থেকে instant দেখাও
     const cached = await cacheService.getCache(CacheKeys.DIARIES);
     if (cached.exists && cached.data) {
       setDiaryEntries(cached.data);
       setLoading(false);
-      console.log('[Diary] Loaded from cache instantly');
     }
 
-    // ২. ব্যাকগ্রাউন্ডে API থেকে sync করো
     setSyncing(true);
     try {
       const freshData = await diaryService.refreshDiaries(token);
-      // ৩. নতুন ডেটা এলে auto আপডেট করো
-      if (freshData && freshData.length > 0) {
+      if (Array.isArray(freshData)) {
         setDiaryEntries(freshData);
-        console.log('[Diary] Auto-updated from API');
       }
     } catch (e) {
       console.log('[Diary] Background sync error:', e.message);
@@ -73,203 +74,454 @@ export default function DiaryScreen() {
   useFocusEffect(
     useCallback(() => {
       loadDiaries();
-    }, [])
+    }, [token])
   );
+
+  const normalizedQuery = searchQuery.trim().toLowerCase();
+
+  const filteredServices = useMemo(() => {
+    if (!normalizedQuery) return serviceItems;
+    return serviceItems.filter((item) => item.label.toLowerCase().includes(normalizedQuery));
+  }, [normalizedQuery, isDark]);
+
+  const filteredDiaries = useMemo(() => {
+    return diaryEntries.filter((entry) => {
+      if (selectedFilter === 'pinned' && !entry.is_pinned) return false;
+      if (selectedFilter !== 'all' && selectedFilter !== 'pinned' && entry.tag !== selectedFilter) {
+        return false;
+      }
+      if (!normalizedQuery) return true;
+      const hay = `${entry.title || ''} ${entry.content || ''} ${entry.tag || ''} ${entry.date_display || ''} ${entry.hijri_date || ''} ${entry.mood || ''}`.toLowerCase();
+      return hay.includes(normalizedQuery);
+    });
+  }, [diaryEntries, selectedFilter, normalizedQuery]);
+
+  // Group filtered diaries by month-year
+  const groupedDiaries = useMemo(() => {
+    const groups = [];
+    const map = new Map();
+    filteredDiaries.forEach((entry, idx) => {
+      const globalPageIndex = diaryEntries.findIndex((d) => String(d.id) === String(entry.id));
+      const key = getMonthYearKey(entry);
+      if (!map.has(key)) {
+        const group = { monthLabel: key, items: [] };
+        map.set(key, group);
+        groups.push(group);
+      }
+      map.get(key).items.push({
+        entry,
+        pageNumber: globalPageIndex >= 0 ? globalPageIndex + 1 : idx + 1,
+      });
+    });
+    return groups;
+  }, [filteredDiaries, diaryEntries]);
+
+  const pinnedCount = useMemo(
+    () => diaryEntries.filter((d) => d.is_pinned).length,
+    [diaryEntries]
+  );
+
+  const openEntryInBook = (entry) => {
+    router.push({
+      pathname: '/diary-detail',
+      params: {
+        id: entry.id,
+        title: entry.title,
+        content: entry.content,
+        tag: entry.tag,
+        emoji: entry.emoji,
+        date_display: entry.date_display,
+        entry_date: entry.entry_date || '',
+        hijri_date: entry.hijri_date || '',
+        mood: entry.mood || '',
+        weather: entry.weather || '',
+        paper_theme: entry.paper_theme || 'cream',
+        font_family: entry.font_family || 'handwriting',
+        is_pinned: String(Boolean(entry.is_pinned)),
+      },
+    });
+  };
+
+  const handleExportAllMenu = () => {
+    if (diaryEntries.length === 0) {
+      Alert.alert('খালি ডায়েরি', 'ডাউনলোড করার জন্য এখনো কোনো ডায়েরি লেখা নেই।');
+      return;
+    }
+    Alert.alert(
+      'সম্পূর্ণ ডায়েরি ডাউনলোড',
+      `মোট ${toBanglaDigits(diaryEntries.length)}টি পৃষ্ঠা কোন ফরম্যাটে ডাউনলোড করবেন?`,
+      [
+        { text: 'বাতিল', style: 'cancel' },
+        {
+          text: 'PDF বই হিসেবে',
+          onPress: async () => {
+            try {
+              setExportingAll(true);
+              await exportDiaryToPdf(diaryEntries, {
+                mode: 'download',
+                fileNameBase: 'Assunnah_Full_Diary',
+              });
+            } catch (e) {
+              Alert.alert('ত্রুটি', e.message || 'PDF তৈরি করা যায়নি');
+            } finally {
+              setExportingAll(false);
+            }
+          },
+        },
+        {
+          text: 'Word (.doc) ফাইল',
+          onPress: async () => {
+            try {
+              setExportingAll(true);
+              await exportDiaryToWord(diaryEntries, {
+                mode: 'download',
+                fileNameBase: 'Assunnah_Full_Diary',
+              });
+            } catch (e) {
+              Alert.alert('ত্রুটি', e.message || 'Word ফাইল তৈরি করা যায়নি');
+            } finally {
+              setExportingAll(false);
+            }
+          },
+        },
+      ]
+    );
+  };
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      {/* Top Navbar with Profile */}
       <TopNavbar />
 
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={[styles.scrollContent, { paddingTop: 8, paddingBottom: 100 }]}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
       >
-        {/* Search Bar with Glass Glow */}
+        {/* Working Search Bar */}
         <View style={[styles.searchOuter, { backgroundColor: colors.blueCardBg, borderColor: colors.blueCardBorder }]}>
           <View style={[styles.searchInner, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
             <Ionicons name="search" size={18} color={colors.primary} />
             <TextInput
               style={[styles.searchInput, { color: colors.text }]}
-              placeholder="ডায়েরিতে খুঁজুন..."
+              placeholder="ডায়েরির লেখা, তারিখ, ট্যাগ বা সেবা খুঁজুন..."
               placeholderTextColor={colors.textMuted}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
             />
+            {searchQuery.length > 0 && (
+              <TouchableOpacity onPress={() => setSearchQuery('')}>
+                <Ionicons name="close-circle" size={18} color={colors.textMuted} />
+              </TouchableOpacity>
+            )}
           </View>
         </View>
 
-        {/* জামিয়া নির্দেশিকা ও ইসলামী সেবা (2-Column Grid) */}
-        <Text style={[styles.sectionTitle, { color: colors.text }]}>জামিয়া নির্দেশিকা ও ইসলামী সেবা</Text>
+        {/* জামিয়া নির্দেশিকা ও ইসলামী সেবা */}
+        {filteredServices.length > 0 && (
+          <>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>জামিয়া নির্দেশিকা ও ইসলামী সেবা</Text>
+            <View style={styles.servicesGrid}>
+              {filteredServices.map((item) => (
+                <TouchableOpacity
+                  key={item.id}
+                  activeOpacity={0.8}
+                  style={[styles.serviceOuterCard, { backgroundColor: item.colorBg, borderColor: item.colorBorder }]}
+                  onPress={() => {
+                    const routes = {
+                      1: '/jamia-parichiti',
+                      2: '/muhaddisin',
+                      3: '/mudarris-wo-molazim',
+                      4: '/fuzalaye-jamia',
+                      6: '/photo-gallery',
+                      7: '/doya',
+                      8: '/probondho',
+                      9: '/kitab-parichiti',
+                      10: '/contact-location',
+                      11: '/websites',
+                      12: '/jamia-graduates',
+                    };
+                    const route = routes[item.id];
+                    if (route) router.push(route);
+                  }}
+                >
+                  <View style={[styles.serviceInnerCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
+                    <View style={[styles.serviceIconBadge, { backgroundColor: `${item.color}15`, borderColor: `${item.color}30` }]}>
+                      <Ionicons name={item.icon} size={22} color={item.color} />
+                    </View>
+                    <Text style={[styles.serviceLabel, { color: colors.text }]} numberOfLines={1}>
+                      {item.label}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </>
+        )}
 
-        <View style={styles.servicesGrid}>
-          {serviceItems.map((item) => (
-            <TouchableOpacity
-              key={item.id}
-              activeOpacity={0.8}
-              style={[styles.serviceOuterCard, { backgroundColor: item.colorBg, borderColor: item.colorBorder }]}
-              onPress={() => {
-                const routes = {
-                  1: '/jamia-parichiti',
-                  2: '/muhaddisin',
-                  3: '/mudarris-wo-molazim',
-                  4: '/fuzalaye-jamia',
-                  6: '/photo-gallery',
-                  7: '/doya',
-                  8: '/probondho',
-                  9: '/kitab-parichiti',
-                  10: '/contact-location',
-                  11: '/websites',
-                  12: '/jamia-graduates',
-                };
-                const route = routes[item.id];
-                if (route) {
-                  router.push(route);
-                }
-              }}
-            >
-              <View style={[styles.serviceInnerCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
-                <View style={[styles.serviceIconBadge, { backgroundColor: `${item.color}15`, borderColor: `${item.color}30` }]}>
-                  <Ionicons name={item.icon} size={22} color={item.color} />
-                </View>
-                <Text style={[styles.serviceLabel, { color: colors.text }]} numberOfLines={1}>
-                  {item.label}
-                </Text>
-              </View>
-            </TouchableOpacity>
-          ))}
-        </View>
-
-        {/* Add New Button */}
-        <TouchableOpacity
-          activeOpacity={0.8}
-          style={[styles.addButton, { backgroundColor: colors.primary }]}
-          onPress={() => router.push('/create-diary')}
+        {/* Physical Leather Diary Cover Card */}
+        <LinearGradient
+          colors={isDark ? ['#311B12', '#1F120D'] : ['#6B2E1E', '#471D12']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.diaryCoverCard}
         >
-          <Ionicons name="add-circle" size={22} color="#fff" />
-          <Text style={styles.addButtonText}>নতুন ডায়েরি লিখুন</Text>
-        </TouchableOpacity>
+          {/* Left Spine Line & Gold Trim */}
+          <View style={styles.coverSpine} />
+          <View style={styles.coverGoldBorder}>
+            <View style={styles.coverTopRow}>
+              <View style={styles.coverBadge}>
+                <Ionicons name="book" size={14} color="#FDE68A" />
+                <Text style={styles.coverBadgeText}>ব্যক্তিগত নোটবুক</Text>
+              </View>
+              <View style={styles.coverStatsRow}>
+                <Text style={styles.coverStatText}>📄 {toBanglaDigits(diaryEntries.length)} পৃষ্ঠা</Text>
+                {pinnedCount > 0 && (
+                  <Text style={styles.coverStatText}> • 📌 {toBanglaDigits(pinnedCount)}</Text>
+                )}
+              </View>
+            </View>
+
+            <Text style={[styles.coverTitle, { fontFamily: 'Atma-Bold' }]}>
+              আমার দৈনন্দিন ডায়েরি
+            </Text>
+            <Text style={styles.coverSubtitle}>
+              হাতের লেখায় ফিজিক্যাল কাগজের অভিজ্ঞতা • হিজরি, বাংলা ও ইংরেজি তারিখসহ
+            </Text>
+
+            <View style={styles.coverActionsRow}>
+              <TouchableOpacity
+                activeOpacity={0.85}
+                style={styles.coverWriteBtn}
+                onPress={() => router.push('/create-diary')}
+              >
+                <Ionicons name="create" size={17} color="#471D12" />
+                <Text style={styles.coverWriteBtnText}>নতুন পৃষ্ঠা লিখুন</Text>
+              </TouchableOpacity>
+
+              {diaryEntries.length > 0 && (
+                <TouchableOpacity
+                  activeOpacity={0.85}
+                  style={styles.coverReadBtn}
+                  onPress={() => openEntryInBook(diaryEntries[0])}
+                >
+                  <Ionicons name="book-outline" size={17} color="#FDE68A" />
+                  <Text style={styles.coverReadBtnText}>বই খুলুন</Text>
+                </TouchableOpacity>
+              )}
+
+              <TouchableOpacity
+                activeOpacity={0.85}
+                style={styles.coverExportBtn}
+                onPress={handleExportAllMenu}
+                disabled={exportingAll}
+              >
+                {exportingAll ? (
+                  <ActivityIndicator size="small" color="#FDE68A" />
+                ) : (
+                  <Ionicons name="download-outline" size={18} color="#FDE68A" />
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </LinearGradient>
 
         {/* Syncing indicator */}
         {syncing && (
           <View style={styles.syncingBar}>
             <ActivityIndicator size="small" color={colors.primary} />
-            <Text style={[styles.syncingText, { color: colors.textSecondary }]}>
-              আপডেট হচ্ছে...
-            </Text>
+            <Text style={[styles.syncingText, { color: colors.textSecondary }]}>আপডেট হচ্ছে...</Text>
           </View>
         )}
 
-        {/* Diary Entries (Tailwind Glass Outer + Inner Cards) */}
-        <Text style={[styles.sectionTitle, { color: colors.text }]}>দৈনন্দিন ডায়েরি এন্ট্রি</Text>
+        {/* Filter Chips */}
+        <View style={styles.sectionHeaderRow}>
+          <Text style={[styles.sectionTitle, { color: colors.text, marginTop: 14, marginBottom: 8 }]}>
+            সংরক্ষিত পৃষ্ঠাসমূহ ({toBanglaDigits(filteredDiaries.length)})
+          </Text>
+        </View>
 
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.filterScroll}
+          contentContainerStyle={styles.filterScrollContent}
+        >
+          <TouchableOpacity
+            onPress={() => setSelectedFilter('all')}
+            style={[
+              styles.filterChip,
+              {
+                backgroundColor: selectedFilter === 'all' ? colors.primary : colors.card,
+                borderColor: selectedFilter === 'all' ? colors.primary : colors.cardBorder,
+              },
+            ]}
+          >
+            <Text style={[styles.filterChipText, { color: selectedFilter === 'all' ? '#fff' : colors.text }]}>
+              সব ({toBanglaDigits(diaryEntries.length)})
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={() => setSelectedFilter('pinned')}
+            style={[
+              styles.filterChip,
+              {
+                backgroundColor: selectedFilter === 'pinned' ? '#DC2626' : colors.card,
+                borderColor: selectedFilter === 'pinned' ? '#DC2626' : colors.cardBorder,
+              },
+            ]}
+          >
+            <Text style={[styles.filterChipText, { color: selectedFilter === 'pinned' ? '#fff' : colors.text }]}>
+              📌 পিন করা ({toBanglaDigits(pinnedCount)})
+            </Text>
+          </TouchableOpacity>
+
+          {TAG_OPTIONS.map((tag) => {
+            const active = selectedFilter === tag.label;
+            return (
+              <TouchableOpacity
+                key={tag.label}
+                onPress={() => setSelectedFilter(tag.label)}
+                style={[
+                  styles.filterChip,
+                  {
+                    backgroundColor: active ? tag.color : colors.card,
+                    borderColor: active ? tag.color : colors.cardBorder,
+                  },
+                ]}
+              >
+                <Text style={[styles.filterChipText, { color: active ? '#fff' : colors.text }]}>
+                  {tag.emoji} {tag.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
+
+        {/* Diary Entries Grouped by Month */}
         {loading ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={colors.primary} />
-            <Text style={[styles.loadingText, { color: colors.textSecondary }]}>
-              ডায়েরি লোড হচ্ছে...
-            </Text>
+            <Text style={[styles.loadingText, { color: colors.textSecondary }]}>ডায়েরি লোড হচ্ছে...</Text>
           </View>
-        ) : diaryEntries.length === 0 ? (
+        ) : filteredDiaries.length === 0 ? (
           <View style={styles.emptyState}>
             <Text style={styles.emptyEmoji}>📔</Text>
             <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
-              এখনো কোনো ডায়েরি লেখা হয়নি।
+              {normalizedQuery ? 'খুঁজে পাওয়া যায়নি' : 'এখনো কোনো ডায়েরি লেখা হয়নি।'}
             </Text>
             <Text style={[styles.emptySubText, { color: colors.textMuted }]}>
-              &quot;নতুন ডায়েরি লিখুন&quot; বাটনে চেপে শুরু করুন
+              {normalizedQuery
+                ? 'অন্য কোনো শব্দ বা তারিখ দিয়ে খুঁজে দেখুন'
+                : '"নতুন পৃষ্ঠা লিখুন" বাটনে চেপে হাতে লেখা ডায়েরি শুরু করুন'}
             </Text>
           </View>
         ) : (
-          diaryEntries.map((entry) => {
-            const tagStyle = TAG_COLORS[entry.tag] || TAG_COLORS['সাধারণ'];
-            return (
-              <TouchableOpacity
-                key={entry.id}
-                activeOpacity={0.85}
-                onPress={() => {
-                  router.push({
-                    pathname: '/diary-detail',
-                    params: {
-                      id: entry.id,
-                      title: entry.title,
-                      content: entry.content,
-                      tag: entry.tag,
-                      emoji: entry.emoji,
-                      date_display: entry.date_display,
-                    },
-                  });
-                }}
-                style={[styles.entryOuterCard, { backgroundColor: tagStyle.colorBg, borderColor: tagStyle.colorBorder }]}
-              >
-                <View style={[styles.entryInnerCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
-                  <View style={styles.entryHeader}>
-                    <View style={[styles.emojiBadge, { backgroundColor: colors.inputBg, borderColor: colors.inputBorder }]}>
-                      <Text style={styles.entryEmoji}>{entry.emoji}</Text>
-                    </View>
-                    <View style={styles.entryMeta}>
-                      <Text style={[styles.entryTitle, { color: colors.text }]}>{entry.title}</Text>
-                      <Text style={[styles.entryDate, { color: colors.textSecondary }]}>{entry.date_display}</Text>
-                    </View>
-                    <Ionicons name="ellipsis-vertical" size={18} color={colors.textMuted} />
-                  </View>
+          groupedDiaries.map((group) => (
+            <View key={group.monthLabel} style={styles.monthGroup}>
+              <View style={styles.monthHeader}>
+                <View style={[styles.monthDot, { backgroundColor: colors.primary }]} />
+                <Text style={[styles.monthTitle, { color: colors.textSecondary }]}>{group.monthLabel}</Text>
+                <View style={[styles.monthLine, { backgroundColor: colors.cardBorder }]} />
+              </View>
 
-                  <Text style={[styles.entryPreview, { color: colors.textSecondary }]} numberOfLines={3}>
-                    {entry.content}
-                  </Text>
+              {group.items.map(({ entry, pageNumber }) => {
+                const tagStyle = TAG_COLORS[entry.tag] || TAG_COLORS['সাধারণ'];
+                const paper = getPaperTheme(entry.paper_theme === 'night' && !isDark ? 'cream' : entry.paper_theme);
+                const font = getDiaryFont(entry.font_family);
+                const dateMeta = getFullDiaryDateMeta(entry.entry_date || entry.created_at, entry.hijri_date);
 
-                  <View style={styles.entryFooter}>
-                    <View style={[styles.tagPill, { backgroundColor: colors.inputBg, borderColor: colors.inputBorder }]}>
-                      <View style={[styles.tagDot, { backgroundColor: tagStyle.tagColor }]} />
-                      <Text style={[styles.tagText, { color: colors.text }]}>{entry.tag}</Text>
+                return (
+                  <TouchableOpacity
+                    key={entry.id}
+                    activeOpacity={0.85}
+                    onPress={() => openEntryInBook(entry)}
+                    style={[
+                      styles.paperCard,
+                      {
+                        backgroundColor: paper.paperBg,
+                        borderColor: paper.borderColor,
+                      },
+                    ]}
+                  >
+                    {/* Left red notebook margin */}
+                    <View style={[styles.cardMarginLine, { borderLeftColor: paper.marginColor }]} />
+
+                    <View style={styles.cardBodyWrap}>
+                      <View style={styles.entryHeader}>
+                        <View style={[styles.pageTagPill, { backgroundColor: paper.headerBg, borderColor: paper.borderColor }]}>
+                          <Text style={[styles.pageTagText, { color: paper.accentColor }]}>
+                            পৃষ্ঠা {toBanglaDigits(pageNumber)}
+                          </Text>
+                        </View>
+                        <Text style={[styles.entryDate, { color: paper.mutedColor }]}>
+                          {dateMeta.englishBn} • {dateMeta.weekday}
+                        </Text>
+                        {entry.is_pinned && (
+                          <Ionicons name="bookmark" size={16} color="#DC2626" style={{ marginLeft: 'auto' }} />
+                        )}
+                      </View>
+
+                      <Text
+                        style={[
+                          styles.entryTitle,
+                          { color: paper.textColor, fontFamily: font.boldFontFamily },
+                        ]}
+                        numberOfLines={1}
+                      >
+                        {entry.emoji || '📝'} {entry.title}
+                      </Text>
+
+                      <Text
+                        style={[
+                          styles.entryPreview,
+                          { color: paper.mutedColor, fontFamily: font.fontFamily },
+                        ]}
+                        numberOfLines={2}
+                      >
+                        {entry.content}
+                      </Text>
+
+                      <View style={styles.entryFooter}>
+                        <View style={styles.footerLeft}>
+                          <View style={[styles.tagPill, { backgroundColor: `${tagStyle.tagColor}15`, borderColor: `${tagStyle.tagColor}35` }]}>
+                            <View style={[styles.tagDot, { backgroundColor: tagStyle.tagColor }]} />
+                            <Text style={[styles.tagText, { color: tagStyle.tagColor }]}>{entry.tag}</Text>
+                          </View>
+                          <Text style={[styles.hijriMini, { color: paper.mutedColor }]} numberOfLines={1}>
+                            🌙 {dateMeta.hijriDate}
+                          </Text>
+                        </View>
+                        <View style={styles.readArrowPill}>
+                          <Text style={[styles.readArrowText, { color: paper.accentColor }]}>খুলুন</Text>
+                          <Ionicons name="chevron-forward" size={14} color={paper.accentColor} />
+                        </View>
+                      </View>
                     </View>
-                    <Ionicons name="chevron-forward" size={16} color={colors.primary} />
-                  </View>
-                </View>
-              </TouchableOpacity>
-            );
-          })
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          ))
         )}
-
       </ScrollView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  header: {
-    paddingHorizontal: 20,
-    borderLeftWidth: 6,
-    borderLeftColor: '#EC4899',
-    marginHorizontal: 16,
-    borderRadius: 4,
-  },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: '900',
-    fontStyle: 'italic',
-    letterSpacing: -0.5,
-  },
-  headerSubtitle: {
-    fontSize: 10,
-    fontWeight: '900',
-    letterSpacing: 1.5,
-    textTransform: 'uppercase',
-  },
-  scrollView: {
-    flex: 1,
-  },
+  container: { flex: 1 },
+  scrollView: { flex: 1 },
   scrollContent: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 18,
     paddingTop: 16,
   },
   searchOuter: {
     borderRadius: 20,
     padding: 3,
     borderWidth: 1,
-    marginBottom: 16,
+    marginBottom: 14,
   },
   searchInner: {
     flexDirection: 'row',
@@ -288,10 +540,9 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 16,
     fontWeight: '900',
-    marginTop: 20,
+    marginTop: 16,
     marginBottom: 12,
     fontStyle: 'italic',
-    textTransform: 'uppercase',
     letterSpacing: -0.3,
   },
   servicesGrid: {
@@ -333,92 +584,238 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     textAlign: 'center',
   },
-  addButton: {
+  diaryCoverCard: {
+    marginTop: 14,
+    borderRadius: 20,
+    padding: 6,
+    position: 'relative',
+    overflow: 'hidden',
+    elevation: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
+  },
+  coverSpine: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: 14,
+    backgroundColor: 'rgba(0,0,0,0.28)',
+    borderRightWidth: 1,
+    borderRightColor: 'rgba(253,230,138,0.25)',
+  },
+  coverGoldBorder: {
+    marginLeft: 12,
+    borderRadius: 15,
+    borderWidth: 1.5,
+    borderColor: 'rgba(253,230,138,0.45)',
+    padding: 16,
+  },
+  coverTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  coverBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: 'rgba(253,230,138,0.14)',
+    paddingHorizontal: 9,
+    paddingVertical: 3,
+    borderRadius: 8,
+  },
+  coverBadgeText: {
+    color: '#FDE68A',
+    fontSize: 11,
+    fontWeight: '800',
+  },
+  coverStatsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  coverStatText: {
+    color: 'rgba(255,255,255,0.85)',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  coverTitle: {
+    color: '#FFFBEB',
+    fontSize: 22,
+    marginBottom: 3,
+  },
+  coverSubtitle: {
+    color: 'rgba(254,243,199,0.78)',
+    fontSize: 11,
+    fontWeight: '600',
+    marginBottom: 14,
+  },
+  coverActionsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  coverWriteBtn: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 18,
-    paddingVertical: 14,
-    marginTop: 14,
-    marginBottom: 8,
-    gap: 8,
-    elevation: 4,
-    shadowColor: '#EC4899',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
+    gap: 6,
+    backgroundColor: '#FDE68A',
+    paddingVertical: 11,
+    borderRadius: 12,
   },
-  addButtonText: {
-    color: '#fff',
-    fontSize: 15,
+  coverWriteBtnText: {
+    color: '#471D12',
+    fontSize: 13,
     fontWeight: '900',
-    fontStyle: 'italic',
   },
-  entryOuterCard: {
-    borderRadius: 24,
-    padding: 3,
+  coverReadBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: 'rgba(255,255,255,0.12)',
     borderWidth: 1,
-    marginTop: 14,
-    elevation: 3,
+    borderColor: 'rgba(253,230,138,0.4)',
+    paddingHorizontal: 13,
+    paddingVertical: 10,
+    borderRadius: 12,
+  },
+  coverReadBtnText: {
+    color: '#FDE68A',
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  coverExportBtn: {
+    width: 42,
+    height: 42,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(253,230,138,0.4)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  filterScroll: {
+    marginBottom: 12,
+  },
+  filterScrollContent: {
+    gap: 8,
+  },
+  filterChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 18,
+    borderWidth: 1,
+  },
+  filterChipText: {
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  monthGroup: {
+    marginBottom: 14,
+  },
+  monthHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 10,
+    marginTop: 4,
+  },
+  monthDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  monthTitle: {
+    fontSize: 12,
+    fontWeight: '900',
+  },
+  monthLine: {
+    flex: 1,
+    height: 1,
+  },
+  paperCard: {
+    borderRadius: 14,
+    borderWidth: 1.5,
+    marginBottom: 12,
+    position: 'relative',
+    overflow: 'hidden',
+    elevation: 2,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
+    shadowOffset: { width: 1, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 5,
   },
-  entryInnerCard: {
-    borderRadius: 21,
-    padding: 16,
-    borderWidth: 1,
+  cardMarginLine: {
+    position: 'absolute',
+    left: 24,
+    top: 0,
+    bottom: 0,
+    borderLeftWidth: 1.5,
+    opacity: 0.65,
+  },
+  cardBodyWrap: {
+    paddingLeft: 34,
+    paddingRight: 14,
+    paddingVertical: 12,
   },
   entryHeader: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 8,
+    marginBottom: 6,
   },
-  emojiBadge: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
+  pageTagPill: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
     borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
   },
-  entryEmoji: {
-    fontSize: 22,
-  },
-  entryMeta: {
-    flex: 1,
-  },
-  entryTitle: {
-    fontSize: 16,
+  pageTagText: {
+    fontSize: 10,
     fontWeight: '800',
   },
   entryDate: {
     fontSize: 11,
-    fontWeight: '600',
-    marginTop: 2,
+    fontWeight: '700',
+  },
+  entryTitle: {
+    fontSize: 17,
+    marginBottom: 4,
   },
   entryPreview: {
-    fontSize: 13,
-    lineHeight: 20,
-    marginTop: 12,
-    fontWeight: '500',
+    fontSize: 14,
+    lineHeight: 22,
   },
   entryFooter: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginTop: 14,
+    marginTop: 10,
+  },
+  footerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flex: 1,
   },
   tagPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 10,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
     borderWidth: 1,
-    borderStyle: 'dashed',
-    gap: 6,
+    gap: 5,
   },
   tagDot: {
     width: 6,
@@ -426,36 +823,50 @@ const styles = StyleSheet.create({
     borderRadius: 3,
   },
   tagText: {
-    fontSize: 11,
-    fontWeight: '700',
+    fontSize: 10,
+    fontWeight: '800',
+  },
+  hijriMini: {
+    fontSize: 10,
+    fontWeight: '600',
+    flex: 1,
+  },
+  readArrowPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+  },
+  readArrowText: {
+    fontSize: 12,
+    fontWeight: '800',
   },
   emptyState: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 60,
+    paddingVertical: 50,
   },
   emptyEmoji: {
-    fontSize: 48,
-    marginBottom: 12,
+    fontSize: 46,
+    marginBottom: 10,
   },
   emptyText: {
-    fontSize: 16,
-    fontWeight: '700',
-    marginBottom: 6,
+    fontSize: 15,
+    fontWeight: '800',
+    marginBottom: 5,
   },
   emptySubText: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '500',
     textAlign: 'center',
   },
   loadingContainer: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 60,
-    gap: 12,
+    paddingVertical: 50,
+    gap: 10,
   },
   loadingText: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
   },
   syncingBar: {
