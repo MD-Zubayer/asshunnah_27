@@ -329,38 +329,31 @@ export default function DiaryBookFlipper({
     <View style={styles.wrapper}>
       {/* Book Pages Stage */}
       <View style={styles.stage}>
-        {/* Underneath Page (revealed as top page curls) */}
-        {underIndex !== currentIndex && (
-          <Animated.View pointerEvents="none" style={[styles.underPageLayer, underPageStyle]}>
-            <PhysicalDiaryPage
-              entry={underEntry}
-              pageNumber={underIndex + 1}
-              totalPages={entries.length}
-              mode="read"
-              fontSize={fontSize}
-              scrollEnabled={false}
-            />
-          </Animated.View>
-        )}
+        {/* Underneath Target Page (Always mounted at bottom layer to reveal during curl) */}
+        <Animated.View pointerEvents="none" style={[styles.underPageLayer, underPageStyle]}>
+          <PhysicalDiaryPage
+            entry={underEntry}
+            pageNumber={underIndex + 1}
+            totalPages={entries.length}
+            mode="read"
+            fontSize={fontSize}
+            scrollEnabled={false}
+          />
+        </Animated.View>
 
         {/* Active Top Page with Swipe-to-Flip Gesture */}
         <GestureDetector gesture={panGesture}>
           <Animated.View style={[styles.topPageLayer, topPageAnimatedStyle]}>
-            <ScrollView
-              showsVerticalScrollIndicator={false}
-              contentContainerStyle={styles.pageScrollContent}
-            >
-              <PhysicalDiaryPage
-                entry={activeEntry}
-                pageNumber={currentIndex + 1}
-                totalPages={entries.length}
-                mode="read"
-                fontSize={fontSize}
-                scrollEnabled={false}
-                onTogglePin={() => onTogglePin?.(activeEntry)}
-                onToggleChecklistLine={(lineIdx) => onToggleChecklistLine?.(activeEntry, lineIdx)}
-              />
-            </ScrollView>
+            <PhysicalDiaryPage
+              entry={activeEntry}
+              pageNumber={currentIndex + 1}
+              totalPages={entries.length}
+              mode="read"
+              fontSize={fontSize}
+              scrollEnabled={true}
+              onTogglePin={() => onTogglePin?.(activeEntry)}
+              onToggleChecklistLine={(lineIdx) => onToggleChecklistLine?.(activeEntry, lineIdx)}
+            />
             {/* Dynamic Fold Shadow */}
             <Animated.View pointerEvents="none" style={[styles.curlShadowOverlay, curlShadowStyle]} />
           </Animated.View>
