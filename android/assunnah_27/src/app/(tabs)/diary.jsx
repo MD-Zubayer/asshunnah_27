@@ -22,6 +22,7 @@ import { TAG_COLORS, TAG_OPTIONS, getDiaryFont, getPaperTheme } from '../../cons
 import { getFullDiaryDateMeta, getMonthYearKey, toBanglaDigits } from '../../utils/diaryDate';
 import { exportDiaryToPdf, exportDiaryToWord } from '../../utils/diaryExport';
 import { getTotalAmolStats } from '../../data/dailyAmol';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function DiaryScreen() {
   const scheme = useColorScheme();
@@ -31,6 +32,7 @@ export default function DiaryScreen() {
   const { token } = useAuth();
 
   const serviceItems = [
+    { id: 13, label: 'হাফেজী কুরআন শরীফ', icon: 'book-outline', color: '#059669', colorBg: colors.emeraldCardBg, colorBorder: colors.emeraldCardBorder },
     { id: 1, label: 'জামিয়া পরিচিতি', icon: 'school-outline', color: '#2563EB', colorBg: colors.blueCardBg, colorBorder: colors.blueCardBorder },
     { id: 2, label: 'হযরাতুল মুহাদ্দিসিন', icon: 'people-outline', color: '#9333EA', colorBg: colors.purpleCardBg, colorBorder: colors.purpleCardBorder },
     { id: 3, label: 'মুদাররিস ও মোলাঝিম', icon: 'shirt-outline', color: '#059669', colorBg: colors.emeraldCardBg, colorBorder: colors.emeraldCardBorder },
@@ -45,6 +47,7 @@ export default function DiaryScreen() {
   ];
 
   const [diaryEntries, setDiaryEntries] = useState([]);
+  const [lastReadQuran, setLastReadQuran] = useState(null);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -72,9 +75,21 @@ export default function DiaryScreen() {
     }
   };
 
+  const loadLastReadQuran = async () => {
+    try {
+      const data = await AsyncStorage.getItem('@hafezi_quran_last_read');
+      if (data) {
+        setLastReadQuran(JSON.parse(data));
+      }
+    } catch (e) {
+      // ignore
+    }
+  };
+
   useFocusEffect(
     useCallback(() => {
       loadDiaries();
+      loadLastReadQuran();
     }, [token])
   );
 
@@ -82,7 +97,19 @@ export default function DiaryScreen() {
 
   const filteredServices = useMemo(() => {
     if (!normalizedQuery) return serviceItems;
-    return serviceItems.filter((item) => item.label.toLowerCase().includes(normalizedQuery));
+    return serviceItems.filter((item) => {
+      if (item.id === 13 && (
+        normalizedQuery.includes('quran') ||
+        normalizedQuery.includes('hafez') ||
+        normalizedQuery.includes('কুরআন') ||
+        normalizedQuery.includes('হাফেজ') ||
+        normalizedQuery.includes('পারা') ||
+        normalizedQuery.includes('সূরা')
+      )) {
+        return true;
+      }
+      return item.label.toLowerCase().includes(normalizedQuery);
+    });
   }, [normalizedQuery, isDark]);
 
   const filteredDiaries = useMemo(() => {
@@ -243,6 +270,7 @@ export default function DiaryScreen() {
                       10: '/contact-location',
                       11: '/websites',
                       12: '/jamia-graduates',
+                      13: '/hafezi-quran',
                     };
                     const route = routes[item.id];
                     if (route) router.push(route);
@@ -261,6 +289,78 @@ export default function DiaryScreen() {
             </View>
           </>
         )}
+
+        {/* Hafezi Quran Sharif Featured Book Card */}
+        <LinearGradient
+          colors={isDark ? ['#042F2E', '#064E3B'] : ['#065F46', '#0F766E']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={[styles.diaryCoverCard, { marginBottom: 16 }]}
+        >
+          <View style={[styles.coverSpine, { backgroundColor: '#F59E0B' }]} />
+          <View style={[styles.coverGoldBorder, { borderColor: '#FDE68A' }]}>
+            <View style={styles.coverTopRow}>
+              <View style={[styles.coverBadge, { backgroundColor: 'rgba(253, 230, 138, 0.2)' }]}>
+                <Ionicons name="book" size={14} color="#FDE68A" />
+                <Text style={styles.coverBadgeText}>পবিত্র কুরআনুল কারীম</Text>
+              </View>
+              <View style={styles.coverStatsRow}>
+                <Text style={styles.coverStatText}>
+                  📖 ৩০ পারা • ১১৪ সূরা • ৬১৪ পৃষ্ঠা
+                </Text>
+              </View>
+            </View>
+
+            <Text style={[styles.coverTitle, { fontFamily: 'Atma-Bold', color: '#FEF3C7' }]}>
+              এমদাদিয়া হাফেজী কুরআন শরীফ
+            </Text>
+            <Text style={styles.coverSubtitle}>
+              ১৫ লাইনের মূল ছাপা সংস্করণ • দ্রুত পৃষ্ঠা জাম্প, ৩০ পারা ও ১১৪ সূরা সূচিপত্র, বুকমার্ক ও নাইট মোড
+            </Text>
+
+            {/* Quick Action Buttons */}
+            <View style={{ flexDirection: 'row', gap: 8, marginTop: 4 }}>
+              <TouchableOpacity
+                style={[
+                  styles.coverReadBtn,
+                  { flex: 1.4, backgroundColor: '#F59E0B' },
+                ]}
+                activeOpacity={0.85}
+                onPress={() =>
+                  router.push(
+                    lastReadQuran?.page
+                      ? { pathname: '/hafezi-quran', params: { page: lastReadQuran.page } }
+                      : '/hafezi-quran'
+                  )
+                }
+              >
+                <Ionicons name="book-outline" size={16} color="#78350F" />
+                <Text style={[styles.coverReadBtnText, { color: '#78350F', fontWeight: '800' }]}>
+                  {lastReadQuran?.page
+                    ? `পড়া চালিয়ে যান (পৃষ্ঠা ${toBanglaDigits(lastReadQuran.page)})`
+                    : 'তিলাওয়াত শুরু করুন'}
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[
+                  styles.coverReadBtn,
+                  {
+                    flex: 1,
+                    backgroundColor: 'rgba(255,255,255,0.15)',
+                    borderWidth: 1,
+                    borderColor: 'rgba(253, 230, 138, 0.4)',
+                  },
+                ]}
+                activeOpacity={0.85}
+                onPress={() => router.push('/hafezi-quran')}
+              >
+                <Ionicons name="list" size={16} color="#FDE68A" />
+                <Text style={[styles.coverReadBtnText, { color: '#FDE68A' }]}>সূচিপত্র</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </LinearGradient>
 
         {/* Daily Amol & Dua Book Cover Card */}
         <LinearGradient

@@ -55,6 +55,11 @@ export const API_ENDPOINTS = {
   userArticles: (userId) => `${API_BASE_URL}/api/articles/user_articles/?user_id=${userId}`,
 
   // ============================================
+  // Hafezi Quran Sharif Endpoint
+  // ============================================
+  QURAN_PDF: `${API_BASE_URL}/media/quran/Imdadia-Hafezi-Quran.pdf`,
+
+  // ============================================
   // Follow Endpoints
   // ============================================
   followUser: (userId) => `${API_BASE_URL}/api/follow/${userId}/`,
