@@ -145,7 +145,17 @@ export default function PrayerScreen() {
     }, [])
   );
 
-  const handleTogglePrayer = async (waqtKey) => {
+  const handleTogglePrayer = async (waqtKey, prayerItem, status) => {
+    // Prevent premature tracking if prayer waqt has not started yet today
+    if (isToday && status?.status === 'upcoming') {
+      const startTimeStr = prayerItem?.time ? formatTime(prayerItem.time, 'bn') : '';
+      Alert.alert(
+        'ওয়াক্ত এখনও শুরু হয়নি',
+        `${prayerItem?.name || 'এই'}-এর ওয়াক্ত শুরু হবে ${startTimeStr}-এ। ওয়াক্ত শুরু হওয়ার পর আদায় সম্পন্ন চিহ্নিত করতে পারবেন।`
+      );
+      return;
+    }
+
     try {
       const res = await togglePrayer(waqtKey);
       if (res?.state) {
@@ -838,18 +848,20 @@ export default function PrayerScreen() {
                     {/* Interactive prayer completion toggle for 5 farz prayers */}
                     {isToday && isFarz && (
                       <TouchableOpacity
-                        onPress={() => handleTogglePrayer(item.key)}
+                        onPress={() => handleTogglePrayer(item.key, item, status)}
                         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                         style={[
                           styles.prayerCheckBtn,
                           isDone
                             ? { backgroundColor: '#10B981', borderColor: '#059669' }
+                            : isUpcoming
+                            ? { backgroundColor: colors.inputBg, borderColor: colors.inputBorder, opacity: 0.6 }
                             : { backgroundColor: colors.inputBg, borderColor: colors.inputBorder },
                         ]}
                         activeOpacity={0.7}
                       >
                         <Ionicons
-                          name={isDone ? 'checkmark' : 'ellipse-outline'}
+                          name={isDone ? 'checkmark' : isUpcoming ? 'time-outline' : 'ellipse-outline'}
                           size={14}
                           color={isDone ? '#ffffff' : colors.textMuted}
                         />
@@ -859,7 +871,7 @@ export default function PrayerScreen() {
                             { color: isDone ? '#ffffff' : colors.textSecondary },
                           ]}
                         >
-                          {isDone ? 'আদায় সম্পন্ন' : 'আদায় করুন'}
+                          {isDone ? 'আদায় সম্পন্ন' : isUpcoming ? 'সময় হয়নি' : 'আদায় করুন'}
                         </Text>
                       </TouchableOpacity>
                     )}
@@ -1171,6 +1183,8 @@ export default function PrayerScreen() {
       <PrayerCheckModal
         visible={showPrayerCheckModal}
         onClose={() => setShowPrayerCheckModal(false)}
+        prayerWindows={prayerData?.prayerWindows}
+        prayerTimes={prayerData?.times}
         onUpdate={(updated) => {
           if (updated?.state) {
             setPrayerTrackerState(updated.state);

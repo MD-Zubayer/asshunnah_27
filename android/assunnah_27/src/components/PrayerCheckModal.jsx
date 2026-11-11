@@ -6,6 +6,7 @@ import {
   Modal,
   TouchableOpacity,
   useColorScheme,
+  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../constants/theme';
@@ -16,7 +17,7 @@ import {
   togglePrayer,
 } from '../services/prayer-tracker-service';
 
-export default function PrayerCheckModal({ visible, onClose, onUpdate }) {
+export default function PrayerCheckModal({ visible, onClose, onUpdate, prayerWindows, prayerTimes }) {
   const scheme = useColorScheme();
   const isDark = scheme === 'dark';
   const colors = Colors[isDark ? 'dark' : 'light'];
@@ -29,6 +30,13 @@ export default function PrayerCheckModal({ visible, onClose, onUpdate }) {
     isha: false,
   });
   const [stats, setStats] = useState({ today: 0, streak: 0 });
+
+  const isPrayerUpcoming = (key) => {
+    if (!prayerWindows || !prayerWindows[key]) return false;
+    const start = prayerWindows[key].start;
+    if (!start) return false;
+    return new Date() < new Date(start);
+  };
 
   const loadState = async () => {
     const data = await getPrayerStats();
@@ -46,6 +54,16 @@ export default function PrayerCheckModal({ visible, onClose, onUpdate }) {
   }, [visible]);
 
   const handleToggle = async (key) => {
+    if (isPrayerUpcoming(key)) {
+      const info = PRAYER_LABELS[key];
+      const startTimeStr = prayerTimes?.[key] || '';
+      Alert.alert(
+        'ওয়াক্ত এখনও শুরু হয়নি',
+        `${info?.bn || 'এই'}-এর ওয়াক্ত শুরু হবে ${startTimeStr ? startTimeStr + '-এ' : 'যথাসময়ে'}। ওয়াক্ত আসার পর আদায় সম্পন্ন চিহ্নিত করতে পারবেন।`
+      );
+      return;
+    }
+
     const result = await togglePrayer(key);
     setPrayerState(result.state);
     setStats({ today: result.count, streak: result.streak });
@@ -102,6 +120,7 @@ export default function PrayerCheckModal({ visible, onClose, onUpdate }) {
           <View style={styles.prayersList}>
             {PRAYER_KEYS.map((key) => {
               const isChecked = !!prayerState[key];
+              const isUpcoming = isPrayerUpcoming(key);
               const info = PRAYER_LABELS[key];
               return (
                 <TouchableOpacity
@@ -117,6 +136,7 @@ export default function PrayerCheckModal({ visible, onClose, onUpdate }) {
                         ? '#0F172A'
                         : '#F8FAFC',
                       borderColor: isChecked ? '#10B981' : isDark ? '#334155' : '#E2E8F0',
+                      opacity: isUpcoming ? 0.6 : 1,
                     },
                   ]}
                   onPress={() => handleToggle(key)}
@@ -137,17 +157,24 @@ export default function PrayerCheckModal({ visible, onClose, onUpdate }) {
                         color={isChecked ? '#FFFFFF' : colors.textSecondary}
                       />
                     </View>
-                    <Text
-                      style={[
-                        styles.waqtName,
-                        {
-                          color: isChecked ? (isDark ? '#34D399' : '#059669') : colors.text,
-                          fontWeight: isChecked ? '800' : '600',
-                        },
-                      ]}
-                    >
-                      {info.bn}
-                    </Text>
+                    <View>
+                      <Text
+                        style={[
+                          styles.waqtName,
+                          {
+                            color: isChecked ? (isDark ? '#34D399' : '#059669') : colors.text,
+                            fontWeight: isChecked ? '800' : '600',
+                          },
+                        ]}
+                      >
+                        {info.bn}
+                      </Text>
+                      {isUpcoming && (
+                        <Text style={{ fontSize: 10, color: colors.textMuted, marginTop: 1 }}>
+                          সময় হয়নি {prayerTimes?.[key] ? `(${prayerTimes[key]})` : ''}
+                        </Text>
+                      )}
+                    </View>
                   </View>
 
                   <View
@@ -161,6 +188,8 @@ export default function PrayerCheckModal({ visible, onClose, onUpdate }) {
                   >
                     {isChecked ? (
                       <Ionicons name="checkmark" size={16} color="#FFFFFF" />
+                    ) : isUpcoming ? (
+                      <Ionicons name="time-outline" size={14} color={colors.textMuted} />
                     ) : null}
                   </View>
                 </TouchableOpacity>
