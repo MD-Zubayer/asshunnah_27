@@ -774,7 +774,7 @@ async function ensurePrayerNotificationChannels(): Promise<void> {
     Notifications.setNotificationChannelAsync(ALERT_CHANNELS.sound, {
       name: 'নামাজের সময় অ্যালার্ট (শব্দসহ)',
       importance: maxImportance,
-      sound: 'default',
+      sound: 'prayer_alert.wav',
       enableVibrate: true,
       vibrationPattern: [0, 300, 200, 300],
       lightColor: '#059669',
@@ -908,7 +908,7 @@ export async function sendTestPrayerAlert(
       content: {
         title: '🔔 নামাজের টেস্ট অ্যালার্ট সফল',
         body: 'আপনার ডিভাইসে আস-সুন্নাহ নামাজের অ্যালার্ট সঠিকভাবে কাজ করছে।',
-        sound: soundMode === 'sound' ? 'default' : undefined,
+        sound: soundMode === 'sound' ? 'prayer_alert.wav' : undefined,
         priority: Notifications.AndroidNotificationPriority?.MAX ?? 'max',
         data: { type: 'prayer_alert_test' },
       },
@@ -1104,7 +1104,7 @@ export async function schedulePrayerAlerts(
           content: {
             title: alert.title,
             body: alert.body,
-            sound: config.soundMode === 'sound' ? 'default' : undefined,
+            sound: config.soundMode === 'sound' ? 'prayer_alert.wav' : undefined,
             priority: Notifications.AndroidNotificationPriority?.MAX ?? 'max',
             data: {
               type: 'prayer_alert',
