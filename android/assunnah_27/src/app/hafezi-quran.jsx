@@ -799,16 +799,16 @@ export default function HafeziQuranScreen() {
                     readingTheme === 'night'
                       ? 'weather-night'
                       : readingTheme === 'sepia'
-                      ? 'book-open-page-variant'
-                      : 'white-balance-sunny'
+                        ? 'book-open-page-variant'
+                        : 'white-balance-sunny'
                   }
                   size={20}
                   color={
                     readingTheme === 'night'
                       ? '#FBBF24'
                       : readingTheme === 'sepia'
-                      ? '#B45309'
-                      : '#059669'
+                        ? '#B45309'
+                        : '#059669'
                   }
                 />
               </TouchableOpacity>
@@ -935,6 +935,7 @@ export default function HafeziQuranScreen() {
                     styles.studyTriggerText,
                     { color: readingTheme === 'night' ? '#A7F3D0' : '#065F46' },
                   ]}
+                  numberOfLines={1}
                 >
                   তরজমা • তাফসীর • তাহকীক
                 </Text>
@@ -1134,8 +1135,8 @@ export default function HafeziQuranScreen() {
                       currentPage >= TOTAL_QURAN_PAGES
                         ? '#9CA3AF'
                         : readingTheme === 'night'
-                        ? '#E5E7EB'
-                        : '#1F2937',
+                          ? '#E5E7EB'
+                          : '#1F2937',
                   },
                 ]}
               >
@@ -1148,8 +1149,8 @@ export default function HafeziQuranScreen() {
                   currentPage >= TOTAL_QURAN_PAGES
                     ? '#9CA3AF'
                     : readingTheme === 'night'
-                    ? '#E5E7EB'
-                    : '#1F2937'
+                      ? '#E5E7EB'
+                      : '#1F2937'
                 }
               />
             </TouchableOpacity>
@@ -1282,8 +1283,8 @@ export default function HafeziQuranScreen() {
                     style={[
                       styles.listItem,
                       currentPage >= item.page &&
-                        (QURAN_SURAHS[item.id] ? currentPage < QURAN_SURAHS[item.id].page : true) &&
-                        styles.listItemActive,
+                      (QURAN_SURAHS[item.id] ? currentPage < QURAN_SURAHS[item.id].page : true) &&
+                      styles.listItemActive,
                       { borderBottomColor: isDarkApp ? '#334155' : '#F1F5F9' },
                     ]}
                     onPress={() => {
@@ -2633,10 +2634,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
     flex: 1,
+    minWidth: 0,
   },
   studyTriggerText: {
     fontSize: 12,
     fontWeight: '700',
+    flexShrink: 1,
   },
   quickActionCard: {
     width: SCREEN_WIDTH - 40,

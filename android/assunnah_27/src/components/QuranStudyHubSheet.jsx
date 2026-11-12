@@ -16,7 +16,7 @@ import * as Clipboard from 'expo-clipboard';
 import { Colors } from '../constants/theme';
 import { getQuranPageInfo } from '../data/quranIndex';
 import { getRootForWord } from '../data/quranWordRoots';
-import quranService, { DEFAULT_KITABS, BUILTIN_LUGHAT_ENTRIES } from '../services/quranService';
+import quranService, { DEFAULT_KITABS } from '../services/quranService';
 import quranWordMorphMap from '../data/quranWordMorphMap.json';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -459,12 +459,12 @@ export default function QuranStudyHubSheet({
             </Text>
           </View>
 
-          {/* Main 3 Navigation Tabs (No AI Icons!) */}
+          {/* Main 3 Navigation Tabs (Responsive & Pure Islamic Design) */}
           <View style={[styles.mainTabBar, { borderBottomColor: isDark ? '#334155' : '#E5E7EB' }]}>
             {[
-              { id: 'translation', label: 'তরজমা (অনুবাদ)', icon: 'document-text-outline' },
-              { id: 'tafsir', label: 'প্রামাণ্য তাফসীর', icon: 'book-outline' },
-              { id: 'tahqeeq', label: 'তাহকীক ও লোগাত', icon: 'search-outline' },
+              { id: 'translation', label: 'তরজমা', icon: 'document-text-outline' },
+              { id: 'tafsir', label: 'তাফসীর', icon: 'book-outline' },
+              { id: 'tahqeeq', label: 'তাহকীক', icon: 'search-outline' },
             ].map((tab) => {
               const isActive = activeTab === tab.id;
               return (
@@ -476,17 +476,23 @@ export default function QuranStudyHubSheet({
                     { borderBottomColor: isActive ? '#059669' : 'transparent' },
                   ]}
                   onPress={() => setActiveTab(tab.id)}
+                  activeOpacity={0.7}
                 >
                   <Ionicons
                     name={tab.icon}
-                    size={17}
+                    size={16}
                     color={isActive ? '#059669' : colors.textMuted}
                   />
                   <Text
                     style={[
                       styles.mainTabText,
-                      { color: isActive ? '#059669' : colors.textMuted, fontWeight: isActive ? '700' : '600' },
+                      {
+                        color: isActive ? '#059669' : colors.textMuted,
+                        fontWeight: isActive ? '700' : '600',
+                      },
                     ]}
+                    numberOfLines={1}
+                    ellipsizeMode="tail"
                   >
                     {tab.label}
                   </Text>
@@ -793,7 +799,7 @@ export default function QuranStudyHubSheet({
                 })}
               </View>
 
-              {/* Selected Word Root & Morphology Card */}
+              {/* Selected Word Root & Morphology Card (Pure Arabic Presentation, No Bengali Grammar Labels) */}
               {activeWordMorph && (
                 <View
                   style={[
@@ -809,38 +815,36 @@ export default function QuranStudyHubSheet({
                       <Text style={styles.wordBadgeLargeText}>{activeWordText}</Text>
                     </View>
 
-                    <View style={{ flex: 1, marginLeft: 14 }}>
-                      <Text style={[styles.rootLabel, { color: colors.textMuted }]}>
-                        মূল ধাতু (جذر / Root):
-                      </Text>
-                      <Text style={styles.rootTextArabic}>
-                        {activeWordMorph.root}
-                      </Text>
-                    </View>
-                  </View>
-
-                  {activeWordMorph.pos ? (
-                    <View style={styles.posRow}>
-                      <View style={styles.posTag}>
-                        <Text style={styles.posTagText}>পদ: {activeWordMorph.pos}</Text>
+                    <View style={{ flex: 1, marginLeft: 14, justifyContent: 'center' }}>
+                      <View style={styles.rootArabicRow}>
+                        <Text style={[styles.rootArabicTag, { color: isDark ? '#34D399' : '#059669' }]}>
+                          الجذر:
+                        </Text>
+                        <Text style={[styles.rootTextArabic, { color: isDark ? '#F1F5F9' : '#047857' }]}>
+                          {activeWordMorph.root}
+                        </Text>
                       </View>
+
                       {activeWordMorph.lemma ? (
-                        <View style={[styles.posTag, { backgroundColor: '#E0F2FE' }]}>
-                          <Text style={[styles.posTagText, { color: '#0369A1' }]}>
-                            মৌল রূপ: {activeWordMorph.lemma}
+                        <View style={[styles.rootArabicRow, { marginTop: 4 }]}>
+                          <Text style={[styles.rootArabicTag, { color: isDark ? '#93C5FD' : '#2563EB' }]}>
+                            الأصل:
+                          </Text>
+                          <Text style={[styles.lemmaTextArabic, { color: isDark ? '#E2E8F0' : '#1E293B' }]}>
+                            {activeWordMorph.lemma}
                           </Text>
                         </View>
                       ) : null}
                     </View>
-                  ) : null}
+                  </View>
                 </View>
               )}
 
               {/* Dictionary Selector (Al-Mu'jam al-Waseet vs Al-Mufradat) */}
               <View style={[styles.kitabSelectorRow, { marginTop: 14 }]}>
                 {[
-                  { slug: 'al-mujam-al-waseet', name: "المعجم الوسيط (আল-মু'জামুল ওয়াসীত)" },
-                  { slug: 'al-mufradat', name: 'المفردات (আল-মুফরাদাত)' },
+                  { slug: 'al-mujam-al-waseet', name: "المعجم الوسيط" },
+                  { slug: 'al-mufradat', name: 'المفردات في غريب القرآن' },
                 ].map((k) => {
                   const isSel = activeLughatSlug === k.slug;
                   return (
@@ -873,39 +877,44 @@ export default function QuranStudyHubSheet({
                 })}
               </View>
 
-              {/* Dictionary Content Display */}
-              <View
-                style={[
-                  styles.lughatCard,
-                  {
-                    backgroundColor: isDark ? '#0F172A' : '#FAFAF9',
-                    borderColor: isDark ? '#334155' : '#E2E8F0',
-                  },
-                ]}
-              >
-                <View style={styles.lughatCardHeader}>
-                  <Text style={[styles.lughatTitle, { color: '#0284C7' }]}>
-                    {activeLughatSlug === 'al-mujam-al-waseet'
-                      ? "المعجم الوسيط — مجمع اللغة العربية بالقاهرة"
-                      : "المفردات في غريب القرآن — الراغب الأصفهاني"}
-                  </Text>
+              {/* Dictionary Content Display (Zero static fabricated text) */}
+              {loadingLughat ? (
+                <View
+                  style={[
+                    styles.lughatCard,
+                    {
+                      backgroundColor: isDark ? '#0F172A' : '#FAFAF9',
+                      borderColor: isDark ? '#334155' : '#E2E8F0',
+                      paddingVertical: 24,
+                      alignItems: 'center',
+                    },
+                  ]}
+                >
+                  <ActivityIndicator size="small" color="#0284C7" />
                 </View>
-
-                {loadingLughat ? (
-                  <View style={{ paddingVertical: 28, alignItems: 'center' }}>
-                    <ActivityIndicator size="small" color="#0284C7" />
-                    <Text style={{ marginTop: 8, fontSize: 12, color: colors.textMuted }}>
-                      অভিধান থেকে তাহকীক খোঁজা হচ্ছে...
+              ) : lughatData?.entries?.[0]?.content ? (
+                <View
+                  style={[
+                    styles.lughatCard,
+                    {
+                      backgroundColor: isDark ? '#0F172A' : '#FAFAF9',
+                      borderColor: isDark ? '#334155' : '#E2E8F0',
+                    },
+                  ]}
+                >
+                  <View style={styles.lughatCardHeader}>
+                    <Text style={[styles.lughatTitle, { color: '#0284C7' }]}>
+                      {activeLughatSlug === 'al-mujam-al-waseet'
+                        ? "المعجم الوسيط — مجمع اللغة العربية بالقاهرة"
+                        : "المفردات في غريب القرآن — الراغب الأصفهاني"}
                     </Text>
                   </View>
-                ) : (
+
                   <Text style={[styles.lughatContentText, { color: isDark ? '#E2E8F0' : '#1E293B' }]}>
-                    {lughatData?.entries?.[0]?.content ||
-                      BUILTIN_LUGHAT_ENTRIES[activeWordMorph?.root]?.content ||
-                      `ধাতু (${activeWordMorph?.root}) এর বিস্তারিত অর্থ ও প্রয়োগ অভিধানে সংরক্ষিত রয়েছে।`}
+                    {lughatData.entries[0].content}
                   </Text>
-                )}
-              </View>
+                </View>
+              ) : null}
             </ScrollView>
           )}
 
@@ -1056,21 +1065,25 @@ const styles = StyleSheet.create({
   mainTabBar: {
     flexDirection: 'row',
     borderBottomWidth: 1,
-    marginHorizontal: 16,
+    marginHorizontal: 12,
     marginTop: 4,
   },
   mainTabItem: {
     flex: 1,
+    minWidth: 0,
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    gap: 6,
+    gap: 4,
     paddingVertical: 10,
+    paddingHorizontal: 4,
     borderBottomWidth: 2,
   },
   mainTabItemActive: {},
   mainTabText: {
     fontSize: 13,
+    textAlign: 'center',
+    flexShrink: 1,
   },
   tabContentScroll: {
     flex: 1,
@@ -1247,30 +1260,24 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     fontFamily: 'serif',
   },
-  rootLabel: {
-    fontSize: 11,
-    fontWeight: '500',
+  rootArabicRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  rootArabicTag: {
+    fontSize: 14,
+    fontFamily: 'serif',
+    fontWeight: '700',
   },
   rootTextArabic: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#059669',
     fontFamily: 'serif',
   },
-  posRow: {
-    flexDirection: 'row',
-    gap: 8,
-    marginTop: 10,
-  },
-  posTag: {
-    backgroundColor: '#DCFCE7',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
-  },
-  posTagText: {
-    fontSize: 11,
-    color: '#166534',
+  lemmaTextArabic: {
+    fontSize: 16,
+    fontFamily: 'serif',
     fontWeight: '600',
   },
   lughatCard: {
