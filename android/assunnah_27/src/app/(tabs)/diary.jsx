@@ -33,6 +33,7 @@ export default function DiaryScreen() {
 
   const serviceItems = [
     { id: 13, label: 'হাফেজী কুরআন শরীফ', icon: 'book-outline', color: '#059669', colorBg: colors.emeraldCardBg, colorBorder: colors.emeraldCardBorder },
+    { id: 14, label: 'যাকাত ক্যালকুলেটর', icon: 'calculator-outline', color: '#D97706', colorBg: colors.amberCardBg, colorBorder: colors.amberCardBorder },
     { id: 1, label: 'জামিয়া পরিচিতি', icon: 'school-outline', color: '#2563EB', colorBg: colors.blueCardBg, colorBorder: colors.blueCardBorder },
     { id: 2, label: 'হযরাতুল মুহাদ্দিসিন', icon: 'people-outline', color: '#9333EA', colorBg: colors.purpleCardBg, colorBorder: colors.purpleCardBorder },
     { id: 3, label: 'মুদাররিস ও মোলাঝিম', icon: 'shirt-outline', color: '#059669', colorBg: colors.emeraldCardBg, colorBorder: colors.emeraldCardBorder },
@@ -105,6 +106,18 @@ export default function DiaryScreen() {
         normalizedQuery.includes('হাফেজ') ||
         normalizedQuery.includes('পারা') ||
         normalizedQuery.includes('সূরা')
+      )) {
+        return true;
+      }
+      if (item.id === 14 && (
+        normalizedQuery.includes('zakat') ||
+        normalizedQuery.includes('jakat') ||
+        normalizedQuery.includes('যাকাত') ||
+        normalizedQuery.includes('নেসাব') ||
+        normalizedQuery.includes('হিসাব') ||
+        normalizedQuery.includes('স্বর্ণ') ||
+        normalizedQuery.includes('রুপা') ||
+        normalizedQuery.includes('রূপা')
       )) {
         return true;
       }
@@ -271,6 +284,7 @@ export default function DiaryScreen() {
                       11: '/websites',
                       12: '/jamia-graduates',
                       13: '/hafezi-quran',
+                      14: '/zakat-calculator',
                     };
                     const route = routes[item.id];
                     if (route) router.push(route);
