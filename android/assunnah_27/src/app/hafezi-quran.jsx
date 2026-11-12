@@ -1770,10 +1770,10 @@ export default function HafeziQuranScreen() {
                       { color: readingTheme === 'night' ? '#F9FAFB' : '#111827' },
                     ]}
                   >
-                    إعراب القرآن (নাহবী তাহকীক)
+                    إعراب القرآن وبيانه (অফলাইন)
                   </Text>
                   <Text style={styles.quickActionItemDesc}>
-                    إعراب القرآن الكريم للدعاس ও الجدول لمحمود صافي
+                    ১১৪টি সূরার সম্পূর্ণ অফলাইন নাহবী তাহকীক ও তারকীব
                   </Text>
                 </View>
                 <Ionicons name="chevron-forward" size={16} color="#9CA3AF" />
@@ -1971,8 +1971,8 @@ export default function HafeziQuranScreen() {
                   },
                   {
                     id: 'irab',
-                    title: 'إعراب القرآن (নাহবী তাহকীক)',
-                    desc: 'আদ-দা‘আস ও মাহমুদ সাফীর প্রামাণ্য ব্যাকরণ বিশ্লেষণ',
+                    title: 'إعراب القرآن وبيانه (অফলাইন)',
+                    desc: '১০০% অফলাইন প্রামাণ্য নাহবী তাহকীক ও বাক্যবিশ্লেষণ',
                   },
                   {
                     id: 'fullscreen',
@@ -2069,8 +2069,8 @@ export default function HafeziQuranScreen() {
                   },
                   {
                     id: 'irab',
-                    title: 'إعراب القرآن (নাহবী তাহকীক)',
-                    desc: 'আদ-দা‘আস ও মাহমুদ সাফীর প্রামাণ্য ব্যাকরণ বিশ্লেষণ',
+                    title: 'إعراب القرآن وبيانه (অফলাইন)',
+                    desc: '১০০% অফলাইন প্রামাণ্য নাহবী তাহকীক ও বাক্যবিশ্লেষণ',
                   },
                   {
                     id: 'bookmark',

@@ -182,8 +182,8 @@ export default function QuranStudyHubSheet({
   const [tafsirFontSize, setTafsirFontSize] = useState(16);
   const [isAyahExpanded, setIsAyahExpanded] = useState(false);
 
-  // I'rab al-Quran (إعراب القرآن الكريم) States
-  const [activeIrabSlug, setActiveIrabSlug] = useState('irab-daas');
+  // I'rab al-Quran (إعراب القرآن وبيانه) States
+  const [activeIrabSlug, setActiveIrabSlug] = useState('irab-bayan');
   const [irabData, setIrabData] = useState(null);
   const [loadingIrab, setLoadingIrab] = useState(false);
   const [irabFontSize, setIrabFontSize] = useState(16);
@@ -831,7 +831,7 @@ export default function QuranStudyHubSheet({
   const handleCopyIrabWithCitation = async () => {
     if (!irabData?.content) return;
     const cleanText = cleanHtmlText(irabData.content);
-    const cite = activeIrabRef?.fullCitation || 'إعراب القرآن الكريم للدعاس';
+    const cite = activeIrabRef?.fullCitation || 'إعراب القرآن وبيانه';
     const textToCopy = `﴿${currentAyah.arabic}﴾\n[সূরা ${activeSurahInfo.nameBangla}, আয়াত: ${toBn(currentAyah.number)}]\n\nإعراب الآية:\n${cleanText}\n\n— المصدر: ${cite}\n[সংগ্রহ: জামিয়া ইসলামিয়া ইমদাদিয়া কুরআন অ্যাপ]`;
     await Clipboard.setStringAsync(textToCopy);
     setCopiedIrabCiteToast(true);
@@ -1836,39 +1836,45 @@ export default function QuranStudyHubSheet({
               ======================================================== */}
           {activeTab === 'irab' && (
             <ScrollView style={styles.tabContentScroll} showsVerticalScrollIndicator={true}>
-              {/* Kitab Selector */}
-              <View style={styles.kitabSelectorRow}>
-                {irabKitabs.map((k) => {
-                  const isSel = activeIrabSlug === k.slug;
-                  return (
-                    <TouchableOpacity
-                      key={k.slug}
-                      style={[
-                        styles.kitabChip,
-                        isSel && styles.kitabChipActive,
-                        {
-                          backgroundColor: isSel
-                            ? 'rgba(5, 150, 105, 0.12)'
-                            : isDark
-                              ? '#334155'
-                              : '#F1F5F9',
-                          borderColor: isSel ? '#059669' : 'transparent',
-                        },
-                      ]}
-                      onPress={() => setActiveIrabSlug(k.slug)}
-                    >
-                      <Text
+              {/* Kitab Selector (if multiple kitabs available) */}
+              {irabKitabs.length > 1 ? (
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={[styles.kitabSelectorRow, { flexDirection: 'row-reverse' }]}
+                >
+                  {irabKitabs.map((k) => {
+                    const isSel = activeIrabSlug === k.slug;
+                    return (
+                      <TouchableOpacity
+                        key={k.slug}
                         style={[
-                          styles.kitabChipText,
-                          { color: isSel ? '#059669' : isDark ? '#E2E8F0' : '#475569' },
+                          styles.kitabChip,
+                          isSel && styles.kitabChipActive,
+                          {
+                            backgroundColor: isSel
+                              ? 'rgba(5, 150, 105, 0.12)'
+                              : isDark
+                                ? '#334155'
+                                : '#F1F5F9',
+                            borderColor: isSel ? '#059669' : 'transparent',
+                          },
                         ]}
+                        onPress={() => setActiveIrabSlug(k.slug)}
                       >
-                        {k.name_bangla}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
+                        <Text
+                          style={[
+                            styles.kitabChipText,
+                            { color: isSel ? '#059669' : isDark ? '#E2E8F0' : '#475569' },
+                          ]}
+                        >
+                          {k.name_arabic}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </ScrollView>
+              ) : null}
 
               {/* Font Size Adjuster Controls */}
               <View style={styles.fontSizeBar}>
@@ -1903,9 +1909,25 @@ export default function QuranStudyHubSheet({
                 <View style={styles.tafsirCardHeader}>
                   <View style={styles.headerTitleRow}>
                     <View style={styles.headerTitleTextWrap}>
-                      <Text style={[styles.tafsirKitabArabic, { color: '#059669' }]} numberOfLines={1}>
-                        {irabKitabs.find((k) => k.slug === activeIrabSlug)?.name_arabic}
-                      </Text>
+                      <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 6 }}>
+                        <Text style={[styles.tafsirKitabArabic, { color: '#059669' }]} numberOfLines={1}>
+                          {irabKitabs.find((k) => k.slug === activeIrabSlug)?.name_arabic || 'إعراب القرآن وبيانه'}
+                        </Text>
+                        <View
+                          style={{
+                            backgroundColor: isDark ? '#064E3B40' : '#ECFDF5',
+                            paddingHorizontal: 6,
+                            paddingVertical: 2,
+                            borderRadius: 6,
+                            borderWidth: 0.8,
+                            borderColor: isDark ? '#047857' : '#A7F3D0',
+                          }}
+                        >
+                          <Text style={{ fontSize: 10, fontWeight: '700', color: isDark ? '#34D399' : '#059669' }}>
+                            অফলাইন
+                          </Text>
+                        </View>
+                      </View>
                       <Text style={[styles.tafsirAuthorName, { color: colors.textMuted }]} numberOfLines={1}>
                         {irabKitabs.find((k) => k.slug === activeIrabSlug)?.author}
                       </Text>

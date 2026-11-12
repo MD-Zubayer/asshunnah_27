@@ -1,3 +1,5 @@
+import os
+import json
 from django.core.management.base import BaseCommand
 from quran.models import Kitab, KitabCategory, QuranWord, LughatEntry, AyahTranslation, AyahTafsir
 
@@ -165,6 +167,19 @@ class Command(BaseCommand):
                 "total_volumes": 14,
                 "description": "কুরআনের প্রতিটি মূল শব্দের একক মৌলিক অর্থ (الأصل الواحد) ও প্রায়োগিক তাৎপর্য বিশ্লেষণে ১৪ খণ্ডের প্রামাণ্য তাহকীক গ্রন্থ।",
                 "sort_order": 12,
+            },
+            {
+                "name_arabic": "الفروق اللغوية (المستخرج من التحقيق)",
+                "name_bangla": "আল-ফুরূকুল লুগাভিয়্যাহ (আত-তাহকীক থেকে সংকলিত)",
+                "slug": "al-furuq-al-lughawiyyah-mustafawi",
+                "category": KitabCategory.LUGHAT,
+                "author": "العلامة حسن المصطفوي",
+                "publisher": "دار الكتب العلمية (بيروت) / مركز نشر آثار علامه مصطفوى",
+                "investigator": "طبعة محققة ومقابلة",
+                "edition_info": "مستخرج في الفروق الدلالية",
+                "total_volumes": 1,
+                "description": "কুরআনের সমার্থক প্রতীয়মান শব্দসমূহের মধ্যকার সূক্ষ্ম আভিধানিক পার্থক্য (Linguistic & Semantic Nuances) বিষয়ক প্রামাণ্য তাহকীক।",
+                "sort_order": 13,
             },
             # Tafsir
             {
@@ -443,6 +458,20 @@ class Command(BaseCommand):
                 "description": "فہم قرآن اور فکر آخرت پر مبنی بصیرت افروز ترجمہ۔",
                 "sort_order": 33,
             },
+            # I'rab al-Quran
+            {
+                "name_arabic": "إعراب القرآن وبيانه",
+                "name_bangla": "ই‘রাবুল কুরআন ওয়া বায়ানুহু",
+                "slug": "irab-bayan",
+                "category": KitabCategory.IRAB,
+                "author": "الشيخ أحمد عبيد الدعاس، أحمد محمد حميدان، إسماعيل محمود القاسم",
+                "publisher": "دار المنير ودار الفارابي (دمشق)",
+                "investigator": "أحمد عبيد الدعاس وزملاؤه",
+                "edition_info": "طبعة دمشق المحققة (3 مجلدات) • সম্পূর্ণ অফলাইন",
+                "total_volumes": 3,
+                "description": "কুরআনের প্রতিটি আয়াতের প্রামাণ্য ও পূর্ণাঙ্গ অফলাইন ব্যাকরণিক ও নাহবী বিশ্লেষণ (إعراب وبيان)।",
+                "sort_order": 1,
+            },
         ]
 
         kitab_objs = {}
@@ -459,25 +488,45 @@ class Command(BaseCommand):
             )
             kitab_objs[kd['slug']] = obj
 
-        # Seed Surah Al-Fatihah authentic text for Tawdihul Quran
+        # Seed authentic Tawzihul Quran text
         from ...models import AyahTranslation
-        tawzih_fatihah = [
-            (1, 1, "পরম দয়ালু, চির দয়ালু আল্লাহর নামে (শুরু করছি)।"),
-            (1, 2, "সমস্ত প্রশংসা আল্লাহর, যিনি সমগ্র সৃষ্টিজগতের প্রতিপালক।"),
-            (1, 3, "যিনি পরম দয়ালু, চির দয়ালু।"),
-            (1, 4, "বিচার দিবসের মালিক।"),
-            (1, 5, "আমরা তোমারই ইবাদত করি এবং কেবল তোমারই কাছে সাহায্য চাই।"),
-            (1, 6, "আমাদেরকে সরল-সঠিক পথ প্রদর্শন কর।"),
-            (1, 7, "তাদের পথ, যাদের প্রতি তুমি অনুগ্রহ করেছ, তাদের পথ নয়, যারা গজবগ্রস্ত হয়েছে এবং যারা পথভ্রষ্ট হয়েছে।"),
-        ]
         tawzih_kitab = kitab_objs.get('trans-tawzihul-quran')
         if tawzih_kitab:
-            for s, a, text in tawzih_fatihah:
-                AyahTranslation.objects.update_or_create(
-                    kitab=tawzih_kitab,
-                    surah=s,
-                    ayah=a,
-                    defaults={'translation_text': text}
-                )
+            tawzih_json_path = os.path.join(
+                os.path.dirname(__file__), '../../../../android/assunnah_27/src/data/tawzihulQuranBn.json'
+            )
+            if os.path.exists(tawzih_json_path):
+                try:
+                    with open(tawzih_json_path, 'r', encoding='utf-8') as f:
+                        tawzih_data = json.load(f)
+                    for key, text in tawzih_data.items():
+                        parts = key.split(':')
+                        if len(parts) == 2:
+                            s, a = int(parts[0]), int(parts[1])
+                            AyahTranslation.objects.update_or_create(
+                                kitab=tawzih_kitab,
+                                surah=s,
+                                ayah=a,
+                                defaults={'translation_text': text}
+                            )
+                except Exception as ex:
+                    self.stdout.write(self.style.WARNING(f"Error seeding full Tawzihul Quran: {ex}"))
+            else:
+                tawzih_fatihah = [
+                    (1, 1, "পরম দয়ালু, চির দয়ালু আল্লাহর নামে (শুরু করছি)।"),
+                    (1, 2, "সমস্ত প্রশংসা আল্লাহর, যিনি সমগ্র সৃষ্টিজগতের প্রতিপালক।"),
+                    (1, 3, "যিনি পরম দয়ালু, চির দয়ালু।"),
+                    (1, 4, "বিচার দিবসের মালিক।"),
+                    (1, 5, "আমরা তোমারই ইবাদত করি এবং কেবল তোমারই কাছে সাহায্য চাই।"),
+                    (1, 6, "আমাদেরকে সরল-সঠিক পথ প্রদর্শন কর।"),
+                    (1, 7, "তাদের পথ, যাদের প্রতি তুমি অনুগ্রহ করেছ, তাদের পথ নয়, যারা গজবগ্রস্ত হয়েছে এবং যারা পথভ্রষ্ট হয়েছে।"),
+                ]
+                for s, a, text in tawzih_fatihah:
+                    AyahTranslation.objects.update_or_create(
+                        kitab=tawzih_kitab,
+                        surah=s,
+                        ayah=a,
+                        defaults={'translation_text': text}
+                    )
 
         self.stdout.write(self.style.SUCCESS(f"Successfully seeded {len(kitab_objs)} Kitabs!"))
