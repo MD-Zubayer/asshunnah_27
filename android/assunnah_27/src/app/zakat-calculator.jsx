@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import {
   StyleSheet,
   Text,
@@ -57,44 +57,65 @@ export default function ZakatCalculatorScreen() {
   const [goldRatePerBhori, setGoldRatePerBhori] = useState('');
   const [silverRatePerBhori, setSilverRatePerBhori] = useState('');
 
-  // 2. Assets (যাকাতযোগ্য সম্পদসমূহ)
-  const [goldValue, setGoldValue] = useState('');
-  const [silverValue, setSilverValue] = useState('');
+  // 2. Gold & Silver Quantities (কত ভরি বা গ্রাম আছে)
+  const [goldUnit, setGoldUnit] = useState('bhori'); // 'bhori' | 'gram'
+  const [goldQuantity, setGoldQuantity] = useState('');
+  const [goldExtraCash, setGoldExtraCash] = useState('');
+
+  const [silverUnit, setSilverUnit] = useState('bhori'); // 'bhori' | 'gram'
+  const [silverQuantity, setSilverQuantity] = useState('');
+  const [silverExtraCash, setSilverExtraCash] = useState('');
+
+  // 3. Cash & Financial Assets (নগদ টাকা ও আর্থিক সম্পদ)
   const [cashInHand, setCashInHand] = useState('');
   const [bankBalance, setBankBalance] = useState('');
   const [sanchayapatra, setSanchayapatra] = useState('');
   const [loanReceivable, setLoanReceivable] = useState('');
   const [securityDeposit, setSecurityDeposit] = useState('');
+
+  // 4. Business & Investments (ব্যবসা-বাণিজ্য ও শেয়ার)
   const [businessGoods, setBusinessGoods] = useState('');
   const [rawMaterials, setRawMaterials] = useState('');
   const [sharesInvest, setSharesInvest] = useState('');
 
-  // 3. Liabilities (যাকাত থেকে বাদ যাওয়ার খাত)
+  // 5. Liabilities (যাকাত থেকে বাদ যাওয়ার খাত)
   const [personalDebts, setPersonalDebts] = useState('');
   const [houseBuildingLoan, setHouseBuildingLoan] = useState('');
   const [goodsDue, setGoodsDue] = useState('');
   const [billsDue, setBillsDue] = useState('');
   const [salariesDue, setSalariesDue] = useState('');
 
-  // 4. Adjustments (সমন্বয়)
+  // 6. Adjustments (সমন্বয়)
   const [advanceZakat, setAdvanceZakat] = useState('');
   const [previousDueZakat, setPreviousDueZakat] = useState('');
 
   // UI state
   const [savingToDiary, setSavingToDiary] = useState(false);
   const [showFiqhModal, setShowFiqhModal] = useState(false);
-  const [copiedToast, setCopiedToast] = useState(false);
+  const [_copiedToast, setCopiedToast] = useState(false);
 
   // Calculations
   const goldRate = parseAmount(goldRatePerBhori);
   const silverRate = parseAmount(silverRatePerBhori);
 
-  // Nisab benchmarks (87.48 gm gold / 612.36 gm silver)
+  // Gold calculations
+  const rawGoldQty = parseAmount(goldQuantity);
+  const goldBhori = goldUnit === 'bhori' ? rawGoldQty : rawGoldQty / 11.664;
+  const computedGoldValue = goldRate > 0 && goldBhori > 0 ? Math.round(goldBhori * goldRate) : 0;
+  const totalGoldValue = computedGoldValue + parseAmount(goldExtraCash);
+
+  // Silver calculations
+  const rawSilverQty = parseAmount(silverQuantity);
+  const silverBhori = silverUnit === 'bhori' ? rawSilverQty : rawSilverQty / 11.664;
+  const computedSilverValue = silverRate > 0 && silverBhori > 0 ? Math.round(silverBhori * silverRate) : 0;
+  const totalSilverValue = computedSilverValue + parseAmount(silverExtraCash);
+
+  // Nisab benchmarks (87.48 gm gold = 7.5 bhori / 612.36 gm silver = 52.5 bhori)
   const goldNisabValue = goldRate > 0 ? goldRate * 7.5 : 0;
   const silverNisabValue = silverRate > 0 ? silverRate * 52.5 : 0;
 
   // Asset Totals
-  const totalGoldSilver = parseAmount(goldValue) + parseAmount(silverValue);
+  const totalGoldSilver = totalGoldValue + totalSilverValue;
   const totalCash =
     parseAmount(cashInHand) +
     parseAmount(bankBalance) +
@@ -120,7 +141,7 @@ export default function ZakatCalculatorScreen() {
   const netWealth = Math.max(0, totalAssets - totalLiabilities);
 
   // Applicable Nisab Threshold (Hanafi Fiqh)
-  const hasMultipleAssetTypes = totalCash > 0 || totalBusiness > 0 || parseAmount(silverValue) > 0;
+  const hasMultipleAssetTypes = totalCash > 0 || totalBusiness > 0 || silverBhori > 0 || parseAmount(silverExtraCash) > 0;
   const applicableNisab =
     hasMultipleAssetTypes && silverNisabValue > 0
       ? silverNisabValue
@@ -129,7 +150,12 @@ export default function ZakatCalculatorScreen() {
         : silverNisabValue;
 
   const isRatesProvided = silverRate > 0 || goldRate > 0;
-  const isNisabReached = isRatesProvided && applicableNisab > 0 ? netWealth >= applicableNisab : null;
+  const isNisabReached =
+    isRatesProvided && applicableNisab > 0
+      ? (!hasMultipleAssetTypes && goldBhori > 0 && goldRate > 0)
+        ? goldBhori >= 7.5
+        : netWealth >= applicableNisab
+      : null;
 
   // Zakat amounts (2.5% or 1/40)
   const baseZakat = isNisabReached ? netWealth * 0.025 : 0;
@@ -156,8 +182,10 @@ export default function ZakatCalculatorScreen() {
         onPress: () => {
           setGoldRatePerBhori('');
           setSilverRatePerBhori('');
-          setGoldValue('');
-          setSilverValue('');
+          setGoldQuantity('');
+          setGoldExtraCash('');
+          setSilverQuantity('');
+          setSilverExtraCash('');
           setCashInHand('');
           setBankBalance('');
           setSanchayapatra('');
@@ -181,13 +209,17 @@ export default function ZakatCalculatorScreen() {
   const buildSummaryText = () => {
     const today = new Date();
     const hijri = getHijriDate(today);
-    const engDate = toBanglaDigits(today.toLocaleDateString('bn-BD', { year: 'numeric', month: 'long', day: 'numeric' }));
+    const engDate = toBanglaDigits(
+      today.toLocaleDateString('bn-BD', { year: 'numeric', month: 'long', day: 'numeric' })
+    );
 
     return `❖ বার্ষিক যাকাত হিসাব খতিয়ান ❖\nতারিখ: ${engDate} (${hijri})\n\n` +
-      `[১] নেসাব মানদণ্ড:\n` +
-      `• স্বর্ণের দর (ভরি): ${goldRate > 0 ? formatTaka(goldRate) : 'উল্লেখ নেই'}\n` +
-      `• রূপার দর (ভরি): ${silverRate > 0 ? formatTaka(silverRate) : 'উল্লেখ নেই'}\n` +
-      `• প্রযোজ্য নেসাব মূল্য: ${applicableNisab > 0 ? formatTaka(applicableNisab) : 'দর অপ্রাপ্ত'}\n\n` +
+      `[১] বাজারদর ও পরিমাণ:\n` +
+      `• স্বর্ণের দর: ${goldRate > 0 ? `${formatTaka(goldRate)}/ভরি` : 'দেওয়া নেই'}\n` +
+      `• আপনার স্বর্ণ: ${goldBhori > 0 ? `${toBanglaDigits(goldBhori.toFixed(2))} ভরি (${formatTaka(totalGoldValue)})` : 'নেই'}\n` +
+      `• রূপার দর: ${silverRate > 0 ? `${formatTaka(silverRate)}/ভরি` : 'দেওয়া নেই'}\n` +
+      `• আপনার রূপা: ${silverBhori > 0 ? `${toBanglaDigits(silverBhori.toFixed(2))} ভরি (${formatTaka(totalSilverValue)})` : 'নেই'}\n` +
+      `• প্রযোজ্য নেসাব মান: ${applicableNisab > 0 ? formatTaka(applicableNisab) : 'দর অপ্রাপ্ত'}\n\n` +
       `[২] যাকাতযোগ্য মোট সম্পদ: ${formatTaka(totalAssets)}\n` +
       `• সোনা ও রূপা: ${formatTaka(totalGoldSilver)}\n` +
       `• নগদ, ব্যাংক ও জমানো অর্থ: ${formatTaka(totalCash)}\n` +
@@ -297,6 +329,103 @@ export default function ZakatCalculatorScreen() {
     </View>
   );
 
+  const renderMetalQuantityCard = (
+    label,
+    quantityValue,
+    onQuantityChange,
+    unit,
+    onUnitChange,
+    computedValue,
+    computedBhori,
+    rate,
+    extraCash,
+    onExtraCashChange,
+    placeholder
+  ) => (
+    <View style={[styles.metalBox, { backgroundColor: colors.inputBg, borderColor: colors.cardBorder }]}>
+      <View style={styles.metalHeaderRow}>
+        <Text style={[styles.metalTitle, { color: colors.text }]}>{label}</Text>
+        <View style={styles.unitToggleRow}>
+          <TouchableOpacity
+            onPress={() => onUnitChange('bhori')}
+            style={[
+              styles.unitToggleBtn,
+              unit === 'bhori' && { backgroundColor: colors.primary, borderColor: colors.primary },
+            ]}
+          >
+            <Text style={[styles.unitToggleText, { color: unit === 'bhori' ? '#fff' : colors.textMuted }]}>
+              ভরি (তোলা)
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => onUnitChange('gram')}
+            style={[
+              styles.unitToggleBtn,
+              unit === 'gram' && { backgroundColor: colors.primary, borderColor: colors.primary },
+            ]}
+          >
+            <Text style={[styles.unitToggleText, { color: unit === 'gram' ? '#fff' : colors.textMuted }]}>
+              গ্রাম
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      <View style={[styles.inputBox, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
+        <TextInput
+          value={quantityValue}
+          onChangeText={onQuantityChange}
+          keyboardType="decimal-pad"
+          placeholder={placeholder || (unit === 'bhori' ? 'যেমন: ৮ বা ৭.৫' : 'যেমন: ৮৭.৫')}
+          placeholderTextColor={colors.textMuted}
+          style={[styles.inputText, { color: colors.text }]}
+        />
+        <Text style={[styles.takaSuffix, { color: colors.textMuted }]}>
+          {unit === 'bhori' ? 'ভরি' : 'গ্রাম'}
+        </Text>
+      </View>
+
+      {/* Live computed valuation badge */}
+      {parseAmount(quantityValue) > 0 && (
+        <View
+          style={[
+            styles.liveComputedBadge,
+            { backgroundColor: rate > 0 ? (isDark ? '#064E3B40' : '#ECFDF5') : (isDark ? '#78350F40' : '#FEF3C7') },
+          ]}
+        >
+          <Ionicons
+            name={rate > 0 ? 'checkmark-circle' : 'alert-circle'}
+            size={14}
+            color={rate > 0 ? '#059669' : '#D97706'}
+          />
+          <Text style={[styles.liveComputedText, { color: rate > 0 ? '#059669' : '#D97706' }]}>
+            {rate > 0
+              ? `হিসাব: ${toBanglaDigits(computedBhori.toFixed(2))} ভরি = ${formatTaka(computedValue)}`
+              : `${toBanglaDigits(computedBhori.toFixed(2))} ভরি (টাকার মূল্য পেতে উপরে ১ ভরির দর লিখুন)`}
+          </Text>
+        </View>
+      )}
+
+      {/* Extra cash option */}
+      <View style={{ marginTop: 8 }}>
+        <Text style={[styles.inputHint, { color: colors.textMuted, marginBottom: 4 }]}>
+          + অতিরিক্ত বিক্রয়মূল্য বা নগদ অংশ (যদি থাকে):
+        </Text>
+        <View style={[styles.inputBox, { backgroundColor: colors.card, borderColor: colors.cardBorder, height: 38 }]}>
+          <TextInput
+            value={extraCash}
+            onChangeText={onExtraCashChange}
+            keyboardType="numeric"
+            placeholder="০ (ঐচ্ছিক)"
+            placeholderTextColor={colors.textMuted}
+            style={[styles.inputText, { color: colors.text, fontSize: 13 }]}
+          />
+          <Text style={[styles.takaSuffix, { color: colors.textMuted }]}>৳</Text>
+        </View>
+      </View>
+    </View>
+  );
+
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Header */}
@@ -358,7 +487,7 @@ export default function ZakatCalculatorScreen() {
               স্বর্ণ ও রূপার বাজারদর সতকর্তা
             </Text>
             <Text style={[styles.infoBannerText, { color: isDark ? '#D1FAE5' : '#047857' }]}>
-              ভুল এড়াতে কোনো ডিফল্ট দাম রাখা হয়নি। নেসাব নির্ধারণে আজকের জুয়েলার্স / বাজুস (BAJUS) নির্ধারিত ১ ভরি (১১.৬৬ গ্রাম) স্বর্ণ ও রূপার বিক্রয়মূল্য লিখুন।
+              ভুল এড়াতে কোনো ডিফল্ট দাম রাখা হয়নি। নেসাব নির্ধারণে আজকের জুয়েলার্স / বাজুস (BAJUS) নির্ধারিত ১ ভরি স্বর্ণ ও রূপার বিক্রয়মূল্য লিখুন।
             </Text>
           </View>
         </View>
@@ -376,16 +505,16 @@ export default function ZakatCalculatorScreen() {
             '১ ভরি স্বর্ণের বিক্রয়মূল্য',
             goldRatePerBhori,
             setGoldRatePerBhori,
-            'যেমন: ১৫০০০০',
-            'সাড়ে ৭ ভরি = ৮৭.৪৮ গ্রাম'
+            'যেমন: ১৫০,০০০',
+            '১ ভরি = ১১.৬৬ গ্রাম'
           )}
 
           {renderInputField(
             '১ ভরি রূপার বিক্রয়মূল্য',
             silverRatePerBhori,
             setSilverRatePerBhori,
-            'যেমন: ২৫০০',
-            'সাড়ে ৫২ ভরি = ৬১২.৩৬ গ্রাম'
+            'যেমন: ২,৫০০',
+            '১ ভরি = ১১.৬৬ গ্রাম'
           )}
 
           <View style={[styles.nisabSummaryRow, { backgroundColor: colors.inputBg, borderColor: colors.cardBorder }]}>
@@ -414,9 +543,37 @@ export default function ZakatCalculatorScreen() {
             <Text style={[styles.sectionTitle, { color: colors.text }]}>২. যাকাতযোগ্য সম্পদ (ক)</Text>
           </View>
 
-          <Text style={[styles.subGroupHeader, { color: colors.primary }]}>ক. সোনা ও রূপা</Text>
-          {renderInputField('স্বর্ণের বর্তমান আনুমানিক বিক্রয়মূল্য', goldValue, setGoldValue, '০', 'ব্যবহার্য/লকারে রাখা অলংকার ও বার')}
-          {renderInputField('রূপার বর্তমান আনুমানিক বিক্রয়মূল্য', silverValue, setSilverValue, '০', 'রূপার অলংকার ও বাসনকোশন')}
+          <Text style={[styles.subGroupHeader, { color: colors.primary }]}>ক. স্বর্ণ ও রৌপ্যের পরিমাণ</Text>
+
+          {/* Gold Input Card */}
+          {renderMetalQuantityCard(
+            'আপনার কাছে থাকা স্বর্ণের পরিমাণ',
+            goldQuantity,
+            setGoldQuantity,
+            goldUnit,
+            setGoldUnit,
+            computedGoldValue,
+            goldBhori,
+            goldRate,
+            goldExtraCash,
+            setGoldExtraCash,
+            'যেমন: ৮ বা ৭.৫'
+          )}
+
+          {/* Silver Input Card */}
+          {renderMetalQuantityCard(
+            'আপনার কাছে থাকা রূপার পরিমাণ',
+            silverQuantity,
+            setSilverQuantity,
+            silverUnit,
+            setSilverUnit,
+            computedSilverValue,
+            silverBhori,
+            silverRate,
+            silverExtraCash,
+            setSilverExtraCash,
+            'যেমন: ৬০ বা ৫২.৫'
+          )}
 
           <Text style={[styles.subGroupHeader, { color: colors.primary, marginTop: 12 }]}>খ. নগদ টাকা ও ব্যাংক জমা</Text>
           {renderInputField('হাতে নগদ, চেক ও জমানো অর্থ', cashInHand, setCashInHand, '০', 'হজ বা যেকোনো উদ্দেশ্যে সঞ্চিত টাকা')}
@@ -749,9 +906,54 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   takaSuffix: {
-    fontSize: 15,
+    fontSize: 13,
     fontWeight: '600',
     marginLeft: 6,
+  },
+  metalBox: {
+    borderRadius: 12,
+    padding: 12,
+    borderWidth: 1,
+    gap: 6,
+    marginTop: 4,
+  },
+  metalHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  metalTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  unitToggleRow: {
+    flexDirection: 'row',
+    borderRadius: 8,
+    overflow: 'hidden',
+    borderWidth: 0.8,
+    borderColor: '#05966940',
+  },
+  unitToggleBtn: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  unitToggleText: {
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  liveComputedBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    marginTop: 2,
+  },
+  liveComputedText: {
+    fontSize: 11,
+    fontWeight: '700',
   },
   nisabSummaryRow: {
     flexDirection: 'row',
