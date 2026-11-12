@@ -36,6 +36,123 @@ class Command(BaseCommand):
                 "description": "কুরআনের বিশেষ শব্দাবলীর গভীর শাব্দিক তাহকীক ও ব্যুৎপত্তিগত প্রামাণ্য গ্রন্থ।",
                 "sort_order": 2,
             },
+            {
+                "name_arabic": "معجم مقاييس اللغة",
+                "name_bangla": "মু'জামু মাকায়ীসিল লুগাহ",
+                "slug": "maqayis-al-lughah",
+                "category": KitabCategory.LUGHAT,
+                "author": "أبو الحسين أحمد بن فارس بن زكريا",
+                "publisher": "دار إحياء الكتب العربية (القاهرة)",
+                "investigator": "عبد السلام محمد هارون",
+                "edition_info": "طبعة محققة في 6 مجلدات",
+                "total_volumes": 6,
+                "description": "শব্দমূলের অন্তর্নিহিত দর্শন ও মৌলিক ভাবার্থ নির্ণয়ের অবিসংবাদিত শ্রেষ্ঠ প্রামাণ্য গ্রন্থ।",
+                "sort_order": 3,
+            },
+            {
+                "name_arabic": "عمدة الحفاظ في تفسير أشرف الألفاظ",
+                "name_bangla": "উমদাতুল হুফফায",
+                "slug": "umdat-al-huffaz",
+                "category": KitabCategory.LUGHAT,
+                "author": "أحمد بن يوسف بن عبد الدائم (السمين الحلبي)",
+                "publisher": "عالم الكتب (بيروت)",
+                "investigator": "محمد باسل عيون السود",
+                "edition_info": "الطبعة الأولى، 1414 هـ في 4 مجلدات",
+                "total_volumes": 4,
+                "description": "কুরআনের প্রতিটি শব্দের ভাষাতাত্ত্বিক ও ব্যাকরণিক বিশ্লেষণের অনন্য চার খণ্ডের বিশ্বকোষ।",
+                "sort_order": 4,
+            },
+            {
+                "name_arabic": "لسان العرب",
+                "name_bangla": "লিসানুল আরব",
+                "slug": "lisan-al-arab",
+                "category": KitabCategory.LUGHAT,
+                "author": "محمد بن مكرم بن منظور الأفريقي المصري",
+                "publisher": "دار صادر (بيروت)",
+                "investigator": "طبعة مصححة ومفهرسة",
+                "edition_info": "15 مجلداً مع الفهارس الشاملة",
+                "total_volumes": 15,
+                "description": "সমগ্র মুসলিম বিশ্বের সর্ববৃহৎ, সর্বাধিক প্রামাণ্য ও অতুলনীয় আরবি ভাষার ক্লাসিক্যাল বিশ্বকোষ।",
+                "sort_order": 5,
+            },
+            {
+                "name_arabic": "القاموس المحيط",
+                "name_bangla": "আল-কামূসুল মুহীত",
+                "slug": "al-qamus-al-muhit",
+                "category": KitabCategory.LUGHAT,
+                "author": "مجد الدين محمد بن يعقوب الفيروزآبادي",
+                "publisher": "مؤسسة الرسالة للطباعة والنشر (بيروت)",
+                "investigator": "مكتب تحقيق التراث في مؤسسة الرسالة",
+                "edition_info": "الطبعة الثامنة، 1426 هـ في 4 أجزاء",
+                "total_volumes": 4,
+                "description": "উপমহাদেশের মাদ্রাসাসমূহ ও ইসলামিক অ্যাকাডেমিয়ায় যুগ যুগ ধরে পঠিত মৌলিক প্রামাণ্য অভিধান।",
+                "sort_order": 6,
+            },
+            {
+                "name_arabic": "الصحاح تاج اللغة وصحاح العربية",
+                "name_bangla": "আস-সিহাহ (তাজুল লুগাহ)",
+                "slug": "as-sihah",
+                "category": KitabCategory.LUGHAT,
+                "author": "أبو نصر إسماعيل بن حماد الجوهري",
+                "publisher": "دار العلم للملايين (بيروت)",
+                "investigator": "أحمد عبد الغفور عطار",
+                "edition_info": "الطبعة الرابعة، 1407 هـ في 6 مجلدات",
+                "total_volumes": 6,
+                "description": "আরবি ভাষার প্রাচীনতম সুশৃঙ্খল ও বিশুদ্ধতম প্রথম প্রণালীবদ্ধ প্রামাণ্য অভিধান।",
+                "sort_order": 7,
+            },
+            {
+                "name_arabic": "النهاية في غريب الحديث والأثر",
+                "name_bangla": "আন-নিহায়াহ ফী গারীবিল হাদীস",
+                "slug": "an-nihayah",
+                "category": KitabCategory.LUGHAT,
+                "author": "مجد الدين أبو السعادات المبارك بن محمد بن الأثير الجزري",
+                "publisher": "المكتبة العلمية / دار الفكر (بيروت)",
+                "investigator": "طاهر أحمد الزاوى ومحمود محمد الطناحي",
+                "edition_info": "5 مجلدات",
+                "total_volumes": 5,
+                "description": "হাদীস ও আছারের বিরল ও গভীর শব্দাবলী অনুধাবনে সমগ্র মুসলিম বিশ্বের শ্রেষ্ঠ নির্দেশিকা।",
+                "sort_order": 8,
+            },
+            {
+                "name_arabic": "المصباح المنير في غريب الشرح الكبير",
+                "name_bangla": "আল-মিসবাহুল মুনীর",
+                "slug": "al-misbah-al-munir",
+                "category": KitabCategory.LUGHAT,
+                "author": "أحمد بن محمد بن علي الفيومي ثم الحموي",
+                "publisher": "المكتبة العلمية (بيروت)",
+                "investigator": "طبعة محققة ومراجعة",
+                "edition_info": "مجلدان",
+                "total_volumes": 2,
+                "description": "শরীয়াহ ও ফিকহী পরিভাষার নির্ভুল ও প্রাঞ্জল অর্থ নির্ণয়ে বহুল পঠিত ক্লাসিক্যাল ডিকশনারি।",
+                "sort_order": 9,
+            },
+            {
+                "name_arabic": "معجم الكوثر (عربي - بنغالي)",
+                "name_bangla": "মু'জামুল কাউসার (আরবি-বাংলা)",
+                "slug": "mujam-al-kawsar",
+                "category": KitabCategory.LUGHAT,
+                "author": "মারকাযুদ দাওয়াহ আল-ইসলামিয়া (তত্ত্বাবধানে: মাওলানা মুহাম্মাদ আব্দুল মালেক)",
+                "publisher": "মারকাযুদ দাওয়াহ আল-ইসলামিয়া, ঢাকা",
+                "investigator": "গবেষণা ও অভিধান বিভাগ",
+                "edition_info": "প্রামাণ্য সংস্করণ",
+                "total_volumes": 1,
+                "description": "বাংলাদেশের মাদ্রাসার তালিবুল ইলম ও আলেমদের মাঝে সর্বাধিক নির্ভরযোগ্য ও বিশুদ্ধ আরবি-বাংলা অভিধান।",
+                "sort_order": 10,
+            },
+            {
+                "name_arabic": "المعجم الوافي (عربي - بنغالي)",
+                "name_bangla": "আল-মু'জামুল ওয়াফী (আরবি-বাংলা)",
+                "slug": "al-mujam-al-wafi",
+                "category": KitabCategory.LUGHAT,
+                "author": "মাওলানা মুহাম্মদ ফজলুর রহমান",
+                "publisher": "রিয়াদ প্রকাশনী, ঢাকা",
+                "investigator": "সম্পাদনা পরিষদ",
+                "edition_info": "বৃহৎ সংস্করণ",
+                "total_volumes": 1,
+                "description": "আরবি থেকে বাংলা ভাষায় অনূদিত বহুল প্রচলিত ও সর্বজনগ্রাহ্য পূর্ণাঙ্গ অভিধান।",
+                "sort_order": 11,
+            },
             # Tafsir
             {
                 "name_arabic": "التفسير الميسر",
@@ -168,6 +285,19 @@ class Command(BaseCommand):
                 "description": "বাংলাদেশের জাতীয় প্রামাণ্য সরকারি অনুবাদ।",
                 "sort_order": 7,
             },
+            {
+                "name_arabic": "توضيح القرآن الكريم",
+                "name_bangla": "তাওযীহুল কুরআন",
+                "slug": "trans-tawzihul-quran",
+                "category": KitabCategory.TRANSLATION,
+                "author": "শায়খুল ইসলাম মুফতী মুহাম্মদ তাকী উসমানী (অনুবাদ: মাওলানা আবুল বাশার)",
+                "publisher": "মাকতাবাতুল আশরাফ, ঢাকা",
+                "investigator": "মাওলানা আবুল বাশার মুহাম্মাদ সাইফুল ইসলাম",
+                "edition_info": "সহজ সরল অর্থ ও নির্ভরযোগ্য সংক্ষিপ্ত ব্যাখ্যা সম্বলিত (৩ খণ্ড)",
+                "total_volumes": 3,
+                "description": "শায়খুল ইসলাম মুফতী তাকী উসমানী রচিত প্রামাণ্য তরজমা ও সংক্ষিপ্ত তাফসীর।",
+                "sort_order": 8,
+            },
         ]
 
         kitab_objs = {}
@@ -179,5 +309,26 @@ class Command(BaseCommand):
                 defaults=clean_defaults
             )
             kitab_objs[kd['slug']] = obj
+
+        # Seed Surah Al-Fatihah authentic text for Tawdihul Quran
+        from ...models import AyahTranslation
+        tawzih_fatihah = [
+            (1, 1, "পরম দয়ালু, চির দয়ালু আল্লাহর নামে (শুরু করছি)।"),
+            (1, 2, "সমস্ত প্রশংসা আল্লাহর, যিনি সমগ্র সৃষ্টিজগতের প্রতিপালক।"),
+            (1, 3, "যিনি পরম দয়ালু, চির দয়ালু।"),
+            (1, 4, "বিচার দিবসের মালিক।"),
+            (1, 5, "আমরা তোমারই ইবাদত করি এবং কেবল তোমারই কাছে সাহায্য চাই।"),
+            (1, 6, "আমাদেরকে সরল-সঠিক পথ প্রদর্শন কর।"),
+            (1, 7, "তাদের পথ, যাদের প্রতি তুমি অনুগ্রহ করেছ, তাদের পথ নয়, যারা গজবগ্রস্ত হয়েছে এবং যারা পথভ্রষ্ট হয়েছে।"),
+        ]
+        tawzih_kitab = kitab_objs.get('trans-tawzihul-quran')
+        if tawzih_kitab:
+            for s, a, text in tawzih_fatihah:
+                AyahTranslation.objects.update_or_create(
+                    kitab=tawzih_kitab,
+                    surah=s,
+                    ayah=a,
+                    defaults={'translation_text': text}
+                )
 
         self.stdout.write(self.style.SUCCESS(f"Successfully seeded {len(kitab_objs)} Kitabs!"))

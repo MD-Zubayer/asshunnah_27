@@ -14,7 +14,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
 import { Colors } from '../constants/theme';
-import { getQuranPageInfo } from '../data/quranIndex';
+import { getQuranPageInfo, QURAN_SURAHS } from '../data/quranIndex';
 import { getRootForWord } from '../data/quranWordRoots';
 import quranService, {
   DEFAULT_KITABS,
@@ -235,7 +235,9 @@ export default function QuranStudyHubSheet({
           if (!isMounted) return;
           if (res && res.ayahs && res.ayahs.length > 0) {
             setPageData(res);
-            if (!initialAyahNumber) {
+            if (initialAyahNumber) {
+              setSelectedAyahNumber(initialAyahNumber);
+            } else {
               setSelectedAyahNumber(res.ayahs[0].number);
             }
           }
@@ -269,13 +271,21 @@ export default function QuranStudyHubSheet({
     ];
   }, [pageData, currentPage, pageInfo]);
 
-  const currentSurahId = pageData?.surahId || pageInfo.surah.id;
-
   // Active Ayah Object
   const currentAyah = useMemo(() => {
     const found = currentAyahsList.find((a) => a.number === selectedAyahNumber);
     return found || currentAyahsList[0] || { number: 1, arabic: '', trans: '' };
   }, [currentAyahsList, selectedAyahNumber]);
+
+  const currentSurahId = currentAyah?.surahId || pageData?.surahId || pageInfo.surah.id;
+
+  const activeSurahInfo = useMemo(() => {
+    if (currentAyah?.surahId) {
+      const found = QURAN_SURAHS.find((s) => s.id === currentAyah.surahId);
+      if (found) return found;
+    }
+    return pageInfo.surah;
+  }, [currentAyah, pageInfo.surah]);
 
   // Words list of active Ayah
   const wordsOfActiveAyah = useMemo(() => {
@@ -518,7 +528,7 @@ export default function QuranStudyHubSheet({
   const handleCopyTafsirWithCitation = async () => {
     const rawTafsir = getActiveTafsirText().replace(/<[^>]+>/g, '').trim();
     const ref = activeTafsirRef?.fullCitation || 'تفسير القرآن الكريم';
-    const textToCopy = `﴿${currentAyah.arabic}﴾\n[সূরা ${pageInfo.surah.nameBangla}, আয়াত: ${toBn(currentAyah.number)}]\n\nতাফসীর:\n${rawTafsir}\n\n— রেফারেন্স: ${ref}\n[সংগ্রহ: জামিয়া ইসলামিয়া ইমদাদিয়া কুরআন অ্যাপ]`;
+    const textToCopy = `﴿${currentAyah.arabic}﴾\n[সূরা ${activeSurahInfo.nameBangla}, আয়াত: ${toBn(currentAyah.number)}]\n\nতাফসীর:\n${rawTafsir}\n\n— রেফারেন্স: ${ref}\n[সংগ্রহ: জামিয়া ইসলামিয়া ইমদাদিয়া কুরআন অ্যাপ]`;
     await Clipboard.setStringAsync(textToCopy);
     setCopiedCiteToast(true);
     setTimeout(() => setCopiedCiteToast(false), 2000);
@@ -527,21 +537,21 @@ export default function QuranStudyHubSheet({
   const handleCopyTranslationWithCitation = async () => {
     const trans = getActiveTranslationText();
     const ref = activeTransRef?.fullCitation || 'কুরআনুল কারীম বাংলা অনুবাদ';
-    const textToCopy = `﴿${currentAyah.arabic}﴾\n[সূরা ${pageInfo.surah.nameBangla}, আয়াত: ${toBn(currentAyah.number)}]\n\nঅনুবাদ:\n"${trans}"\n\n— রেফারেন্স: ${ref}\n[সংগ্রহ: জামিয়া ইসলামিয়া ইমদাদিয়া কুরআন অ্যাপ]`;
+    const textToCopy = `﴿${currentAyah.arabic}﴾\n[সূরা ${activeSurahInfo.nameBangla}, আয়াত: ${toBn(currentAyah.number)}]\n\nঅনুবাদ:\n"${trans}"\n\n— রেফারেন্স: ${ref}\n[সংগ্রহ: জামিয়া ইসলামিয়া ইমদাদিয়া কুরআন অ্যাপ]`;
     await Clipboard.setStringAsync(textToCopy);
     setCopiedTransCiteToast(true);
     setTimeout(() => setCopiedTransCiteToast(false), 2000);
   };
 
   const handleCopyAyah = async () => {
-    const textToCopy = `﴿${currentAyah.arabic}﴾\n\n[সূরা ${pageInfo.surah.nameBangla}, আয়াত: ${toBn(currentAyah.number)}]\n\nঅনুবাদ: ${getActiveTranslationText()}`;
+    const textToCopy = `﴿${currentAyah.arabic}﴾\n\n[সূরা ${activeSurahInfo.nameBangla}, আয়াত: ${toBn(currentAyah.number)}]\n\nঅনুবাদ: ${getActiveTranslationText()}`;
     await Clipboard.setStringAsync(textToCopy);
     setCopiedToast(true);
     setTimeout(() => setCopiedToast(false), 2000);
   };
 
   const handleShareAyah = async () => {
-    const textToShare = `﴿${currentAyah.arabic}﴾\n\n[সূরা ${pageInfo.surah.nameBangla}, আয়াত: ${toBn(currentAyah.number)}]\n\nঅনুবাদ: ${getActiveTranslationText()}\n\n— জামিয়া ইসলামিয়া ইমদাদিয়া হাফেজী কুরআন অ্যাপ`;
+    const textToShare = `﴿${currentAyah.arabic}﴾\n\n[সূরা ${activeSurahInfo.nameBangla}, আয়াত: ${toBn(currentAyah.number)}]\n\nঅনুবাদ: ${getActiveTranslationText()}\n\n— জামিয়া ইসলামিয়া ইমদাদিয়া হাফেজী কুরআন অ্যাপ`;
     await Share.share({ message: textToShare });
   };
 
@@ -565,7 +575,7 @@ export default function QuranStudyHubSheet({
                     numberOfLines={1}
                     ellipsizeMode="tail"
                   >
-                    {pageInfo.surah.nameBangla} ({pageInfo.surah.nameArabic})
+                    {activeSurahInfo.nameBangla} ({activeSurahInfo.nameArabic})
                   </Text>
                   <Text
                     style={styles.paraSubtitle}
@@ -770,6 +780,7 @@ export default function QuranStudyHubSheet({
               <View style={styles.kitabSelectorRow}>
                 {transKitabs.map((k) => {
                   const isSel = activeTransSlug === k.slug;
+                  const isDefault = defaultTransSlug === k.slug;
                   return (
                     <TouchableOpacity
                       key={k.slug}
@@ -787,18 +798,33 @@ export default function QuranStudyHubSheet({
                       ]}
                       onPress={() => setActiveTransSlug(k.slug)}
                     >
-                      <Text
-                        style={[
-                          styles.kitabChipText,
-                          { color: isSel ? '#059669' : isDark ? '#E2E8F0' : '#475569' },
-                        ]}
-                      >
-                        {k.name_bangla}
-                      </Text>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+                        {isDefault && (
+                          <Ionicons name="star" size={11} color={isSel ? '#059669' : '#D97706'} />
+                        )}
+                        <Text
+                          style={[
+                            styles.kitabChipText,
+                            { color: isSel ? '#059669' : isDark ? '#E2E8F0' : '#475569' },
+                          ]}
+                        >
+                          {k.name_bangla}
+                        </Text>
+                      </View>
                     </TouchableOpacity>
                   );
                 })}
               </View>
+
+              {/* Toast confirmation for default translation */}
+              {defaultSavedToast && (
+                <View style={styles.defaultSavedToastBanner}>
+                  <Ionicons name="checkmark-circle" size={14} color="#059669" />
+                  <Text style={styles.defaultSavedToastText} numberOfLines={1}>
+                    {transKitabs.find((k) => k.slug === defaultTransSlug)?.name_bangla || 'তরজমা'} ডিফল্ট হিসেবে সেট করা হয়েছে!
+                  </Text>
+                </View>
+              )}
 
               {/* Translation Display Card */}
               <View
@@ -813,28 +839,61 @@ export default function QuranStudyHubSheet({
                 <View style={styles.translationCardHeader}>
                   <View style={styles.headerTitleRow}>
                     <View style={styles.headerTitleTextWrap}>
-                      <Text style={[styles.translatorName, { color: '#059669' }]} numberOfLines={1}>
-                        {transKitabs.find((k) => k.slug === activeTransSlug)?.name_bangla || 'বিশুদ্ধ বাংলা তরজমা'}
-                      </Text>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                        <Text style={[styles.translatorName, { color: '#059669', flexShrink: 1 }]} numberOfLines={1}>
+                          {transKitabs.find((k) => k.slug === activeTransSlug)?.name_bangla || 'বিশুদ্ধ বাংলা তরজমা'}
+                        </Text>
+                        {activeTransSlug === defaultTransSlug && (
+                          <View style={styles.defaultBadge}>
+                            <Ionicons name="star" size={10} color="#D97706" />
+                            <Text style={styles.defaultBadgeText}>ডিফল্ট</Text>
+                          </View>
+                        )}
+                      </View>
                       <Text style={styles.translatorAuthor} numberOfLines={1}>
                         {transKitabs.find((k) => k.slug === activeTransSlug)?.description || ''}
                       </Text>
                     </View>
 
-                    <TouchableOpacity
-                      style={styles.citeCopyBtn}
-                      onPress={handleCopyTranslationWithCitation}
-                      activeOpacity={0.7}
-                    >
-                      <Ionicons
-                        name={copiedTransCiteToast ? 'checkmark-circle' : 'newspaper-outline'}
-                        size={13}
-                        color={copiedTransCiteToast ? '#059669' : colors.textMuted}
-                      />
-                      <Text style={[styles.citeCopyBtnText, { color: copiedTransCiteToast ? '#059669' : colors.textMuted }]}>
-                        {copiedTransCiteToast ? 'কপি হয়েছে' : 'উদ্ধৃতি কপি'}
-                      </Text>
-                    </TouchableOpacity>
+                    <View style={styles.headerActionsWrap}>
+                      <TouchableOpacity
+                        style={[
+                          styles.defaultSetBtn,
+                          activeTransSlug === defaultTransSlug && styles.defaultSetBtnActive,
+                        ]}
+                        onPress={() => handleSetDefaultTranslation(activeTransSlug)}
+                        activeOpacity={0.7}
+                      >
+                        <Ionicons
+                          name={activeTransSlug === defaultTransSlug ? 'star' : 'star-outline'}
+                          size={12}
+                          color={activeTransSlug === defaultTransSlug ? '#D97706' : colors.textMuted}
+                        />
+                        <Text
+                          style={[
+                            styles.defaultSetBtnText,
+                            { color: activeTransSlug === defaultTransSlug ? '#D97706' : colors.textMuted },
+                          ]}
+                        >
+                          {activeTransSlug === defaultTransSlug ? 'ডিফল্ট' : 'ডিফল্ট করুন'}
+                        </Text>
+                      </TouchableOpacity>
+
+                      <TouchableOpacity
+                        style={styles.citeCopyBtn}
+                        onPress={handleCopyTranslationWithCitation}
+                        activeOpacity={0.7}
+                      >
+                        <Ionicons
+                          name={copiedTransCiteToast ? 'checkmark-circle' : 'newspaper-outline'}
+                          size={13}
+                          color={copiedTransCiteToast ? '#059669' : colors.textMuted}
+                        />
+                        <Text style={[styles.citeCopyBtnText, { color: copiedTransCiteToast ? '#059669' : colors.textMuted }]}>
+                          {copiedTransCiteToast ? 'কপি হয়েছে' : 'উদ্ধৃতি কপি'}
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
                   </View>
 
                   {/* Publication Reference Tag */}
@@ -891,8 +950,9 @@ export default function QuranStudyHubSheet({
                   const otherText =
                     ayahStudyData?.translations?.find((t) => t.kitab_slug === otherK.slug)?.translation_text ||
                     '';
+                  const isOtherDefault = defaultTransSlug === otherK.slug;
                   return (
-                    <View
+                    <TouchableOpacity
                       key={otherK.slug}
                       style={[
                         styles.otherTransCard,
@@ -901,14 +961,45 @@ export default function QuranStudyHubSheet({
                           borderColor: isDark ? '#334155' : '#E2E8F0',
                         },
                       ]}
+                      onPress={() => setActiveTransSlug(otherK.slug)}
+                      activeOpacity={0.8}
                     >
-                      <Text style={[styles.otherTransTitle, { color: isDark ? '#93C5FD' : '#2563EB' }]}>
-                        {otherK.name_bangla}
-                      </Text>
+                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                          {isOtherDefault && (
+                            <Ionicons name="star" size={12} color="#D97706" />
+                          )}
+                          <Text style={[styles.otherTransTitle, { color: isDark ? '#93C5FD' : '#2563EB', marginBottom: 0 }]}>
+                            {otherK.name_bangla}
+                          </Text>
+                        </View>
+                        <TouchableOpacity
+                          style={[
+                            styles.selectTransPill,
+                            isOtherDefault && styles.selectTransPillActive,
+                          ]}
+                          onPress={() => handleSetDefaultTranslation(otherK.slug)}
+                          activeOpacity={0.7}
+                        >
+                          <Ionicons
+                            name={isOtherDefault ? 'star' : 'star-outline'}
+                            size={11}
+                            color={isOtherDefault ? '#D97706' : colors.textMuted}
+                          />
+                          <Text
+                            style={[
+                              styles.selectTransPillText,
+                              { color: isOtherDefault ? '#D97706' : colors.textMuted },
+                            ]}
+                          >
+                            {isOtherDefault ? 'ডিফল্ট' : 'ডিফল্ট করুন'}
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
                       <Text style={[styles.otherTransText, { color: isDark ? '#D1D5DB' : '#374151' }]}>
                         {otherText || currentAyah.trans}
                       </Text>
-                    </View>
+                    </TouchableOpacity>
                   );
                 })}
             </ScrollView>
@@ -1521,6 +1612,83 @@ const styles = StyleSheet.create({
   headerTitleTextWrap: {
     flex: 1,
     minWidth: 0,
+  },
+  headerActionsWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    flexShrink: 0,
+  },
+  defaultBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    backgroundColor: 'rgba(217, 119, 6, 0.12)',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+    borderWidth: 0.8,
+    borderColor: 'rgba(217, 119, 6, 0.3)',
+  },
+  defaultBadgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#D97706',
+  },
+  defaultSetBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    paddingHorizontal: 7,
+    paddingVertical: 4.5,
+    borderRadius: 7,
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    backgroundColor: 'rgba(0,0,0,0.02)',
+  },
+  defaultSetBtnActive: {
+    borderColor: '#D97706',
+    backgroundColor: 'rgba(217, 119, 6, 0.08)',
+  },
+  defaultSetBtnText: {
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  defaultSavedToastBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#ECFDF5',
+    borderColor: '#A7F3D0',
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    marginBottom: 10,
+  },
+  defaultSavedToastText: {
+    fontSize: 11.5,
+    fontWeight: '600',
+    color: '#065F46',
+    flex: 1,
+  },
+  selectTransPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderRadius: 6,
+    borderWidth: 0.8,
+    borderColor: '#E2E8F0',
+  },
+  selectTransPillActive: {
+    borderColor: '#D97706',
+    backgroundColor: 'rgba(217, 119, 6, 0.08)',
+  },
+  selectTransPillText: {
+    fontSize: 10,
+    fontWeight: '600',
   },
   citeCopyBtn: {
     flexDirection: 'row',

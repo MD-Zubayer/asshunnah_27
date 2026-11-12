@@ -53,6 +53,132 @@ export const DEFAULT_KITABS = [
     description: "কুরআনের বিশেষ শব্দাবলীর গভীর শাব্দিক তাহকীক ও ব্যুৎপত্তিগত প্রামাণ্য গ্রন্থ।",
     sort_order: 2,
   },
+  {
+    id: 13,
+    slug: 'maqayis-al-lughah',
+    name_arabic: 'معجم مقاييس اللغة',
+    name_bangla: "মু'জামু মাকায়ীসিল লুগাহ",
+    category: 'LUGHAT',
+    author: 'ابن فارس',
+    publisher: 'دار إحياء الكتب العربية (القاهرة)',
+    investigator: 'عبد السلام محمد هارون',
+    edition_info: 'طبعة محققة في 6 مجلدات',
+    total_volumes: 6,
+    description: "শব্দমূলের অন্তর্নিহিত দর্শন ও মৌলিক ভাবার্থ নির্ণয়ের শ্রেষ্ঠ প্রামাণ্য গ্রন্থ।",
+    sort_order: 3,
+  },
+  {
+    id: 14,
+    slug: 'umdat-al-huffaz',
+    name_arabic: 'عمدة الحفاظ',
+    name_bangla: "উমদাতুল হুফফায",
+    category: 'LUGHAT',
+    author: 'السمين الحلبي',
+    publisher: 'عالم الكتب (بيروت)',
+    investigator: 'محمد باسل عيون السود',
+    edition_info: '4 مجلدات',
+    total_volumes: 4,
+    description: "কুরআনের প্রতিটি শব্দের ভাষাতাত্ত্বিক ও ব্যাকরণিক বিশ্লেষণের অনন্য বিশ্বকোষ।",
+    sort_order: 4,
+  },
+  {
+    id: 15,
+    slug: 'lisan-al-arab',
+    name_arabic: 'لسان العرب',
+    name_bangla: "লিসানুল আরব",
+    category: 'LUGHAT',
+    author: 'ابن منظور',
+    publisher: 'دار صادر (بيروت)',
+    investigator: 'طبعة مصححة ومفهرسة',
+    edition_info: '15 مجلداً',
+    total_volumes: 15,
+    description: "সমগ্র মুসলিম বিশ্বের সর্ববৃহৎ, সর্বাধিক প্রামাণ্য ও অতুলনীয় আরবি ভাষার ক্লাসিক্যাল বিশ্বকোষ।",
+    sort_order: 5,
+  },
+  {
+    id: 16,
+    slug: 'al-qamus-al-muhit',
+    name_arabic: 'القاموس المحيط',
+    name_bangla: "আল-কামূসুল মুহীত",
+    category: 'LUGHAT',
+    author: 'الفيروزآبادي',
+    publisher: 'مؤسسة الرسالة (بيروت)',
+    investigator: 'مكتب تحقيق التراث',
+    edition_info: '4 أجزاء',
+    total_volumes: 4,
+    description: "উপমহাদেশের মাদ্রাসাসমূহ ও ইসলামিক অ্যাকাডেমিয়ায় যুগ যুগ ধরে পঠিত মৌলিক প্রামাণ্য অভিধান।",
+    sort_order: 6,
+  },
+  {
+    id: 17,
+    slug: 'as-sihah',
+    name_arabic: 'الصحاح تاج اللغة',
+    name_bangla: "আস-সিহাহ (তাজুল লুগাহ)",
+    category: 'LUGHAT',
+    author: 'الجوهري',
+    publisher: 'دار العلم للملايين (بيروت)',
+    investigator: 'أحمد عبد الغفور عطار',
+    edition_info: '6 مجلدات',
+    total_volumes: 6,
+    description: "আরবি ভাষার প্রাচীনতম সুশৃঙ্খল ও বিশুদ্ধতম প্রথম প্রণালীবদ্ধ প্রামাণ্য অভিধান।",
+    sort_order: 7,
+  },
+  {
+    id: 18,
+    slug: 'an-nihayah',
+    name_arabic: 'النهاية في غريب الحديث',
+    name_bangla: "আন-নিহায়াহ ফী গারীবিল হাদীস",
+    category: 'LUGHAT',
+    author: 'ابن الأثير الجزري',
+    publisher: 'المكتبة العلمية / دار الفكر (بيروت)',
+    investigator: 'طاهر الزاوى ومحمود الطناحي',
+    edition_info: '5 مجلدات',
+    total_volumes: 5,
+    description: "হাদীস ও আছারের বিরল ও গভীর শব্দাবলী অনুধাবনে সমগ্র মুসলিম বিশ্বের শ্রেষ্ঠ নির্দেশিকা।",
+    sort_order: 8,
+  },
+  {
+    id: 19,
+    slug: 'al-misbah-al-munir',
+    name_arabic: 'المصباح المنير',
+    name_bangla: "আল-মিসবাহুল মুনীর",
+    category: 'LUGHAT',
+    author: 'الفيومي',
+    publisher: 'المكتبة العلمية (بيروت)',
+    investigator: 'طبعة محققة',
+    edition_info: 'مجلدان',
+    total_volumes: 2,
+    description: "শরীয়াহ ও ফিকহী পরিভাষার নির্ভুল ও প্রাঞ্জল অর্থ নির্ণয়ে বহুল পঠিত ক্লাসিক্যাল ডিকশনারি।",
+    sort_order: 9,
+  },
+  {
+    id: 20,
+    slug: 'mujam-al-kawsar',
+    name_arabic: 'معجم الكوثر',
+    name_bangla: "মু'জামুল কাউসার (আরবি-বাংলা)",
+    category: 'LUGHAT',
+    author: 'মারকাযুদ দাওয়াহ (মাওলানা মুহাম্মাদ আব্দুল মালেক)',
+    publisher: 'মারকাযুদ দাওয়াহ আল-ইসলামিয়া, ঢাকা',
+    investigator: 'গবেষণা ও অভিধান বিভাগ',
+    edition_info: 'প্রামাণ্য সংস্করণ',
+    total_volumes: 1,
+    description: "বাংলাদেশের মাদ্রাসার তালিবুল ইলম ও আলেমদের মাঝে সর্বাধিক নির্ভরযোগ্য ও বিশুদ্ধ আরবি-বাংলা অভিধান।",
+    sort_order: 10,
+  },
+  {
+    id: 21,
+    slug: 'al-mujam-al-wafi',
+    name_arabic: 'المعجم الوافي',
+    name_bangla: "আল-মু'জামুল ওয়াফী (আরবি-বাংলা)",
+    category: 'LUGHAT',
+    author: 'মাওলানা মুহাম্মদ ফজলুর রহমান',
+    publisher: 'রিয়াদ প্রকাশনী, ঢাকা',
+    investigator: 'সম্পাদনা পরিষদ',
+    edition_info: 'বৃহৎ সংস্করণ',
+    total_volumes: 1,
+    description: "আরবি থেকে বাংলা ভাষায় অনূদিত বহুল প্রচলিত ও সর্বজনগ্রাহ্য পূর্ণাঙ্গ অভিধান।",
+    sort_order: 11,
+  },
   // Tafsir
   {
     id: 3,
@@ -195,6 +321,20 @@ export const DEFAULT_KITABS = [
     description: 'বাংলাদেশের জাতীয় প্রামাণ্য সরকারি অনুবাদ।',
     sort_order: 7,
   },
+  {
+    id: 13,
+    slug: 'trans-tawzihul-quran',
+    name_arabic: 'توضيح القرآن الكريم',
+    name_bangla: 'তাওযীহুল কুরআন',
+    category: 'TRANSLATION',
+    author: 'শায়খুল ইসলাম মুফতী মুহাম্মদ তাকী উসমানী (অনুবাদ: মাওলানা আবুল বাশার)',
+    publisher: 'মাকতাবাতুল আশরাফ, ঢাকা',
+    investigator: 'মাওলানা আবুল বাশার মুহাম্মাদ সাইফুল ইসলাম',
+    edition_info: 'সহজ সরল অর্থ ও নির্ভরযোগ্য সংক্ষিপ্ত ব্যাখ্যা সম্বলিত (৩ খণ্ড)',
+    total_volumes: 3,
+    description: 'শায়খুল ইসলাম মুফতী তাকী উসমানী রচিত প্রামাণ্য তরজমা ও সংক্ষিপ্ত তাফসীর (অনুবাদ: মাওলানা আবুল বাশার)',
+    sort_order: 8,
+  },
 ];
 
 // Helper to convert English numerals to Arabic numerals
@@ -315,6 +455,223 @@ export function getKitabCitationReference(slug, surah, ayah, pageNum = null) {
       totalVolumes: 1,
       badgeText: `তাওহীদ পাবলিকেশন্স`,
       fullCitation: `তাইসীরুল কুরআন (তাওহীদ পাবলিকেশন্স, ঢাকা)`,
+    };
+  }
+
+  if (slug === 'trans-tawzihul-quran') {
+    let vol = 1;
+    if (s >= 9 && s <= 28) vol = 2;
+    else if (s >= 29) vol = 3;
+
+    return {
+      kitabTitle: 'তাওযীহুল কুরআন',
+      publisher: 'মাকতাবাতুল আশরাফ, ঢাকা',
+      investigator: 'মাওলানা আবুল বাশার মুহাম্মাদ সাইফুল ইসলাম',
+      edition: '৩ খণ্ডে প্রকাশিত সহজ সরল অর্থ ও সংক্ষিপ্ত ব্যাখ্যা',
+      volume: vol,
+      totalVolumes: 3,
+      badgeText: `মাকতাবাতুল আশরাফ • খণ্ড: ${toBengaliNum(vol)}`,
+      fullCitation: `তাওযীহুল কুরআন (মাকতাবাতুল আশরাফ, খণ্ড: ${toBengaliNum(vol)} - শায়খুল ইসলাম মুফতী তাকী উসমানী, অনুবাদ: মাওলানা আবুল বাশার)`,
+    };
+  }
+
+  if (slug === 'trans-zakaria') {
+    return {
+      kitabTitle: 'কুরআনুল কারীম (মদীনা মুনাওয়ারা)',
+      publisher: 'মجمع الملك فهد لطباعة المصحف الشريف',
+      investigator: 'ড. আবু বকর মুহাম্মাদ যাকারিয়া',
+      edition: 'বাদশাহ ফাহদ কুরআন মুদ্রণ কমপ্লেক্স',
+      volume: 1,
+      totalVolumes: 1,
+      badgeText: 'বাদশাহ ফাহদ কমপ্লেক্স (মদীনা)',
+      fullCitation: 'কুরআনুল কারীম অনুবাদ ও সংক্ষিপ্ত তাফসীর (মদীনা মুনাওয়ারা - ড. আবু বকর মুহাম্মাদ যাকারিয়া)',
+    };
+  }
+
+  if (slug === 'trans-rawai') {
+    return {
+      kitabTitle: 'রওয়ায়েউল বায়ান',
+      publisher: 'বায়ান ফাউন্ডেশন, ঢাকা',
+      investigator: 'বায়ান ফাউন্ডেশন অনুবাদ পরিষদ',
+      edition: 'প্রামাণ্য সংস্করণ',
+      volume: 1,
+      totalVolumes: 1,
+      badgeText: 'বায়ান ফাউন্ডেশন',
+      fullCitation: 'রওয়ায়েউল বায়ান (বায়ান ফাউন্ডেশন, ঢাকা)',
+    };
+  }
+
+  if (slug === 'trans-tafsir-usmani') {
+    let vol = 1;
+    if (s >= 7 && s <= 20) vol = 2;
+    else if (s >= 21) vol = 3;
+
+    return {
+      kitabTitle: 'তাফসীরে উসমানী (শায়খুল হিন্দ)',
+      publisher: 'দারুল উলূম দেওবন্দ / ইসলামিক ফাউন্ডেশন',
+      investigator: 'শায়খুল হিন্দ মাহমুদ হাসান ও আল্লামা শাব্বীর আহমদ উসমানী',
+      edition: 'দেওবন্দ ৩ খণ্ড প্রামাণ্য সংস্করণ',
+      volume: vol,
+      totalVolumes: 3,
+      badgeText: `দারুল উলূম দেওবন্দ • খণ্ড: ${toBengaliNum(vol)}`,
+      fullCitation: `তাফসীরে উসমানী (খণ্ড: ${toBengaliNum(vol)} - শায়খুল হিন্দ মাহমুদ হাসান ও আল্লামা শাব্বীর আহমদ উসমানী)`,
+    };
+  }
+
+  if (slug === 'trans-islamic-foundation') {
+    return {
+      kitabTitle: 'পবিত্র কুরআনুল কারীম (অনুবাদ)',
+      publisher: 'ইসলামিক ফাউন্ডেশন, বায়তুল মোকাররম, ঢাকা',
+      investigator: 'জাতীয় অনুবাদক বোর্ড',
+      edition: 'জাতীয় সংস্করণ',
+      volume: 1,
+      totalVolumes: 1,
+      badgeText: 'ইসলামিক ফাউন্ডেশন',
+      fullCitation: 'পবিত্র কুরআনুল কারীম (ইসলামিক ফাউন্ডেশন, ঢাকা)',
+    };
+  }
+
+  // --- LUGHAT (ARABIC DICTIONARIES) CITATIONS ---
+  if (slug === 'al-mujam-al-waseet') {
+    return {
+      kitabTitle: 'المعجم الوسيط',
+      publisher: 'مكتبة الشروق الدولية (القاهرة)',
+      investigator: 'إبراهيم مصطفى، أحمد حسن الزيات، حامد عبد القادر، محمد علي النجار',
+      edition: 'الطبعة الرابعة، 1425 هـ / 2004 م (مجلدان)',
+      volume: 1,
+      totalVolumes: 2,
+      badgeText: 'مكتبة الشروق (القاهرة) • مجلدين',
+      fullCitation: 'المعجم الوسيط (مجمع اللغة العربية بالقاهرة - مكتبة الشروق الدولية، القاهرة)',
+    };
+  }
+
+  if (slug === 'al-mufradat') {
+    return {
+      kitabTitle: 'المفردات في غريب القرآن',
+      publisher: 'دار القلم (دمشق) - الدار الشامية (بيروت)',
+      investigator: 'تحقيق: صفوان عدنان داوودي',
+      edition: 'الطبعة الأولى، 1412 هـ / 1992 م',
+      volume: 1,
+      totalVolumes: 1,
+      badgeText: 'دار القلم (دمشق) • تحقيق: صفوان داوودي',
+      fullCitation: 'المفردات في غريب القرآن (الراغب الأصفهاني - دار القلم، دمشق - تحقيق: صفوان داوودي)',
+    };
+  }
+
+  if (slug === 'maqayis-al-lughah') {
+    return {
+      kitabTitle: 'معجم مقاييس اللغة',
+      publisher: 'دار إحياء الكتب العربية (القاهرة)',
+      investigator: 'تحقيق: عبد السلام محمد هارون',
+      edition: 'طبعة محققة في 6 مجلدات',
+      volume: 1,
+      totalVolumes: 6,
+      badgeText: 'دار إحياء الكتب العربية • ٦ مجلدات',
+      fullCitation: 'معجم مقاييس اللغة (ابن فارس - تحقيق: عبد السلام محمد هارون، ٦ مجلدات)',
+    };
+  }
+
+  if (slug === 'umdat-al-huffaz') {
+    return {
+      kitabTitle: 'عمدة الحفاظ في تفسير أشرف الألفاظ',
+      publisher: 'عالم الكتب (بيروت)',
+      investigator: 'محمد باسل عيون السود',
+      edition: 'الطبعة الأولى، 1414 هـ (4 مجلدات)',
+      volume: 1,
+      totalVolumes: 4,
+      badgeText: 'عالم الكتب (بيروت) • ٤ مجلدات',
+      fullCitation: 'عمدة الحفاظ في تفسير أشرف الألفاظ (السمين الحلبي - عالم الكتب، بيروت - ٤ مجلدات)',
+    };
+  }
+
+  if (slug === 'lisan-al-arab') {
+    return {
+      kitabTitle: 'لسان العرب',
+      publisher: 'دار صادر (بيروت)',
+      investigator: 'طبعة مصححة ومفهرسة مع الفهارس الكاملة',
+      edition: '15 مجلداً مع الفهارس الشاملة',
+      volume: 1,
+      totalVolumes: 15,
+      badgeText: 'دار صادر (بيروت) • ١٥ مجلداً',
+      fullCitation: 'لسان العرب (ابن منظور - دار صادر، بيروت - 15 مجلداً)',
+    };
+  }
+
+  if (slug === 'al-qamus-al-muhit') {
+    return {
+      kitabTitle: 'القاموس المحيط',
+      publisher: 'مؤسسة الرسالة للطباعة والنشر (بيروت)',
+      investigator: 'مكتب تحقيق التراث في مؤسسة الرسالة',
+      edition: 'الطبعة الثامنة، 1426 هـ (4 أجزاء)',
+      volume: 1,
+      totalVolumes: 4,
+      badgeText: 'مؤسسة الرسالة (بيروت) • ٤ أجزاء',
+      fullCitation: 'القاموس المحيط (الفيروزآبادي - مؤسسة الرسالة، بيروت - تحقيق: مكتب تحقيق التراث)',
+    };
+  }
+
+  if (slug === 'as-sihah') {
+    return {
+      kitabTitle: 'الصحاح تاج اللغة وصحاح العربية',
+      publisher: 'دار العلم للملايين (بيروت)',
+      investigator: 'تحقيق: أحمد عبد الغفور عطار',
+      edition: 'الطبعة الرابعة، 1407 هـ (6 مجلدات)',
+      volume: 1,
+      totalVolumes: 6,
+      badgeText: 'دار العلم للملايين (بيروت) • ٦ مجلدات',
+      fullCitation: 'الصحاح تاج اللغة وصحاح العربية (الجوهري - دار العلم للملايين، بيروت - تحقيق: عطار)',
+    };
+  }
+
+  if (slug === 'an-nihayah') {
+    return {
+      kitabTitle: 'النهاية في غريب الحديث والأثر',
+      publisher: 'المكتبة العلمية / دار الفكر (بيروت)',
+      investigator: 'تحقيق: طاهر أحمد الزاوى ومحمود محمد الطناحي',
+      edition: '5 مجلدات',
+      volume: 1,
+      totalVolumes: 5,
+      badgeText: 'المكتبة العلمية (بيروت) • ٥ مجلدات',
+      fullCitation: 'النهاية في غريب الحديث والأثر (ابن الأثير الجزري - تحقيق: الزاوى والطناحي)',
+    };
+  }
+
+  if (slug === 'al-misbah-al-munir') {
+    return {
+      kitabTitle: 'المصباح المنير في غريب الشرح الكبير',
+      publisher: 'المكتبة العلمية (بيروت)',
+      investigator: 'طبعة محققة ومراجعة',
+      edition: 'مجلدان',
+      volume: 1,
+      totalVolumes: 2,
+      badgeText: 'المكتبة العلمية (بيروت) • مجلدين',
+      fullCitation: 'المصباح المنير في غريب الشرح الكبير (الفيومي - المكتبة العلمية، بيروت)',
+    };
+  }
+
+  if (slug === 'mujam-al-kawsar') {
+    return {
+      kitabTitle: 'মু\'জামুল কাউসার (আরবি-বাংলা)',
+      publisher: 'মারকাযুদ দাওয়াহ আল-ইসলামিয়া, ঢাকা',
+      investigator: 'তত্ত্বাবধানে: মাওলানা মুহাম্মাদ আব্দুল মালেক',
+      edition: 'প্রামাণ্য সংস্করণ',
+      volume: 1,
+      totalVolumes: 1,
+      badgeText: 'মারকাযুদ দাওয়াহ আল-ইসলামিয়া, ঢাকা',
+      fullCitation: 'মু\'জামুল কাউসার (আরবি-বাংলা) - মারকাযুদ দাওয়াহ আল-ইসলামিয়া ঢাকা, তত্ত্বাবধানে: মাওলানা মুহাম্মাদ আব্দুল মালেক',
+    };
+  }
+
+  if (slug === 'al-mujam-al-wafi') {
+    return {
+      kitabTitle: 'আল-মু\'জামুল ওয়াফী (আরবি-বাংলা)',
+      publisher: 'রিয়াদ প্রকাশনী, ঢাকা',
+      investigator: 'সম্পাদনা পরিষদ',
+      edition: 'বৃহৎ সংস্করণ',
+      volume: 1,
+      totalVolumes: 1,
+      badgeText: 'রিয়াদ প্রকাশনী, ঢাকা',
+      fullCitation: 'আল-মু\'জামুল ওয়াফী (আরবি-বাংলা) - মাওলানা মুহাম্মদ ফজলুর রহমান, রিয়াদ প্রকাশনী ঢাকা',
     };
   }
 
@@ -533,6 +890,21 @@ export async function setDefaultTranslationSlug(slug) {
   } catch (_e) {
     return false;
   }
+}
+
+const TAWIHUL_QURAN_SAMPLES = {
+  '1:1': 'পরম দয়ালু, চির দয়ালু আল্লাহর নামে (শুরু করছি)।',
+  '1:2': 'সমস্ত প্রশংসা আল্লাহর, যিনি সমগ্র সৃষ্টিজগতের প্রতিপালক।',
+  '1:3': 'যিনি পরম দয়ালু, চির দয়ালু।',
+  '1:4': 'বিচার দিবসের মালিক।',
+  '1:5': 'আমরা তোমারই ইবাদত করি এবং কেবল তোমারই কাছে সাহায্য চাই।',
+  '1:6': 'আমাদেরকে সরল-সঠিক পথ প্রদর্শন কর।',
+  '1:7': 'তাদের পথ, যাদের প্রতি তুমি অনুগ্রহ করেছ, তাদের পথ নয়, যারা গজবগ্রস্ত হয়েছে এবং যারা পথভ্রষ্ট হয়েছে।',
+};
+
+function getBuiltinTawzihulText(s, a) {
+  const key = `${s}:${a}`;
+  return TAWIHUL_QURAN_SAMPLES[key] || '';
 }
 
 class QuranService {
@@ -806,7 +1178,7 @@ class QuranService {
   async getAyahStudy(surah, ayah) {
     const s = Number(surah);
     const a = Number(ayah);
-    const cacheKey = `@quran_study_color_tokens_v12_${s}_${a}`;
+    const cacheKey = `@quran_study_color_tokens_v13_${s}_${a}`;
 
     try {
       const cached = await AsyncStorage.getItem(cacheKey);
@@ -939,6 +1311,14 @@ class QuranService {
         surah: s,
         ayah: a,
         translation_text: zakariaText || muhiuddinText || 'ইসলামিক ফাউন্ডেশনের জাতীয় অনুবাদ সংরক্ষিত হচ্ছে...',
+      },
+      {
+        id: 8,
+        kitab_name_bangla: 'তাওযীহুল কুরআন',
+        kitab_slug: 'trans-tawzihul-quran',
+        surah: s,
+        ayah: a,
+        translation_text: getBuiltinTawzihulText(s, a) || zakariaText || muhiuddinText || 'শায়খুল ইসলাম মুফতী তাকী উসমানীর প্রামাণ্য অনুবাদ সংরক্ষিত হচ্ছে...',
       },
     ];
 

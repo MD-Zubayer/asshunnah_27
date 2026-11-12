@@ -1394,6 +1394,7 @@ export const QURAN_SURAHS = [
 export const QURAN_SIJDAHS = [
   {
     "id": 1,
+    "surahId": 7,
     "surah": "আল-আরাফ",
     "ayah": 206,
     "para": 9,
@@ -1401,6 +1402,7 @@ export const QURAN_SIJDAHS = [
   },
   {
     "id": 2,
+    "surahId": 13,
     "surah": "আর-রাদ",
     "ayah": 15,
     "para": 13,
@@ -1408,6 +1410,7 @@ export const QURAN_SIJDAHS = [
   },
   {
     "id": 3,
+    "surahId": 16,
     "surah": "আন-নাহল",
     "ayah": 50,
     "para": 14,
@@ -1415,6 +1418,7 @@ export const QURAN_SIJDAHS = [
   },
   {
     "id": 4,
+    "surahId": 17,
     "surah": "বনী ইসরাঈল",
     "ayah": 109,
     "para": 15,
@@ -1422,6 +1426,7 @@ export const QURAN_SIJDAHS = [
   },
   {
     "id": 5,
+    "surahId": 19,
     "surah": "মারইয়াম",
     "ayah": 58,
     "para": 16,
@@ -1429,6 +1434,7 @@ export const QURAN_SIJDAHS = [
   },
   {
     "id": 6,
+    "surahId": 22,
     "surah": "আল-হাজ্জ",
     "ayah": 18,
     "para": 17,
@@ -1436,6 +1442,7 @@ export const QURAN_SIJDAHS = [
   },
   {
     "id": 7,
+    "surahId": 25,
     "surah": "আল-ফুরকান",
     "ayah": 60,
     "para": 19,
@@ -1443,6 +1450,7 @@ export const QURAN_SIJDAHS = [
   },
   {
     "id": 8,
+    "surahId": 27,
     "surah": "আন-নামল",
     "ayah": 26,
     "para": 19,
@@ -1450,6 +1458,7 @@ export const QURAN_SIJDAHS = [
   },
   {
     "id": 9,
+    "surahId": 32,
     "surah": "আস-সাজদাহ",
     "ayah": 15,
     "para": 21,
@@ -1457,6 +1466,7 @@ export const QURAN_SIJDAHS = [
   },
   {
     "id": 10,
+    "surahId": 38,
     "surah": "ছোয়াদ",
     "ayah": 24,
     "para": 23,
@@ -1464,6 +1474,7 @@ export const QURAN_SIJDAHS = [
   },
   {
     "id": 11,
+    "surahId": 41,
     "surah": "ফুসসিলাত",
     "ayah": 38,
     "para": 24,
@@ -1471,6 +1482,7 @@ export const QURAN_SIJDAHS = [
   },
   {
     "id": 12,
+    "surahId": 53,
     "surah": "আন-নাজম",
     "ayah": 62,
     "para": 27,
@@ -1478,6 +1490,7 @@ export const QURAN_SIJDAHS = [
   },
   {
     "id": 13,
+    "surahId": 84,
     "surah": "আল-ইনশিক্বাক্ব",
     "ayah": 21,
     "para": 30,
@@ -1485,10 +1498,11 @@ export const QURAN_SIJDAHS = [
   },
   {
     "id": 14,
+    "surahId": 96,
     "surah": "আল-আলাক্ব",
     "ayah": 19,
     "para": 30,
-    "page": 598
+    "page": 597
   }
 ];
 
