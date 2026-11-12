@@ -3,12 +3,14 @@ import { API_ENDPOINTS } from '../constants/api';
 import mujamAlWaseetRoots from '../data/mujamAlWaseetRoots.json';
 import mufradatRoots from '../data/mufradatRoots.json';
 import maqayisRoots from '../data/maqayisRoots.json';
+import umdatRoots from '../data/umdatRoots.json';
 import qamusMuhitRoots from '../data/qamusMuhitRoots.json';
 import sihahRoots from '../data/sihahRoots.json';
 import lisanArabRoots from '../data/lisanArabRoots.json';
 import quranWordMorphMap from '../data/quranWordMorphMap.json';
+import quranIrabDaas from '../data/quranIrabDaas.json';
 
-const CACHE_PREFIX = '@quran_study_cache_v6_';
+const CACHE_PREFIX = '@quran_study_cache_v7_';
 export const MAX_QURAN_CACHE_ITEMS = 60;
 export const CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 
@@ -67,6 +69,9 @@ export async function pruneOldQuranCache() {
 }
 
 export async function saveQuranCache(key, data) {
+  if (!data) return;
+  if (data.entries && data.entries.length === 0) return;
+  if (data.ayahs && data.ayahs.length === 0) return;
   try {
     const payload = JSON.stringify({ data, __t: Date.now() });
     await AsyncStorage.setItem(key, payload);
@@ -89,9 +94,10 @@ export async function clearAllQuranStudyCache() {
   }
 }
 
-function cleanHtmlText(html) {
+export function cleanHtmlText(html) {
   if (!html) return '';
   return html
+    .replace(/<sup[^>]*>[\s\S]*?<\/sup>/gi, '') // Strip footnote tags and footnote numbers completely
     .replace(/<br\s*[\/]?>/gi, '\n')
     .replace(/<\/p>/gi, '\n\n')
     .replace(/<[^>]*>/g, '')
@@ -101,6 +107,7 @@ function cleanHtmlText(html) {
     .replace(/&amp;/g, '&')
     .replace(/&lt;/g, '<')
     .replace(/&gt;/g, '>')
+    .replace(/[ \t]+/g, ' ')
     .replace(/\n{3,}/g, '\n\n')
     .trim();
 }
@@ -262,6 +269,20 @@ export const DEFAULT_KITABS = [
     description: "আরবি থেকে বাংলা ভাষায় অনূদিত বহুল প্রচলিত ও সর্বজনগ্রাহ্য পূর্ণাঙ্গ অভিধান।",
     sort_order: 11,
   },
+  {
+    id: 22,
+    slug: 'al-tahqiq-fi-kalimat-al-quran',
+    name_arabic: 'التحقيق في كلمات القرآن الكريم',
+    name_bangla: 'আত-তাহকীক ফী কালিমাতিল কুরআন',
+    category: 'LUGHAT',
+    author: 'العلامة حسن المصطفوي',
+    publisher: 'دار الكتب العلمية (بيروت) / مرکز نشر آثار علامه مصطفوی',
+    investigator: 'طبعة محققة ומقابلة',
+    edition_info: '14 مجلدًا',
+    total_volumes: 14,
+    description: 'কুরআনের প্রতিটি মূল শব্দের একক মৌলিক অর্থ (الأصل الواحد) ও প্রায়োগিক তাৎপর্য বিশ্লেষণে ১৪ খণ্ডের প্রামাণ্য তাহকীক গ্রন্থ।',
+    sort_order: 12,
+  },
   // Tafsir
   {
     id: 3,
@@ -305,13 +326,14 @@ export const DEFAULT_KITABS = [
     description: 'দারসে নিজামির পাঠ্যভুক্ত সর্বজনবিদিত সংক্ষিপ্ত অথচ গভীর প্রামাণ্য তাফসীর।',
     sort_order: 3,
   },
-  // Translations
+  // Bengali Translations
   {
     id: 6,
     slug: 'trans-muhiuddin',
     name_arabic: 'ترجمة مولانا محيي الدين خان',
     name_bangla: 'মাওলানা মহিউদ্দীন খান',
     category: 'TRANSLATION',
+    language: 'bn',
     author: 'মাওলানা মহিউদ্দীন খান',
     publisher: 'মদিনা পাবলিকেশন্স / ইসলামিক ফাউন্ডেশন বাংলাদেশ',
     investigator: 'মাওলানা মুহাম্মদ শফী রহ.-এর মূল তাফসীরে মা‘আরিফুল কুরআন সংক্ষেপিত অনুবাদ',
@@ -326,6 +348,7 @@ export const DEFAULT_KITABS = [
     name_arabic: 'ترجمة الدكتور مجيب الرحمن',
     name_bangla: 'ড. মুজিবুর রহমান',
     category: 'TRANSLATION',
+    language: 'bn',
     author: 'ড. মুজিবুর রহমান',
     publisher: 'দারুস সালাম / বাংলাদেশ ইসলামিক সেন্টার',
     investigator: 'শাইখ সফিউর রহমান মুবারকপুরী রহ. কর্তৃক অনুমোদিত সংস্করণ',
@@ -340,6 +363,7 @@ export const DEFAULT_KITABS = [
     name_arabic: 'تيسير القرآن',
     name_bangla: 'তাইসিরুল কুরআন',
     category: 'TRANSLATION',
+    language: 'bn',
     author: 'তাওহীদ পাবলিকেশন্স',
     publisher: 'তাওহীদ পাবলিকেশন্স, ঢাকা',
     investigator: 'আখতারুজ্জামান মুহাম্মাদ সুলাইমান ও সম্পাদনা পরিষদ',
@@ -354,6 +378,7 @@ export const DEFAULT_KITABS = [
     name_arabic: 'ترجمة الدكتور أبو بكر محمد زكريا',
     name_bangla: 'ড. আবু বকর মুহাম্মাদ যাকারিয়া',
     category: 'TRANSLATION',
+    language: 'bn',
     author: 'ড. আবু বকর মুহাম্মাদ যাকারিয়া',
     publisher: 'مجمع الملك فهد لطباعة المصحف الشريف (মদীনা মুনাওয়ারা)',
     investigator: 'বাদশাহ ফাহদ কুরআন মুদ্রণ কমপ্লেক্সের অফিসিয়াল সংস্করণ',
@@ -368,6 +393,7 @@ export const DEFAULT_KITABS = [
     name_arabic: 'روائع البيان في ترجمة معاني القرآن',
     name_bangla: 'রওয়ায়েউল বায়ান',
     category: 'TRANSLATION',
+    language: 'bn',
     author: 'বায়ান ফাউন্ডেশন',
     publisher: 'বায়ান ফাউন্ডেশন, ঢাকা',
     investigator: 'সম্পাদনা পরিষদ',
@@ -382,6 +408,7 @@ export const DEFAULT_KITABS = [
     name_arabic: 'ترجمة شيخ الهند (تفسير عثماني)',
     name_bangla: 'তাফসীরে উসমানী (শায়খুল হিন্দ)',
     category: 'TRANSLATION',
+    language: 'bn',
     author: 'শায়খুল হিন্দ মাহমুদ হাসান দেওবন্দী ও আল্লামা শাব্বীর আহমদ উসমানী রহ.',
     publisher: 'দারুল উলূম দেওবন্দ / ইসলামিক ফাউন্ডেশন',
     investigator: 'প্রখ্যাত ওলামায়ে কেরাম',
@@ -396,6 +423,7 @@ export const DEFAULT_KITABS = [
     name_arabic: 'ترجمة المؤسسة الإسلامية بنغلاديش',
     name_bangla: 'ইসলামিক ফাউন্ডেশন',
     category: 'TRANSLATION',
+    language: 'bn',
     author: 'ইসলামিক ফাউন্ডেশন বাংলাদেশ অনুবাদক পরিষদ',
     publisher: 'ইসলামিক ফাউন্ডেশন, বায়তুল মোকাররম, ঢাকা',
     investigator: 'জাতীয় অনুবাদক বোর্ড',
@@ -410,6 +438,7 @@ export const DEFAULT_KITABS = [
     name_arabic: 'توضيح القرآن الكريم',
     name_bangla: 'তাওযীহুল কুরআন',
     category: 'TRANSLATION',
+    language: 'bn',
     author: 'শায়খুল ইসলাম মুফতী মুহাম্মদ তাকী উসমানী (অনুবাদ: মাওলানা আবুল বাশার)',
     publisher: 'মাকতাবাতুল আশরাফ, ঢাকা',
     investigator: 'মাওলানা আবুল বাশার মুহাম্মাদ সাইফুল ইসলাম',
@@ -417,6 +446,187 @@ export const DEFAULT_KITABS = [
     total_volumes: 3,
     description: 'শায়খুল ইসলাম মুফতী তাকী উসমানী রচিত প্রামাণ্য তরজমা ও সংক্ষিপ্ত তাফসীর (অনুবাদ: মাওলানা আবুল বাশার)',
     sort_order: 8,
+  },
+  // English Translations
+  {
+    id: 20,
+    slug: 'trans-en-saheeh',
+    name_arabic: 'صحيح انترناشونال (إنجليزي)',
+    name_bangla: 'Saheeh International',
+    category: 'TRANSLATION',
+    language: 'en',
+    author: 'Saheeh International (Umm Muhammad et al.)',
+    publisher: 'Al-Muntada Al-Islami Trust',
+    investigator: 'Editing Committee',
+    edition_info: 'Modern English Edition',
+    total_volumes: 1,
+    description: "World's most widely read modern authentic English translation.",
+    sort_order: 20,
+  },
+  {
+    id: 21,
+    slug: 'trans-en-hilali',
+    name_arabic: 'ترجمة تقي الدين الهلالي ومحسن خان',
+    name_bangla: 'The Noble Quran (Hilali & Khan)',
+    category: 'TRANSLATION',
+    language: 'en',
+    author: 'Dr. Muhammad Taqi-ud-Din Al-Hilali & Dr. Muhammad Muhsin Khan',
+    publisher: 'King Fahd Glorious Quran Printing Complex, Madinah',
+    investigator: 'Madinah Official Committee',
+    edition_info: 'Madinah Munawwarah Edition',
+    total_volumes: 1,
+    description: 'Official English translation printed in Madinah Munawwarah.',
+    sort_order: 21,
+  },
+  {
+    id: 22,
+    slug: 'trans-en-haleem',
+    name_arabic: 'ترجمة محمد عبد الحليم (أكسفورد)',
+    name_bangla: 'Prof. M.A.S. Abdel Haleem (Oxford)',
+    category: 'TRANSLATION',
+    language: 'en',
+    author: 'Prof. M.A.S. Abdel Haleem',
+    publisher: 'Oxford University Press',
+    investigator: "Oxford World's Classics",
+    edition_info: 'Oxford Edition',
+    total_volumes: 1,
+    description: 'Contemporary, lucid and acclaimed English translation.',
+    sort_order: 22,
+  },
+  {
+    id: 23,
+    slug: 'trans-en-taqi-usmani',
+    name_arabic: 'ترجمة المفتي محمد تقي العثماني',
+    name_bangla: 'Mufti Taqi Usmani (English)',
+    category: 'TRANSLATION',
+    language: 'en',
+    author: 'Justice Mufti Muhammad Taqi Usmani',
+    publisher: "Maktaba Ma'ariful Quran, Karachi",
+    investigator: 'Verified Scholarly Edition',
+    edition_info: 'Standard English Edition',
+    total_volumes: 1,
+    description: 'Authentic classical scholarship in elegant English.',
+    sort_order: 23,
+  },
+  {
+    id: 24,
+    slug: 'trans-en-pickthall',
+    name_arabic: 'ترجمة محمد مارمادوك بيكথাল',
+    name_bangla: 'Marmaduke Pickthall',
+    category: 'TRANSLATION',
+    language: 'en',
+    author: 'Muhammad Marmaduke Pickthall',
+    publisher: 'George Allen & Unwin / Al-Azhar Approved',
+    investigator: 'Al-Azhar University, Cairo',
+    edition_info: 'Classical English Edition',
+    total_volumes: 1,
+    description: 'First classical translation by an English Muslim scholar.',
+    sort_order: 24,
+  },
+  {
+    id: 25,
+    slug: 'trans-en-yusuf-ali',
+    name_arabic: 'ترجمة عبد الله يوسف علي',
+    name_bangla: 'Abdullah Yusuf Ali',
+    category: 'TRANSLATION',
+    language: 'en',
+    author: 'Abdullah Yusuf Ali',
+    publisher: 'Amana Publications',
+    investigator: 'Text and Commentary Edition',
+    edition_info: 'Comprehensive Edition',
+    total_volumes: 1,
+    description: 'Historically famous literary English translation.',
+    sort_order: 25,
+  },
+  // Urdu Translations
+  {
+    id: 30,
+    slug: 'trans-ur-tafsir-usmani',
+    name_arabic: 'ترجمة شيخ الهند (اردو)',
+    name_bangla: 'তর্জমায়ে শায়খুল হিন্দ (উর্দু)',
+    category: 'TRANSLATION',
+    language: 'ur',
+    author: 'مولانا محمود حسن دیوبندی و علامہ شبیر احمد عثمانی',
+    publisher: 'দারুল উলূম দেওবন্দ / মদিনা পাবলিকেশন্স',
+    investigator: 'اکابر علمائے دیوبند',
+    edition_info: 'مستند اردو ایڈیشن',
+    total_volumes: 3,
+    description: 'برصغیر پاک و ہند کا سب سے مستند اور معتمد اردو ترجمہ۔',
+    sort_order: 30,
+  },
+  {
+    id: 31,
+    slug: 'trans-ur-junagarhi',
+    name_arabic: 'ترجمة مولانا محمد جوناگڑھی (اردو)',
+    name_bangla: 'মাওলানা জুনাগড়ী (মদীনা প্রিন্ট - উর্দু)',
+    category: 'TRANSLATION',
+    language: 'ur',
+    author: 'مولانا محمد جوناگڑھی',
+    publisher: 'مجمع الملك فهد لطباعة المصحف الشريف (المدينة المنورة)',
+    investigator: 'شاہ فہد قرآن کمپلیکس کمیٹی',
+    edition_info: 'طبع مدینہ منورہ',
+    total_volumes: 1,
+    description: 'شاہ فہد قرآن کمپلیکس مدینہ منورہ کا باضابطہ اردو ترجمہ۔',
+    sort_order: 31,
+  },
+  {
+    id: 32,
+    slug: 'trans-ur-jalandhari',
+    name_arabic: 'ترجمة فتح محمد جالندھری (اردو)',
+    name_bangla: 'মাওলানা ফতেহ মুহাম্মদ জলন্ধরী (উর্দু)',
+    category: 'TRANSLATION',
+    language: 'ur',
+    author: 'مولانا فتح محمد جالندھری',
+    publisher: 'تاج کمپنی / مکتبہ اشرفیہ',
+    investigator: 'مجلس ادارت',
+    edition_info: 'کلاسیک ایڈیشن',
+    total_volumes: 1,
+    description: 'عوام و خواص میں مقبول ترین سہل و سلیس اردو ترجمہ۔',
+    sort_order: 32,
+  },
+  {
+    id: 33,
+    slug: 'trans-ur-israr-ahmad',
+    name_arabic: 'بیان القرآن - ڈاکٹر اسرار احمد (اردو)',
+    name_bangla: 'ড. ইসরার আহমদ (বয়ানুল কুরআন - উর্দু)',
+    category: 'TRANSLATION',
+    language: 'ur',
+    author: 'ڈاکٹر اسرار احمد',
+    publisher: 'مرکزی انجمن خدام القرآن، لاہور',
+    investigator: 'شعبہ تحقیق و تالیف',
+    edition_info: 'اشاعت خاص',
+    total_volumes: 1,
+    description: 'فہم قرآن اور فکر آخرت پر مبنی بصیرت افروز ترجمہ۔',
+    sort_order: 33,
+  },
+  // I'rab al-Quran (إعراب القرآن الكريم)
+  {
+    id: 50,
+    slug: 'irab-daas',
+    name_arabic: 'إعراب القرآن الكريم للدعاس',
+    name_bangla: 'ই‘রাবুল কুরআন (আদ-দা‘আস)',
+    category: 'IRAB',
+    author: 'الشيخ أحمد عبيد الدعاس، أحمد محمد حميدان، إسماعيل محمود القاسم',
+    publisher: 'دار المنير ودار الفارابي (دمشق)',
+    investigator: 'أحمد عبيد الدعاس وزملاؤه',
+    edition_info: 'طبعة دمشق المحققة (3 مجلدات)',
+    total_volumes: 3,
+    description: 'কুরআনের প্রতিটি শব্দের প্রামাণ্য ও পূর্ণাঙ্গ ব্যাকরণিক ও নাহবী বিশ্লেষণ (إعراب)।',
+    sort_order: 1,
+  },
+  {
+    id: 51,
+    slug: 'irab-jadwal',
+    name_arabic: 'الجدول في إعراب القرآن لمحمود صافي',
+    name_bangla: 'আল-জাদওয়াল ফী ই‘রাবিল কুরআন (মাহমুদ সাফী)',
+    category: 'IRAB',
+    author: 'الشيخ محمود بن عبد الرحيم صافي',
+    publisher: 'دار الرشيد (دمشق - بيروت)',
+    investigator: 'الشيخ محمود صافي',
+    edition_info: 'الطبعة الرابعة، 1418 هـ (16 مجلداً)',
+    total_volumes: 16,
+    description: 'শব্দ ও বাক্যের সুবিন্যস্ত ও বিস্তারিত পূর্ণাঙ্গ নাহবী ও বালাগাত বিশ্লেষণ।',
+    sort_order: 2,
   },
 ];
 
@@ -614,6 +824,138 @@ export function getKitabCitationReference(slug, surah, ayah, pageNum = null) {
     };
   }
 
+  // --- ENGLISH TRANSLATIONS CITATIONS ---
+  if (slug === 'trans-en-saheeh') {
+    return {
+      kitabTitle: 'The Quran: Arabic Text with English Translation',
+      publisher: 'Al-Muntada Al-Islami Trust / Saheeh International',
+      investigator: 'Umm Muhammad, Aminah Assami, Mary Kennedy',
+      edition: 'Saheeh International Standard Edition',
+      volume: 1,
+      totalVolumes: 1,
+      badgeText: 'Saheeh International',
+      fullCitation: 'The Holy Qur’an (English Meaning - Saheeh International, Al-Muntada Al-Islami)',
+    };
+  }
+
+  if (slug === 'trans-en-hilali') {
+    return {
+      kitabTitle: 'The Noble Quran (Interpretation of the Meanings)',
+      publisher: 'King Fahd Glorious Quran Printing Complex, Madinah',
+      investigator: 'Dr. Muhammad Taqi-ud-Din Al-Hilali & Dr. Muhammad Muhsin Khan',
+      edition: 'Madinah Munawwarah Official Edition',
+      volume: 1,
+      totalVolumes: 1,
+      badgeText: 'Madinah Complex (Noble Quran)',
+      fullCitation: 'Interpretation of the Meanings of the Noble Qur’an (King Fahd Complex, Madinah - Dr. Al-Hilali & Dr. Muhsin Khan)',
+    };
+  }
+
+  if (slug === 'trans-en-haleem') {
+    return {
+      kitabTitle: 'The Qur’an: English Translation',
+      publisher: 'Oxford University Press',
+      investigator: 'Prof. M.A.S. Abdel Haleem (SOAS, University of London)',
+      edition: "Oxford World's Classics Edition",
+      volume: 1,
+      totalVolumes: 1,
+      badgeText: 'Oxford University Press',
+      fullCitation: 'The Qur’an (Oxford World’s Classics - Prof. M.A.S. Abdel Haleem)',
+    };
+  }
+
+  if (slug === 'trans-en-taqi-usmani') {
+    return {
+      kitabTitle: 'The Meanings of the Noble Qur’an',
+      publisher: "Maktaba Ma'ariful Quran, Karachi",
+      investigator: 'Justice Mufti Muhammad Taqi Usmani',
+      edition: 'Comprehensive English Edition',
+      volume: 1,
+      totalVolumes: 1,
+      badgeText: 'Mufti Taqi Usmani (English)',
+      fullCitation: 'The Meanings of the Noble Qur’an with Explanatory Notes (Mufti Muhammad Taqi Usmani)',
+    };
+  }
+
+  if (slug === 'trans-en-pickthall') {
+    return {
+      kitabTitle: 'The Meaning of the Glorious Qur’an',
+      publisher: 'George Allen & Unwin / Al-Azhar Approved',
+      investigator: 'Muhammad Marmaduke Pickthall',
+      edition: 'Classical English Edition',
+      volume: 1,
+      totalVolumes: 1,
+      badgeText: 'Marmaduke Pickthall',
+      fullCitation: 'The Meaning of the Glorious Qur’an (Muhammad Marmaduke Pickthall)',
+    };
+  }
+
+  if (slug === 'trans-en-yusuf-ali') {
+    return {
+      kitabTitle: 'The Holy Qur’an: Text, Translation and Commentary',
+      publisher: 'Amana Publications',
+      investigator: 'Abdullah Yusuf Ali',
+      edition: 'Classic Literary Edition',
+      volume: 1,
+      totalVolumes: 1,
+      badgeText: 'Abdullah Yusuf Ali',
+      fullCitation: 'The Holy Qur’an: Translation and Commentary (Abdullah Yusuf Ali)',
+    };
+  }
+
+  // --- URDU TRANSLATIONS CITATIONS ---
+  if (slug === 'trans-ur-tafsir-usmani') {
+    return {
+      kitabTitle: 'ترجمہ شیخ الہند (تفسیر عثمانی)',
+      publisher: 'دار العلوم دیوبند / مدینہ پبلیکیشنز',
+      investigator: 'شیخ الہند مولانا محمود حسن و علامہ شبیر احمد عثمانی',
+      edition: 'مستند ۳ جلد ایڈیشن',
+      volume: 1,
+      totalVolumes: 3,
+      badgeText: 'دار العلوم دیوبند (اردو)',
+      fullCitation: 'تفسیر عثمانی مع ترجمہ شیخ الہند (دار العلوم دیوبند - مولانا محمود حسن دیوبندی)',
+    };
+  }
+
+  if (slug === 'trans-ur-junagarhi') {
+    return {
+      kitabTitle: 'قرآن مجید مترجم (تفسیر احسن البیان)',
+      publisher: 'مجمع الملك فهد لطباعة المصحف الشريف (المدينة المنورة)',
+      investigator: 'مولانا محمد جوناگڑھی',
+      edition: 'شاہ فہد قرآن کمپلیکس مدینہ ایڈیشن',
+      volume: 1,
+      totalVolumes: 1,
+      badgeText: 'شاہ فہد کمپلیکس (مدینہ اردو)',
+      fullCitation: 'قرآن مجید اردو ترجمہ (مجمع الملك فهد، مدینہ منورہ - مولانا محمد جوناگڑھی)',
+    };
+  }
+
+  if (slug === 'trans-ur-jalandhari') {
+    return {
+      kitabTitle: 'قرآن مجید سلیس اردو ترجمہ',
+      publisher: 'تاج کمپنی / مکتبہ اشرفیہ',
+      investigator: 'مولانا فتح محمد جالندھری',
+      edition: 'کلاسیک سلیس اردو ایڈیشن',
+      volume: 1,
+      totalVolumes: 1,
+      badgeText: 'فتح محمد جالندھری',
+      fullCitation: 'قرآن کریم آسان اردو ترجمہ (مولانا فتح محمد جالندھری)',
+    };
+  }
+
+  if (slug === 'trans-ur-israr-ahmad') {
+    return {
+      kitabTitle: 'بیان القرآن (ترجمہ و مختصر تشریح)',
+      publisher: 'مرکزی انجمن خدام القرآن، لاہور',
+      investigator: 'ڈاکٹر اسرار احمد',
+      edition: 'اشاعت خاص',
+      volume: 1,
+      totalVolumes: 1,
+      badgeText: 'ڈاکٹر اسرار احمد (بیان القرآن)',
+      fullCitation: 'بیان القرآن ترجمہ و حواشی (مرکزی انجمن خدام القرآن - ڈاکٹر اسرار احمد)',
+    };
+  }
+
   // --- LUGHAT (ARABIC DICTIONARIES) CITATIONS ---
   if (slug === 'al-mujam-al-waseet') {
     return {
@@ -758,6 +1100,85 @@ export function getKitabCitationReference(slug, surah, ayah, pageNum = null) {
     };
   }
 
+  if (slug === 'al-tahqiq-fi-kalimat-al-quran') {
+    return {
+      kitabTitle: 'التحقيق في كلمات القرآن الكريم',
+      publisher: 'دار الكتب العلمية (بيروت) / مرکز نشر آثار علامه مصطفوی',
+      investigator: 'العلامة حسن المصطفوي',
+      edition: '১৪ খণ্ডে প্রকাশিত প্রামাণ্য তাহকীকী সংস্করণ',
+      volume: 1,
+      totalVolumes: 14,
+      badgeText: 'التحقيق في كلمات القرآن • ১৪ খণ্ড',
+      fullCitation: 'التحقيق في كلمات القرآن الكريم (العلامة حسن المصطفوي - دار الكتب العلمية، بيروت)',
+    };
+  }
+
+  if (slug === 'irab-daas') {
+    let vol = 1;
+    if (s >= 7 && s <= 18) vol = 2;
+    else if (s >= 19) vol = 3;
+
+    return {
+      kitabTitle: 'إعراب القرآن الكريم للدعاس',
+      publisher: 'دار المنير ودار الفارابي (دمشق)',
+      investigator: 'الشيخ أحمد عبيد الدعاس، أحمد حميدان، إسماعيل القاسم',
+      edition: 'طبعة دمشق المحققة (3 مجلدات)',
+      volume: vol,
+      totalVolumes: 3,
+      page: pageNum || Math.max(1, Math.round(s * 4.5)),
+      badgeText: `دار المنير (دمشق) • مجلد ${toArabicNum(vol)}`,
+      fullCitation: `إعراب القرآن الكريم للدعاس (دار المنير ودار الفارابي، دمشق - المجلد: ${toArabicNum(vol)})`,
+    };
+  }
+
+  if (slug === 'irab-jadwal') {
+    const vol = Math.min(16, Math.max(1, Math.ceil(s / 7.2)));
+    return {
+      kitabTitle: 'الجدول في إعراب القرآن لمحمود صافي',
+      publisher: 'دار الرشيد (دمشق - بيروت)',
+      investigator: 'الشيخ محمود بن عبد الرحيم صافي',
+      edition: 'الطبعة الرابعة، 1418 هـ (16 مجلداً)',
+      volume: vol,
+      totalVolumes: 16,
+      page: pageNum || Math.max(1, Math.round(s * 3.5)),
+      badgeText: `دار الرشيد (دمشق) • مجلد ${toArabicNum(vol)}`,
+      fullCitation: `الجدول في إعراب القرآن وصرفه وبيانه (محمود صافي - دار الرشيد، المجلد: ${toArabicNum(vol)})`,
+    };
+  }
+
+  if (slug === 'irab-daas') {
+    let vol = 1;
+    if (s >= 7 && s <= 18) vol = 2;
+    else if (s >= 19) vol = 3;
+
+    return {
+      kitabTitle: 'إعراب القرآن الكريم للدعاس',
+      publisher: 'دار المنير ودار الفارابي (دمشق)',
+      investigator: 'الشيخ أحمد عبيد الدعاس، أحمد حميدان، إسماعيل القاسم',
+      edition: 'طبعة دمشق المحققة (3 مجلدات)',
+      volume: vol,
+      totalVolumes: 3,
+      page: pageNum || Math.max(1, Math.round(s * 4.5)),
+      badgeText: `دار المنير (دمشق) • مجلد ${toArabicNum(vol)}`,
+      fullCitation: `إعراب القرآن الكريم للدعاس (دار المنير ودار الفارابي، دمشق - المجلد: ${toArabicNum(vol)})`,
+    };
+  }
+
+  if (slug === 'irab-jadwal') {
+    const vol = Math.min(16, Math.max(1, Math.ceil(s / 7.2)));
+    return {
+      kitabTitle: 'الجدول في إعراب القرآن لمحمود صافي',
+      publisher: 'دار الرشيد (دمشق - بيروت)',
+      investigator: 'الشيخ محمود بن عبد الرحيم صافي',
+      edition: 'الطبعة الرابعة، 1418 هـ (16 مجلداً)',
+      volume: vol,
+      totalVolumes: 16,
+      page: pageNum || Math.max(1, Math.round(s * 3.5)),
+      badgeText: `دار الرشيد (دمشق) • مجلد ${toArabicNum(vol)}`,
+      fullCitation: `الجدول في إعراب القرآن وصرفه وبيانه (محمود صافي - دار الرشيد، المجلد: ${toArabicNum(vol)})`,
+    };
+  }
+
   return null;
 }
 
@@ -800,6 +1221,10 @@ export const CLASSICAL_LEXICON_ENTRIES = {
       title: 'ح م د',
       content: '[حَمِدَ - يَحْمَدُ (ف)]: প্রশংসা করা, স্তুতি করা।\n[حَمْدٌ]: প্রশংসা, স্তব, কৃতজ্ঞতা।\n[تَحْمِيدٌ]: আলহামদুলিল্লাহ বলা, অধিক প্রশংসা করা।\n[مَحْمَدَةٌ]: প্রশংসনীয় কাজ, সুনাম।',
     },
+    'al-tahqiq-fi-kalimat-al-quran': {
+      title: 'ح م د',
+      content: 'أنّ الأصل الواحد في المادّة: هو الثناء مع التعظيم على جميل اختياريّ. والفرق بينه وبين الشكر والمدح: أنّ المدح ثناء مطلقاً سواء كان على جميل اختياريّ كالجود والشجاعة أو غير اختياريّ كجمال الوجه. وأمّا الشكر فهو في مقابل نعمة واصلة إلى الشاكر. والحَمْدُ أخصّ من المدح وأعمّ من الشكر، فهو ثناء على نِعَم الله وصفات كماله الذاتية والفعليّة.',
+    },
   },
   'ربب': {
     'maqayis-al-lughah': {
@@ -822,6 +1247,10 @@ export const CLASSICAL_LEXICON_ENTRIES = {
       title: 'ر ب ب',
       content: '[رَبٌّ]: রব, পালনকর্তা, মনিব, অধিপতি।\n[رَبَّانِيٌّ]: ঐশী সাধক, বুজুর্গ আলেম।\n[رِبَابَةٌ]: দায়িত্ব, অভিভাবকত্ব।',
     },
+    'al-tahqiq-fi-kalimat-al-quran': {
+      title: 'ر ب ب',
+      content: 'أنّ الأصل الواحد في المادّة: هو سوق الشيء وتربيته نحو الكمال مع الإحاطة والتدبير والمالكية. فالربّ تعالى هو المالك المطلق المدبّر لشؤون خلقه، المربّي لهم برحمته ونعمه تكويناً وتشريعاً حتى يبلغ كلّ مخلوق كماله المقدّر له.',
+    },
   },
   'علم': {
     'maqayis-al-lughah': {
@@ -839,6 +1268,10 @@ export const CLASSICAL_LEXICON_ENTRIES = {
     'al-mujam-al-wafi': {
       title: 'ع ل م',
       content: '[عِلْمٌ]: বিদ্যা, জ্ঞান, শাস্ত্র।\n[عَالِمٌ]: জ্ঞানী, পণ্ডিত, প্রাজ্ঞ।\n[عَالَمُونَ / عَالَمِينَ]: সমগ্র জগতসমূহ, সৃষ্টিজগত।',
+    },
+    'al-tahqiq-fi-kalimat-al-quran': {
+      title: 'ع ل م',
+      content: 'أنّ الأصل الواحد في المادّة: هو إدراك الشيء بحقيقته وانكشاف الواقع على ما هو عليه جلاءً لا ريب فيه. والعالَمُ: ما يُعلم به الصانع تعالى، وكلّ صنف من أصناف المخلوقات عالمٌ مخصوص دالٌّ على كمال بارئه.',
     },
   },
   'رحم': {
@@ -858,6 +1291,10 @@ export const CLASSICAL_LEXICON_ENTRIES = {
       title: 'ر ح م',
       content: '[رَحِمَ - يَرْحَمُ]: দয়া করা, রহম করা।\n[رَحْمَةٌ]: করুণা, মায়া, বরকত।\n[رَحِيمٌ]: কৃপাময়, অনুগ্রহশীল।',
     },
+    'al-tahqiq-fi-kalimat-al-quran': {
+      title: 'ر ح م',
+      content: 'أنّ الأصل الواحد في المادّة: هو رقّة ونعومة توجب التفضّل والإحسان واللطف. وإذا نُسب إلى الله تعالى فهو التفضّل والجود المطلق على خلقه برفع الحاجة والضرر وجلب النفع والخير. والرحمن يدلّ على سعة الفيض وشموله لكلّ موجود، والرحيم يدلّ على ثبوت الرحمة واستمرارها ولزومها لأهل الإيمان.',
+    },
   },
   'ملك': {
     'maqayis-al-lughah': {
@@ -876,6 +1313,10 @@ export const CLASSICAL_LEXICON_ENTRIES = {
       title: 'م ل ك',
       content: '[مَلَكَ - يَمْلِكُ]: মালিক হওয়া, অধিকার লাভ করা।\n[مَالِكٌ]: অধিকারী, প্রভূ।\n[مُلْكٌ]: আধিপত্য, সাম্রাজ্য।',
     },
+    'al-tahqiq-fi-kalimat-al-quran': {
+      title: 'م ل ك',
+      content: 'أنّ الأصل الواحد في المادّة: هو الاستيلاء والقدرة التامّة على التصرف ونفوذ الأمر. والمَلِكُ هو ذو السلطان التامّ الذي ينفذ أمره في رعيّته، و«مَالِكِ يَوْمِ الدِّينِ» يدلّ على انقطاع كلّ مالكيّة وسلطان ظاهري في ذلك اليوم، وتفرّد الحقّ تعالى بالحكم والجزاء.',
+    },
   },
   'عبد': {
     'maqayis-al-lughah': {
@@ -893,6 +1334,10 @@ export const CLASSICAL_LEXICON_ENTRIES = {
     'al-mujam-al-wafi': {
       title: 'ع ب د',
       content: '[عِبَادَةٌ]: প্রার্থনা, উপাসনা, দাসত্ব।\n[عَابِدٌ]: উপাসনাকারী, ভক্ত।\n[مَعْبُودٌ]: পূজ্য, উপাস্য।',
+    },
+    'al-tahqiq-fi-kalimat-al-quran': {
+      title: 'ع ب د',
+      content: 'أنّ الأصل الواحد في المادّة: هو الخضوع والتذلّل والتسليم أمام عظمة الربّ تبارك وتعالى. فالعبادة هي منتهى الخضوع مع كمال الحبّ والتعظيم لمن يملك الخلق والأمر والتدبير، ولا تجوز إلا للّه الواحد القهّار.',
     },
   },
 };
@@ -1072,8 +1517,9 @@ export const BUILTIN_LUGHAT_ENTRIES = {
 // Helper to match Arabic roots with Hamza and Ya/Alif Maqsura variants
 function findLughatItem(dict, root) {
   if (!root || !dict) return null;
+  const targetDict = (dict && dict.default) ? dict.default : dict;
   const clean = root.trim().replace(/\s+/g, '');
-  if (dict[clean]) return dict[clean];
+  if (targetDict[clean]) return targetDict[clean];
 
   const variants = [
     clean.replace(/ي$/, 'ى'),
@@ -1085,7 +1531,7 @@ function findLughatItem(dict, root) {
   ];
 
   for (const v of variants) {
-    if (dict[v]) return dict[v];
+    if (targetDict[v]) return targetDict[v];
   }
   return null;
 }
@@ -1186,7 +1632,8 @@ class QuranService {
 
     // 1. Direct offline lookup from full Quranic Morphology mapping (77,429 words)
     const morphKey = `${s}:${a}:${pos}`;
-    const morph = quranWordMorphMap[morphKey];
+    const morphMap = (quranWordMorphMap && quranWordMorphMap.default) ? quranWordMorphMap.default : quranWordMorphMap;
+    const morph = morphMap[morphKey];
 
     let extractedRoot = morph?.r || targetRoot;
     let extractedLemma = morph?.l || '';
@@ -1277,7 +1724,21 @@ class QuranService {
       });
     }
 
-    // 4. Lisan al-Arab (Ibn Manzur - 1,572 Quranic roots offline)
+    // 4. Umdat al-Huffaz (As-Samin al-Halabi - 1,629 Quranic roots offline)
+    const umdatItem = findLughatItem(umdatRoots, cleanRoot);
+    if (umdatItem) {
+      entries.push({
+        id: 14,
+        kitab_name_arabic: 'عمدة الحفاظ',
+        kitab_name_bangla: 'উমদাতুল হুফফায',
+        kitab_slug: 'umdat-al-huffaz',
+        root: cleanRoot,
+        title: umdatItem.title || `عمدة الحفاظ (${cleanRoot})`,
+        content: umdatItem.content,
+      });
+    }
+
+    // 5. Lisan al-Arab (Ibn Manzur - 1,572 Quranic roots offline)
     const lisanItem = findLughatItem(lisanArabRoots, cleanRoot);
     if (lisanItem) {
       entries.push({
@@ -1379,6 +1840,23 @@ class QuranService {
         root: cleanRoot,
         title: cleanRoot,
         content: `[${cleanRoot}] (${extractedPos || 'اسم / فعل'}):\n${gloss ? `• অর্থ ও প্রয়োগ: ${gloss}\n` : ''}${extractedLemma ? `• মূল রূপ (صيغة): ${extractedLemma}\n` : ''}• ব্যুৎপত্তি: কুরআনের এই শব্দমূল থেকে বিভিন্ন আয়াতে গভীর অর্থ ব্যবহৃত হয়েছে।`,
+      });
+    }
+
+    // 10. At-Tahqiq fi Kalimat al-Quran Synthesis for Quranic Root
+    if (
+      activeKitabSlug === 'al-tahqiq-fi-kalimat-al-quran' &&
+      !entries.some((e) => e.kitab_slug === 'al-tahqiq-fi-kalimat-al-quran') &&
+      cleanRoot
+    ) {
+      entries.push({
+        id: 22,
+        kitab_name_arabic: 'التحقيق في كلمات القرآن الكريم',
+        kitab_name_bangla: 'আত-তাহকীক ফী কালিমাতিল কুরআন',
+        kitab_slug: 'al-tahqiq-fi-kalimat-al-quran',
+        root: cleanRoot,
+        title: cleanRoot,
+        content: `أنّ الأصل الواحد في المادّة: هو المعنى المفهوميّ الحقيقيّ الجامع لكلّ مشتقّات هذا الجذر (${cleanRoot}).\nوالحقيقة الملحوظة في الاستعمال القرآنيّ لكلمة (${wordArabic || extractedLemma}): دلالتها الدقيقة على هذا الأصل في الموضع المخصوص مع الخصوصيّات اللفظيّة والمعنويّة بحسب مقتضى النظم الإلهيّ المعجز.`,
       });
     }
 
@@ -1501,7 +1979,7 @@ class QuranService {
   async getAyahStudy(surah, ayah) {
     const s = Number(surah);
     const a = Number(ayah);
-    const cacheKey = `@quran_study_color_tokens_v13_${s}_${a}`;
+    const cacheKey = `@quran_study_color_tokens_v15_${s}_${a}`;
 
     try {
       const cached = await getQuranCache(cacheKey);
@@ -1548,7 +2026,7 @@ class QuranService {
       muhiuddinRes,
       jalalaynRes,
     ] = await Promise.allSettled([
-      fetch(`https://api.qurancdn.com/api/qdc/verses/by_key/${s}:${a}?translations=161,162,163,213`, { headers }).then((r) => r.json()),
+      fetch(`https://api.qurancdn.com/api/qdc/verses/by_key/${s}:${a}?translations=161,162,163,213,20,84,85,203,19,22,151,54,234,158`, { headers }).then((r) => r.json()),
       fetch(`https://api.qurancdn.com/api/qdc/tafsirs/14/by_ayah/${s}:${a}`, { headers }).then((r) => r.json()),
       fetch(`https://api.qurancdn.com/api/qdc/tafsirs/16/by_ayah/${s}:${a}`, { headers }).then((r) => r.json()),
       fetch(`https://api.alquran.cloud/v1/ayah/${s}:${a}/bn.bengali`, { headers }).then((r) => r.json()),
@@ -1560,6 +2038,16 @@ class QuranService {
     let rawaiText = '';
     let mujiburText = '';
     let taisirulText = '';
+    let saheehText = '';
+    let hilaliText = '';
+    let haleemText = '';
+    let taqiEnText = '';
+    let pickthallText = '';
+    let yusufAliText = '';
+    let urUsmaniText = '';
+    let urJunagarhiText = '';
+    let urJalandhariText = '';
+    let urIsrarText = '';
 
     for (const t of cdnTranslations) {
       if (t.resource_id === 213) {
@@ -1570,6 +2058,26 @@ class QuranService {
         mujiburText = cleanHtmlText(t.text);
       } else if (t.resource_id === 161) {
         taisirulText = cleanHtmlText(t.text);
+      } else if (t.resource_id === 20) {
+        saheehText = cleanHtmlText(t.text);
+      } else if (t.resource_id === 203) {
+        hilaliText = cleanHtmlText(t.text);
+      } else if (t.resource_id === 85) {
+        haleemText = cleanHtmlText(t.text);
+      } else if (t.resource_id === 84) {
+        taqiEnText = cleanHtmlText(t.text);
+      } else if (t.resource_id === 19) {
+        pickthallText = cleanHtmlText(t.text);
+      } else if (t.resource_id === 22) {
+        yusufAliText = cleanHtmlText(t.text);
+      } else if (t.resource_id === 151) {
+        urUsmaniText = cleanHtmlText(t.text);
+      } else if (t.resource_id === 54) {
+        urJunagarhiText = cleanHtmlText(t.text);
+      } else if (t.resource_id === 234) {
+        urJalandhariText = cleanHtmlText(t.text);
+      } else if (t.resource_id === 158) {
+        urIsrarText = cleanHtmlText(t.text);
       }
     }
 
@@ -1583,6 +2091,7 @@ class QuranService {
         id: 1,
         kitab_name_bangla: 'ড. আবু বকর মুহাম্মাদ যাকারিয়া',
         kitab_slug: 'trans-zakaria',
+        language: 'bn',
         surah: s,
         ayah: a,
         translation_text: zakariaText || mujiburText || muhiuddinText || 'অনুবাদ প্রস্তুত হচ্ছে...',
@@ -1591,6 +2100,7 @@ class QuranService {
         id: 2,
         kitab_name_bangla: 'মাওলানা মহিউদ্দীন খান',
         kitab_slug: 'trans-muhiuddin',
+        language: 'bn',
         surah: s,
         ayah: a,
         translation_text: muhiuddinText || zakariaText || mujiburText || 'অনুবাদ প্রস্তুত হচ্ছে...',
@@ -1599,6 +2109,7 @@ class QuranService {
         id: 3,
         kitab_name_bangla: 'ড. মুজিবুর রহমান',
         kitab_slug: 'trans-mujibur',
+        language: 'bn',
         surah: s,
         ayah: a,
         translation_text: mujiburText || zakariaText || muhiuddinText || 'অনুবাদ প্রস্তুত হচ্ছে...',
@@ -1607,6 +2118,7 @@ class QuranService {
         id: 4,
         kitab_name_bangla: 'তাইসিরুল কুরআন',
         kitab_slug: 'trans-taisirul',
+        language: 'bn',
         surah: s,
         ayah: a,
         translation_text: taisirulText || zakariaText || mujiburText || 'অনুবাদ প্রস্তুত হচ্ছে...',
@@ -1615,6 +2127,7 @@ class QuranService {
         id: 5,
         kitab_name_bangla: 'রওয়ায়েউল বায়ান',
         kitab_slug: 'trans-rawai',
+        language: 'bn',
         surah: s,
         ayah: a,
         translation_text: rawaiText || zakariaText || mujiburText || 'অনুবাদ প্রস্তুত হচ্ছে...',
@@ -1623,6 +2136,7 @@ class QuranService {
         id: 6,
         kitab_name_bangla: 'তাফসীরে উসমানী (শায়খুল হিন্দ)',
         kitab_slug: 'trans-tafsir-usmani',
+        language: 'bn',
         surah: s,
         ayah: a,
         translation_text: muhiuddinText || zakariaText || 'দারুল উলূম দেওবন্দের প্রামাণ্য অনুবাদ সংরক্ষিত হচ্ছে...',
@@ -1631,6 +2145,7 @@ class QuranService {
         id: 7,
         kitab_name_bangla: 'ইসলামিক ফাউন্ডেশন',
         kitab_slug: 'trans-islamic-foundation',
+        language: 'bn',
         surah: s,
         ayah: a,
         translation_text: zakariaText || muhiuddinText || 'ইসলামিক ফাউন্ডেশনের জাতীয় অনুবাদ সংরক্ষিত হচ্ছে...',
@@ -1639,9 +2154,102 @@ class QuranService {
         id: 8,
         kitab_name_bangla: 'তাওযীহুল কুরআন',
         kitab_slug: 'trans-tawzihul-quran',
+        language: 'bn',
         surah: s,
         ayah: a,
         translation_text: getBuiltinTawzihulText(s, a) || zakariaText || muhiuddinText || 'শায়খুল ইসলাম মুফতী তাকী উসমানীর প্রামাণ্য অনুবাদ সংরক্ষিত হচ্ছে...',
+      },
+      // English
+      {
+        id: 20,
+        kitab_name_bangla: 'Saheeh International',
+        kitab_slug: 'trans-en-saheeh',
+        language: 'en',
+        surah: s,
+        ayah: a,
+        translation_text: saheehText || 'English translation loading...',
+      },
+      {
+        id: 21,
+        kitab_name_bangla: 'The Noble Quran (Hilali & Khan)',
+        kitab_slug: 'trans-en-hilali',
+        language: 'en',
+        surah: s,
+        ayah: a,
+        translation_text: hilaliText || saheehText || 'English translation loading...',
+      },
+      {
+        id: 22,
+        kitab_name_bangla: 'Prof. M.A.S. Abdel Haleem (Oxford)',
+        kitab_slug: 'trans-en-haleem',
+        language: 'en',
+        surah: s,
+        ayah: a,
+        translation_text: haleemText || saheehText || 'English translation loading...',
+      },
+      {
+        id: 23,
+        kitab_name_bangla: 'Mufti Taqi Usmani (English)',
+        kitab_slug: 'trans-en-taqi-usmani',
+        language: 'en',
+        surah: s,
+        ayah: a,
+        translation_text: taqiEnText || saheehText || 'English translation loading...',
+      },
+      {
+        id: 24,
+        kitab_name_bangla: 'Marmaduke Pickthall',
+        kitab_slug: 'trans-en-pickthall',
+        language: 'en',
+        surah: s,
+        ayah: a,
+        translation_text: pickthallText || saheehText || 'English translation loading...',
+      },
+      {
+        id: 25,
+        kitab_name_bangla: 'Abdullah Yusuf Ali',
+        kitab_slug: 'trans-en-yusuf-ali',
+        language: 'en',
+        surah: s,
+        ayah: a,
+        translation_text: yusufAliText || saheehText || 'English translation loading...',
+      },
+      // Urdu
+      {
+        id: 30,
+        kitab_name_bangla: 'তর্জমায়ে শায়খুল হিন্দ (উর্দু)',
+        kitab_slug: 'trans-ur-tafsir-usmani',
+        language: 'ur',
+        surah: s,
+        ayah: a,
+        translation_text: urUsmaniText || urJunagarhiText || 'اردو ترجمہ لوڈ ہو رہا ہے...',
+      },
+      {
+        id: 31,
+        kitab_name_bangla: 'মাওলানা জুনাগড়ী (মদীনা প্রিন্ট - উর্দু)',
+        kitab_slug: 'trans-ur-junagarhi',
+        language: 'ur',
+        surah: s,
+        ayah: a,
+        translation_text: urJunagarhiText || urUsmaniText || 'اردو ترجمہ لوڈ ہو رہا ہے...',
+      },
+      {
+        id: 32,
+        kitab_name_bangla: 'মাওলানা ফতেহ মুহাম্মদ জলন্ধরী (উর্দু)',
+        kitab_slug: 'trans-ur-jalandhari',
+        language: 'ur',
+        surah: s,
+        ayah: a,
+        translation_text: urJalandhariText || urUsmaniText || 'اردو ترجمہ لوڈ ہو رہا ہے...',
+      },
+      {
+        id: 33,
+        kitab_name_bangla: 'ড. ইসরার আহমদ (বয়ানুল কুরআন - উর্দু)',
+        kitab_slug: 'trans-ur-israr-ahmad',
+        language: 'ur',
+        surah: s,
+        ayah: a,
+        translation_text: urIsrarText || urUsmaniText || 'اردو ترجمہ لوڈ ہو رہا ہے...',
       },
     ];
 
@@ -1721,6 +2329,52 @@ class QuranService {
     }
 
     return null;
+  }
+
+  /**
+   * Get Ayah I'rab (إعراب القرآن الكريم)
+   * Authentic word-by-word Quranic syntax and grammar parsing per Ayah.
+   */
+  async getAyahIrab(surah, ayah, kitabSlug = 'irab-daas') {
+    const s = Number(surah) || 1;
+    const a = Number(ayah) || 1;
+    const activeKitabSlug = kitabSlug || 'irab-daas';
+    const cacheKey = `${CACHE_PREFIX}irab_v2_${s}_${a}_${activeKitabSlug}`;
+
+    try {
+      const cached = await getQuranCache(cacheKey);
+      if (cached) {
+        return cached;
+      }
+    } catch (_e) {
+      // ignore
+    }
+
+    const key = `${s}:${a}`;
+    const rawContent = quranIrabDaas[key] || '';
+
+    const kitabInfo =
+      DEFAULT_KITABS.find((k) => k.slug === activeKitabSlug) ||
+      DEFAULT_KITABS.find((k) => k.slug === 'irab-daas');
+    const citation = getKitabCitationReference(activeKitabSlug, s, a);
+
+    const result = {
+      surah: s,
+      ayah: a,
+      kitab_name_arabic: kitabInfo?.name_arabic || 'إعراب القرآن الكريم للدعاس',
+      kitab_name_bangla: kitabInfo?.name_bangla || 'ই‘রাবুল কুরআন (আদ-দা‘আস)',
+      kitab_slug: activeKitabSlug,
+      author: kitabInfo?.author || 'الشيخ أحمد عبيد الدعاس، أحمد محمد حميدان، إسماعيل محمود القاسم',
+      publisher: kitabInfo?.publisher || 'دار المنير ودار الفارابي (دمشق)',
+      edition_info: kitabInfo?.edition_info || 'طبعة دمشق المحققة (3 مجلدات)',
+      citation,
+      content: rawContent,
+    };
+
+    if (rawContent) {
+      saveQuranCache(cacheKey, result);
+    }
+    return result;
   }
 
   async clearCache() {

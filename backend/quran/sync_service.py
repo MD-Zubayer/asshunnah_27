@@ -1,6 +1,7 @@
 import urllib.request
 import json
 import logging
+import re
 from .models import Kitab, AyahTranslation, AyahTafsir
 
 logger = logging.getLogger(__name__)
@@ -25,8 +26,21 @@ def _http_get_json(url, timeout=12):
 def clean_html(text):
     if not text:
         return ''
-    # Preserve necessary spacing and formatting
-    return text.replace('&quot;', '"').replace('&#39;', "'").replace('&amp;', '&').strip()
+    # Strip footnote tags and their contents (e.g. <sup foot_note=81607>1</sup>)
+    text = re.sub(r'<sup[^>]*>.*?</sup>', '', text, flags=re.IGNORECASE | re.DOTALL)
+    # Strip any remaining HTML tags (e.g. <br>, <i>, <p>)
+    text = re.sub(r'<[^>]+>', '', text)
+    # Decode HTML entities
+    text = (
+        text.replace('&quot;', '"')
+        .replace('&apos;', "'")
+        .replace('&#39;', "'")
+        .replace('&amp;', '&')
+        .replace('&lt;', '<')
+        .replace('&gt;', '>')
+    )
+    # Collapse multiple spaces and trim
+    return re.sub(r'[ \t]+', ' ', text).strip()
 
 
 def ensure_ayah_study_data(surah: int, ayah: int):
@@ -46,7 +60,10 @@ def ensure_ayah_study_data(surah: int, ayah: int):
         AyahTafsir.objects.filter(surah=surah, ayah=ayah).values_list('kitab__slug', flat=True)
     )
 
-    required_trans = {'trans-zakaria', 'trans-muhiuddin', 'trans-mujibur', 'trans-taisirul', 'trans-rawai'}
+    required_trans = {
+        'trans-zakaria', 'trans-muhiuddin', 'trans-mujibur', 'trans-taisirul', 'trans-rawai',
+        'trans-en-saheeh', 'trans-ur-tafsir-usmani'
+    }
     required_tafsir = {'tafsir-ibn-kathir', 'tafsir-muyassar', 'tafsir-jalalayn'}
 
     needs_trans_fetch = not required_trans.issubset(existing_trans_slugs)
@@ -60,38 +77,37 @@ def ensure_ayah_study_data(surah: int, ayah: int):
 
     # 3. Fetch missing Translations if needed
     if needs_trans_fetch:
-        # A. QuranCDN for 213 (Dr. Abu Bakr Zakaria), 161 (Taisirul Quran), 163 (Dr. Mujibur Rahman), 162 (Rawai Al-bayan)
-        cdn_url = f"https://api.qurancdn.com/api/qdc/verses/by_key/{surah}:{ayah}?translations=161,162,163,213"
+        CDN_RESOURCE_MAP = {
+            # Bengali
+            213: 'trans-zakaria',
+            163: 'trans-mujibur',
+            161: 'trans-taisirul',
+            162: 'trans-rawai',
+            # English
+            20: 'trans-en-saheeh',
+            203: 'trans-en-hilali',
+            85: 'trans-en-haleem',
+            84: 'trans-en-taqi-usmani',
+            19: 'trans-en-pickthall',
+            22: 'trans-en-yusuf-ali',
+            # Urdu
+            151: 'trans-ur-tafsir-usmani',
+            54: 'trans-ur-junagarhi',
+            234: 'trans-ur-jalandhari',
+            158: 'trans-ur-israr-ahmad',
+        }
+        res_ids_str = ",".join(str(i) for i in CDN_RESOURCE_MAP.keys())
+        cdn_url = f"https://api.qurancdn.com/api/qdc/verses/by_key/{surah}:{ayah}?translations={res_ids_str}"
         cdn_data = _http_get_json(cdn_url)
         if cdn_data and 'verse' in cdn_data:
             trans_list = cdn_data.get('verse', {}).get('translations', [])
             for t in trans_list:
                 res_id = t.get('resource_id')
                 txt = clean_html(t.get('text', ''))
-                if res_id == 213 and 'trans-zakaria' in kitabs and txt:
+                target_slug = CDN_RESOURCE_MAP.get(res_id)
+                if target_slug and target_slug in kitabs and txt:
                     AyahTranslation.objects.update_or_create(
-                        kitab=kitabs['trans-zakaria'],
-                        surah=surah,
-                        ayah=ayah,
-                        defaults={'translation_text': txt}
-                    )
-                elif res_id == 163 and 'trans-mujibur' in kitabs and txt:
-                    AyahTranslation.objects.update_or_create(
-                        kitab=kitabs['trans-mujibur'],
-                        surah=surah,
-                        ayah=ayah,
-                        defaults={'translation_text': txt}
-                    )
-                elif res_id == 161 and 'trans-taisirul' in kitabs and txt:
-                    AyahTranslation.objects.update_or_create(
-                        kitab=kitabs['trans-taisirul'],
-                        surah=surah,
-                        ayah=ayah,
-                        defaults={'translation_text': txt}
-                    )
-                elif res_id == 162 and 'trans-rawai' in kitabs and txt:
-                    AyahTranslation.objects.update_or_create(
-                        kitab=kitabs['trans-rawai'],
+                        kitab=kitabs[target_slug],
                         surah=surah,
                         ayah=ayah,
                         defaults={'translation_text': txt}

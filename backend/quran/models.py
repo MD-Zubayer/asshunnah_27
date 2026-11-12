@@ -5,6 +5,7 @@ class KitabCategory(models.TextChoices):
     LUGHAT = 'LUGHAT', 'Arabic Lughat'
     TAFSIR = 'TAFSIR', 'Tafsir'
     TRANSLATION = 'TRANSLATION', 'Translation'
+    IRAB = 'IRAB', 'I\'rab al-Quran'
 
 
 class Kitab(models.Model):

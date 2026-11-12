@@ -21,6 +21,7 @@ import quranService, {
   getKitabCitationReference,
   getDefaultTranslationSlug,
   setDefaultTranslationSlug,
+  cleanHtmlText,
 } from '../services/quranService';
 import quranWordMorphMap from '../data/quranWordMorphMap.json';
 
@@ -157,7 +158,7 @@ export default function QuranStudyHubSheet({
   visible,
   onClose,
   currentPage = 2,
-  initialTab = 'translation', // 'translation' | 'tafsir' | 'tahqeeq'
+  initialTab = 'translation', // 'translation' | 'tafsir' | 'tahqeeq' | 'irab'
   initialAyahNumber = null,
 }) {
   const scheme = useColorScheme();
@@ -166,11 +167,12 @@ export default function QuranStudyHubSheet({
 
   const pageInfo = useMemo(() => getQuranPageInfo(currentPage), [currentPage]);
 
-  // Main Tab: 'translation' | 'tafsir' | 'tahqeeq'
+  // Main Tab: 'translation' | 'tafsir' | 'tahqeeq' | 'irab'
   const [activeTab, setActiveTab] = useState(initialTab);
 
   // Sub-slugs for Translation & Tafsir
   const [activeTransSlug, setActiveTransSlug] = useState('trans-zakaria');
+  const [activeTransLang, setActiveTransLang] = useState('bn');
   const [defaultTransSlug, setDefaultTransSlug] = useState('trans-zakaria');
   const [defaultSavedToast, setDefaultSavedToast] = useState(false);
   const [activeTafsirSlug, setActiveTafsirSlug] = useState('tafsir-ibn-kathir');
@@ -180,6 +182,14 @@ export default function QuranStudyHubSheet({
   const [tafsirFontSize, setTafsirFontSize] = useState(16);
   const [isAyahExpanded, setIsAyahExpanded] = useState(false);
 
+  // I'rab al-Quran (إعراب القرآن الكريم) States
+  const [activeIrabSlug, setActiveIrabSlug] = useState('irab-daas');
+  const [irabData, setIrabData] = useState(null);
+  const [loadingIrab, setLoadingIrab] = useState(false);
+  const [irabFontSize, setIrabFontSize] = useState(16);
+  const [copiedIrabCiteToast, setCopiedIrabCiteToast] = useState(false);
+  const irabKitabs = useMemo(() => DEFAULT_KITABS.filter((k) => k.category === 'IRAB'), []);
+
   // Load saved default translation
   useEffect(() => {
     let isMounted = true;
@@ -187,6 +197,10 @@ export default function QuranStudyHubSheet({
       if (isMounted && saved) {
         setDefaultTransSlug(saved);
         setActiveTransSlug(saved);
+        const match = DEFAULT_KITABS.find((k) => k.slug === saved);
+        if (match?.language) {
+          setActiveTransLang(match.language);
+        }
       }
     });
     return () => {
@@ -328,7 +342,8 @@ export default function QuranStudyHubSheet({
   const activeWordMorph = useMemo(() => {
     if (!activeWordText) return null;
     const morphKey = `${currentSurahId}:${selectedAyahNumber}:${selectedWordIndex + 1}`;
-    const morph = quranWordMorphMap[morphKey];
+    const morphMap = (quranWordMorphMap && quranWordMorphMap.default) ? quranWordMorphMap.default : quranWordMorphMap;
+    const morph = morphMap[morphKey];
     const rawRoot = morph?.r || getRootForWord(activeWordText) || null;
     return {
       root: rawRoot ? rawRoot.replace(/\s+/g, '') : null,
@@ -375,10 +390,33 @@ export default function QuranStudyHubSheet({
     };
   }, [visible, activeTab, currentSurahId, selectedAyahNumber, selectedWordIndex, activeWordMorph?.root, activeLughatSlug]);
 
+  // Load Ayah I'rab (إعراب القرآن الكريم)
+  useEffect(() => {
+    let isMounted = true;
+    if (visible && activeTab === 'irab' && currentSurahId && selectedAyahNumber) {
+      const fetchIrab = async () => {
+        setLoadingIrab(true);
+        try {
+          const data = await quranService.getAyahIrab(currentSurahId, selectedAyahNumber, activeIrabSlug);
+          if (!isMounted) return;
+          setIrabData(data);
+        } catch (_err) {
+          if (isMounted) setIrabData(null);
+        } finally {
+          if (isMounted) setLoadingIrab(false);
+        }
+      };
+      Promise.resolve().then(fetchIrab);
+    }
+    return () => {
+      isMounted = false;
+    };
+  }, [visible, activeTab, currentSurahId, selectedAyahNumber, activeIrabSlug]);
+
   const activeLughatContent = useMemo(() => {
     if (!lughatData?.entries || lughatData.entries.length === 0) return null;
     const found = lughatData.entries.find((e) => e.kitab_slug === activeLughatSlug);
-    return found?.content || (lughatData.entries[0]?.kitab_slug === activeLughatSlug ? lughatData.entries[0]?.content : null);
+    return found ? found.content : null;
   }, [lughatData, activeLughatSlug]);
 
   const renderFormattedLughatContent = (rawText) => {
@@ -499,17 +537,271 @@ export default function QuranStudyHubSheet({
     });
   };
 
+  const SYNTAX_REGEX = useMemo(
+    () =>
+      /(مبتدأ مؤخر|مبتدأ|خبر ثان|خبر|فاعل|نائب فاعل|مرفوع بالضمة المقدرة|مرفوع بالضمة|مرفوع بالواو|مرفوع بالألف|مرفوع بثبوت النون|مرفوع|في محل رفع|مفعول به|مفعول مطلق|مفعول لأجله|مفعول فيه|حال|تمييز|مستثنى|منادى|اسم إن|اسم لا|خبر كان|منصوب بالفتحة المقدرة|منصوب بالفتحة|منصوب بالياء|منصوب بالكسرة|منصوب|في محل نصب|مضاف إليه|اسم مجرور بالياء|اسم مجرور بالكسرة|اسم مجرور|جار ومجرور|مجرور بالكسرة|مجرور بالياء|مجرور|في محل جر|لا محل لها من الإعراب|لا محل له من الإعراب|صلة الموصول|مقول القول|جملة ابتدائية|جملة استئنافية|جملة صلة|جملة حالية|جملة معطوفة|مجزوم بالسكون|مجزوم بحذف النون|مجزوم بحذف حرف العلة|مجزوم|في محل جزم|اسم إشارة|اسم موصول|ضمير متصل|ضمير منفصل|ضمير مستتر|ضمير الشأن|حرف عطف|حرف جر|حرف نفي|حرف نهي|أداة حصر|نافية للجنس|مبني على السكون|مبني على الفتح|مبني على الضم|مبني على الكسر)/g,
+    []
+  );
+
+  const NOMINATIVE_TERMS = useMemo(
+    () => [
+      'مبتدأ مؤخر',
+      'مبتدأ',
+      'خبر ثان',
+      'خبر',
+      'فاعل',
+      'نائب فاعل',
+      'مرفوع بالضمة المقدرة',
+      'مرفوع بالضمة',
+      'مرفوع بالواو',
+      'مرفوع بالألف',
+      'مرفوع بثبوت النون',
+      'مرفوع',
+      'في محل رفع',
+    ],
+    []
+  );
+
+  const ACCUSATIVE_TERMS = useMemo(
+    () => [
+      'مفعول به',
+      'مفعول مطلق',
+      'مفعول لأجله',
+      'مفعول فيه',
+      'حال',
+      'تمييز',
+      'مستثنى',
+      'منادى',
+      'اسم إن',
+      'اسم لا',
+      'خبر كان',
+      'منصوب بالفتحة المقدرة',
+      'منصوب بالفتحة',
+      'منصوب بالياء',
+      'منصوب بالكسرة',
+      'منصوب',
+      'في محل نصب',
+    ],
+    []
+  );
+
+  const GENITIVE_TERMS = useMemo(
+    () => [
+      'مضاف إليه',
+      'اسم مجرور بالياء',
+      'اسم مجرور بالكسرة',
+      'اسم مجرور',
+      'جار ومجرور',
+      'مجرور بالكسرة',
+      'مجرور بالياء',
+      'مجرور',
+      'في محل جر',
+    ],
+    []
+  );
+
+  const CLAUSE_TERMS = useMemo(
+    () => [
+      'لا محل لها من الإعراب',
+      'لا محل له من الإعراب',
+      'صلة الموصول',
+      'مقول القول',
+      'جملة ابتدائية',
+      'جملة استئنافية',
+      'جملة صلة',
+      'جملة حالية',
+      'جملة معطوفة',
+      'مجزوم بالسكون',
+      'مجزوم بحذف النون',
+      'مجزوم بحذف حرف العلة',
+      'مجزوم',
+      'في محل جزم',
+    ],
+    []
+  );
+
+  const PARTICLE_TERMS = useMemo(
+    () => [
+      'اسم إشارة',
+      'اسم موصول',
+      'ضمير متصل',
+      'ضمير منفصل',
+      'ضمير مستتر',
+      'ضمير الشأن',
+      'حرف عطف',
+      'حرف جر',
+      'حرف نفي',
+      'حرف نهي',
+      'أداة حصر',
+      'نافية للجنس',
+      'مبني على السكون',
+      'مبني على الفتح',
+      'مبني على الضم',
+      'مبني على الكسر',
+    ],
+    []
+  );
+
+  const renderIrabSyntaxTokens = (chunk, fontSize, keyPrefix) => {
+    if (!chunk) return null;
+    const pieces = chunk.split(SYNTAX_REGEX);
+    return pieces.map((piece, i) => {
+      const k = `${keyPrefix}_${i}`;
+      if (!piece) return null;
+
+      if (NOMINATIVE_TERMS.includes(piece)) {
+        return (
+          <Text
+            key={k}
+            style={[
+              styles.irabSyntaxNominative,
+              { color: isDark ? '#FBBF24' : '#D97706' },
+            ]}
+          >
+            {piece}
+          </Text>
+        );
+      }
+      if (ACCUSATIVE_TERMS.includes(piece)) {
+        return (
+          <Text
+            key={k}
+            style={[
+              styles.irabSyntaxAccusative,
+              { color: isDark ? '#34D399' : '#059669' },
+            ]}
+          >
+            {piece}
+          </Text>
+        );
+      }
+      if (GENITIVE_TERMS.includes(piece)) {
+        return (
+          <Text
+            key={k}
+            style={[
+              styles.irabSyntaxGenitive,
+              { color: isDark ? '#60A5FA' : '#2563EB' },
+            ]}
+          >
+            {piece}
+          </Text>
+        );
+      }
+      if (CLAUSE_TERMS.includes(piece)) {
+        return (
+          <Text
+            key={k}
+            style={[
+              styles.irabSyntaxClause,
+              { color: isDark ? '#C084FC' : '#7C3AED' },
+            ]}
+          >
+            {piece}
+          </Text>
+        );
+      }
+      if (PARTICLE_TERMS.includes(piece)) {
+        return (
+          <Text
+            key={k}
+            style={[
+              styles.irabSyntaxParticle,
+              { color: isDark ? '#2DD4BF' : '#0D9488' },
+            ]}
+          >
+            {piece}
+          </Text>
+        );
+      }
+
+      return <Text key={k}>{piece}</Text>;
+    });
+  };
+
+  const renderFormattedIrabContent = (rawText, fontSize = 16) => {
+    if (!rawText) return null;
+    const paragraphs = rawText
+      .split(/<\/p>\s*<p>|<p>|<\/p>|[\n\r]+/)
+      .map((p) => p.trim())
+      .filter(Boolean);
+
+    return paragraphs.map((para, pIdx) => {
+      const tokens = para.split(/(\([^)]+\)|«[^»]+»)/g).filter(Boolean);
+
+      return (
+        <View
+          key={pIdx}
+          style={[
+            styles.irabEntryBox,
+            {
+              backgroundColor: isDark ? '#1E293B30' : '#FFFFFF',
+              borderColor: isDark ? '#334155' : '#E2E8F0',
+            },
+          ]}
+        >
+          <Text
+            style={[
+              styles.irabParagraph,
+              {
+                fontSize,
+                lineHeight: Math.round(fontSize * 1.95),
+                color: isDark ? '#E2E8F0' : '#1E293B',
+              },
+            ]}
+          >
+            {tokens.map((token, tIdx) => {
+              const trimmed = token.trim();
+
+              if (
+                (trimmed.startsWith('(') && trimmed.endsWith(')')) ||
+                (trimmed.startsWith('«') && trimmed.endsWith('»'))
+              ) {
+                return (
+                  <Text
+                    key={tIdx}
+                    style={[
+                      styles.irabWordBadgeText,
+                      {
+                        fontSize: fontSize + 1,
+                        color: isDark ? '#34D399' : '#047857',
+                        backgroundColor: isDark ? '#064E3B35' : '#ECFDF5',
+                      },
+                    ]}
+                  >
+                    {' '}{token}{' '}
+                  </Text>
+                );
+              }
+
+              return renderIrabSyntaxTokens(token, fontSize, `tok_${tIdx}`);
+            })}
+          </Text>
+        </View>
+      );
+    });
+  };
+
   // Kitabs list
   const transKitabs = DEFAULT_KITABS.filter((k) => k.category === 'TRANSLATION');
+  const filteredTransKitabs = useMemo(
+    () => transKitabs.filter((k) => (k.language || 'bn') === activeTransLang),
+    [transKitabs, activeTransLang]
+  );
+  const activeTransItem = useMemo(
+    () => transKitabs.find((k) => k.slug === activeTransSlug),
+    [transKitabs, activeTransSlug]
+  );
+  const isUrduTrans = activeTransItem?.language === 'ur';
   const tafsirKitabs = DEFAULT_KITABS.filter((k) => k.category === 'TAFSIR');
 
   const getActiveTranslationText = () => {
     if (ayahStudyData?.translations?.length > 0) {
       const found = ayahStudyData.translations.find((t) => t.kitab_slug === activeTransSlug);
-      if (found) return found.translation_text;
+      if (found) return cleanHtmlText(found.translation_text);
     }
-    if (currentAyah?.trans) return currentAyah.trans;
-    return 'বাংলা অনুবাদ প্রস্তুত হচ্ছে...';
+    if (currentAyah?.trans) return cleanHtmlText(currentAyah.trans);
+    return 'অনুবাদ প্রস্তুত হচ্ছে...';
   };
 
   const getActiveTafsirText = () => {
@@ -531,6 +823,20 @@ export default function QuranStudyHubSheet({
   const activeLughatRef = useMemo(() => {
     return getKitabCitationReference(activeLughatSlug, currentSurahId, selectedAyahNumber, currentPage);
   }, [activeLughatSlug, currentSurahId, selectedAyahNumber, currentPage]);
+
+  const activeIrabRef = useMemo(() => {
+    return getKitabCitationReference(activeIrabSlug, currentSurahId, selectedAyahNumber, currentPage);
+  }, [activeIrabSlug, currentSurahId, selectedAyahNumber, currentPage]);
+
+  const handleCopyIrabWithCitation = async () => {
+    if (!irabData?.content) return;
+    const cleanText = cleanHtmlText(irabData.content);
+    const cite = activeIrabRef?.fullCitation || 'إعراب القرآن الكريم للدعاس';
+    const textToCopy = `﴿${currentAyah.arabic}﴾\n[সূরা ${activeSurahInfo.nameBangla}, আয়াত: ${toBn(currentAyah.number)}]\n\nإعراب الآية:\n${cleanText}\n\n— المصدر: ${cite}\n[সংগ্রহ: জামিয়া ইসলামিয়া ইমদাদিয়া কুরআন অ্যাপ]`;
+    await Clipboard.setStringAsync(textToCopy);
+    setCopiedIrabCiteToast(true);
+    setTimeout(() => setCopiedIrabCiteToast(false), 2400);
+  };
 
   const handleCopyLughatWithCitation = async () => {
     if (!activeLughatContent) return;
@@ -747,12 +1053,13 @@ export default function QuranStudyHubSheet({
             )}
           </View>
 
-          {/* Main 3 Navigation Tabs (Responsive & Pure Islamic Design) */}
+          {/* Main 4 Navigation Tabs (Responsive & Pure Islamic Design) */}
           <View style={[styles.mainTabBar, { borderBottomColor: isDark ? '#334155' : '#E5E7EB' }]}>
             {[
               { id: 'translation', label: 'তরজমা', icon: 'document-text-outline' },
               { id: 'tafsir', label: 'তাফসীর', icon: 'book-outline' },
               { id: 'tahqeeq', label: 'তাহকীক', icon: 'search-outline' },
+              { id: 'irab', label: 'إعراب', icon: 'git-network-outline' },
             ].map((tab) => {
               const isActive = activeTab === tab.id;
               return (
@@ -794,9 +1101,53 @@ export default function QuranStudyHubSheet({
               ======================================================== */}
           {activeTab === 'translation' && (
             <ScrollView style={styles.tabContentScroll} showsVerticalScrollIndicator={true}>
+              {/* Language Filter Segment */}
+              <View style={styles.langSegmentRow}>
+                {[
+                  { key: 'bn', label: '🇧🇩 বাংলা (৮)' },
+                  { key: 'en', label: '🇬🇧 English (৬)' },
+                  { key: 'ur', label: '🇵🇰 اردو (৪)' },
+                ].map((lang) => {
+                  const isLangActive = activeTransLang === lang.key;
+                  return (
+                    <TouchableOpacity
+                      key={lang.key}
+                      style={[
+                        styles.langPill,
+                        isLangActive && styles.langPillActive,
+                        {
+                          backgroundColor: isLangActive
+                            ? '#059669'
+                            : isDark
+                              ? '#334155'
+                              : '#E2E8F0',
+                        },
+                      ]}
+                      onPress={() => {
+                        setActiveTransLang(lang.key);
+                        const firstOfLang = transKitabs.find((k) => (k.language || 'bn') === lang.key);
+                        if (firstOfLang && (!activeTransItem || (activeTransItem.language || 'bn') !== lang.key)) {
+                          setActiveTransSlug(firstOfLang.slug);
+                        }
+                      }}
+                      activeOpacity={0.8}
+                    >
+                      <Text
+                        style={[
+                          styles.langPillText,
+                          { color: isLangActive ? '#FFFFFF' : isDark ? '#E2E8F0' : '#475569' },
+                        ]}
+                      >
+                        {lang.label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+
               {/* Kitab Selector Chips */}
               <View style={styles.kitabSelectorRow}>
-                {transKitabs.map((k) => {
+                {filteredTransKitabs.map((k) => {
                   const isSel = activeTransSlug === k.slug;
                   const isDefault = defaultTransSlug === k.slug;
                   return (
@@ -823,7 +1174,10 @@ export default function QuranStudyHubSheet({
                         <Text
                           style={[
                             styles.kitabChipText,
-                            { color: isSel ? '#059669' : isDark ? '#E2E8F0' : '#475569' },
+                            {
+                              color: isSel ? '#059669' : isDark ? '#E2E8F0' : '#475569',
+                              fontFamily: k.language === 'ur' ? 'serif' : undefined,
+                            },
                           ]}
                         >
                           {k.name_bangla}
@@ -951,7 +1305,19 @@ export default function QuranStudyHubSheet({
                     </Text>
                   </View>
                 ) : (
-                  <Text style={[styles.translationBodyText, { color: isDark ? '#F1F5F9' : '#1F2937' }]}>
+                  <Text
+                    style={[
+                      styles.translationBodyText,
+                      {
+                        color: isDark ? '#F1F5F9' : '#1F2937',
+                        textAlign: isUrduTrans ? 'right' : 'left',
+                        writingDirection: isUrduTrans ? 'rtl' : 'ltr',
+                        fontSize: isUrduTrans ? 18 : 15,
+                        lineHeight: isUrduTrans ? 32 : 24,
+                        fontFamily: isUrduTrans ? 'serif' : undefined,
+                      },
+                    ]}
+                  >
                     {getActiveTranslationText()}
                   </Text>
                 )}
@@ -959,16 +1325,17 @@ export default function QuranStudyHubSheet({
 
               {/* Comparison Section: Show other translations preview */}
               <Text style={[styles.sectionHeading, { color: colors.text }]}>
-                অন্যান্য অনুবাদকদের তরজমা:
+                {activeTransLang === 'bn' ? 'অন্যান্য বাংলা অনুবাদকদের তরজমা:' : activeTransLang === 'en' ? 'Other English Translations:' : 'دیگر اردو تراجم:'}
               </Text>
 
-              {transKitabs
+              {filteredTransKitabs
                 .filter((k) => k.slug !== activeTransSlug)
                 .map((otherK) => {
                   const otherText =
                     ayahStudyData?.translations?.find((t) => t.kitab_slug === otherK.slug)?.translation_text ||
                     '';
                   const isOtherDefault = defaultTransSlug === otherK.slug;
+                  const isOtherUrdu = otherK.language === 'ur';
                   return (
                     <TouchableOpacity
                       key={otherK.slug}
@@ -1014,8 +1381,20 @@ export default function QuranStudyHubSheet({
                           </Text>
                         </TouchableOpacity>
                       </View>
-                      <Text style={[styles.otherTransText, { color: isDark ? '#D1D5DB' : '#374151' }]}>
-                        {otherText || currentAyah.trans}
+                      <Text
+                        style={[
+                          styles.otherTransText,
+                          {
+                            color: isDark ? '#D1D5DB' : '#374151',
+                            textAlign: isOtherUrdu ? 'right' : 'left',
+                            writingDirection: isOtherUrdu ? 'rtl' : 'ltr',
+                            fontSize: isOtherUrdu ? 16 : 13,
+                            lineHeight: isOtherUrdu ? 28 : 20,
+                            fontFamily: isOtherUrdu ? 'serif' : undefined,
+                          },
+                        ]}
+                      >
+                        {cleanHtmlText(otherText || currentAyah.trans)}
                       </Text>
                     </TouchableOpacity>
                   );
@@ -1452,6 +1831,156 @@ export default function QuranStudyHubSheet({
             </ScrollView>
           )}
 
+          {/* ========================================================
+              TAB 4: 📜 إعراب القرآن الكريم (Quranic Syntax & Grammar)
+              ======================================================== */}
+          {activeTab === 'irab' && (
+            <ScrollView style={styles.tabContentScroll} showsVerticalScrollIndicator={true}>
+              {/* Kitab Selector */}
+              <View style={styles.kitabSelectorRow}>
+                {irabKitabs.map((k) => {
+                  const isSel = activeIrabSlug === k.slug;
+                  return (
+                    <TouchableOpacity
+                      key={k.slug}
+                      style={[
+                        styles.kitabChip,
+                        isSel && styles.kitabChipActive,
+                        {
+                          backgroundColor: isSel
+                            ? 'rgba(5, 150, 105, 0.12)'
+                            : isDark
+                              ? '#334155'
+                              : '#F1F5F9',
+                          borderColor: isSel ? '#059669' : 'transparent',
+                        },
+                      ]}
+                      onPress={() => setActiveIrabSlug(k.slug)}
+                    >
+                      <Text
+                        style={[
+                          styles.kitabChipText,
+                          { color: isSel ? '#059669' : isDark ? '#E2E8F0' : '#475569' },
+                        ]}
+                      >
+                        {k.name_bangla}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+
+              {/* Font Size Adjuster Controls */}
+              <View style={styles.fontSizeBar}>
+                <Text style={[styles.fontSizeLabel, { color: colors.textMuted }]}>হরফের সাইজ:</Text>
+                <TouchableOpacity
+                  style={styles.fontBtn}
+                  onPress={() => setIrabFontSize((prev) => Math.max(13, prev - 1))}
+                >
+                  <Text style={[styles.fontBtnText, { color: colors.text }]}>A-</Text>
+                </TouchableOpacity>
+                <Text style={[styles.fontSizeCurrent, { color: colors.text }]}>
+                  {toBn(irabFontSize)}
+                </Text>
+                <TouchableOpacity
+                  style={styles.fontBtn}
+                  onPress={() => setIrabFontSize((prev) => Math.min(26, prev + 1))}
+                >
+                  <Text style={[styles.fontBtnText, { color: colors.text }]}>A+</Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* I'rab Content Card */}
+              <View
+                style={[
+                  styles.irabCard,
+                  {
+                    backgroundColor: isDark ? '#0F172A' : '#FAFAF9',
+                    borderColor: isDark ? '#334155' : '#E5E7EB',
+                  },
+                ]}
+              >
+                <View style={styles.tafsirCardHeader}>
+                  <View style={styles.headerTitleRow}>
+                    <View style={styles.headerTitleTextWrap}>
+                      <Text style={[styles.tafsirKitabArabic, { color: '#059669' }]} numberOfLines={1}>
+                        {irabKitabs.find((k) => k.slug === activeIrabSlug)?.name_arabic}
+                      </Text>
+                      <Text style={[styles.tafsirAuthorName, { color: colors.textMuted }]} numberOfLines={1}>
+                        {irabKitabs.find((k) => k.slug === activeIrabSlug)?.author}
+                      </Text>
+                    </View>
+
+                    {irabData?.content ? (
+                      <TouchableOpacity
+                        style={styles.citeCopyBtn}
+                        onPress={handleCopyIrabWithCitation}
+                        activeOpacity={0.7}
+                      >
+                        <Ionicons
+                          name={copiedIrabCiteToast ? 'checkmark-circle' : 'newspaper-outline'}
+                          size={13}
+                          color={copiedIrabCiteToast ? '#059669' : colors.textMuted}
+                        />
+                        <Text style={[styles.citeCopyBtnText, { color: copiedIrabCiteToast ? '#059669' : colors.textMuted }]}>
+                          {copiedIrabCiteToast ? 'কপি হয়েছে' : 'উদ্ধৃতি কপি'}
+                        </Text>
+                      </TouchableOpacity>
+                    ) : null}
+                  </View>
+
+                  {/* Publication & Volume/Page Reference Badge */}
+                  {activeIrabRef ? (
+                    <View
+                      style={[
+                        styles.referenceCardBox,
+                        {
+                          backgroundColor: isDark ? '#064E3B20' : '#ECFDF5',
+                          borderColor: isDark ? '#047857' : '#A7F3D0',
+                        },
+                      ]}
+                    >
+                      <View style={styles.referenceBadgeLine}>
+                        <Ionicons name="bookmark-outline" size={12} color="#059669" />
+                        <Text
+                          style={[styles.referenceBadgeText, { color: isDark ? '#6EE7B7' : '#065F46' }]}
+                          numberOfLines={1}
+                        >
+                          {activeIrabRef.badgeText}
+                        </Text>
+                      </View>
+                      {activeIrabRef.investigator ? (
+                        <Text style={[styles.referenceBadgeSub, { color: colors.textMuted }]} numberOfLines={2}>
+                          {activeIrabRef.investigator}
+                        </Text>
+                      ) : null}
+                    </View>
+                  ) : null}
+                </View>
+
+                {loadingIrab ? (
+                  <View style={{ paddingVertical: 32, alignItems: 'center' }}>
+                    <ActivityIndicator size="small" color="#059669" />
+                    <Text style={{ marginTop: 8, fontSize: 12, color: colors.textMuted }}>
+                      ই‘রাবুল কুরআন লোড হচ্ছে...
+                    </Text>
+                  </View>
+                ) : irabData?.content ? (
+                  <View style={{ paddingTop: 6 }}>
+                    {renderFormattedIrabContent(irabData.content, irabFontSize)}
+                  </View>
+                ) : (
+                  <View style={{ paddingVertical: 24, alignItems: 'center' }}>
+                    <Text style={{ fontSize: 13, color: colors.textMuted, textAlign: 'center', lineHeight: 22 }}>
+                      এই আয়াতের ই‘রাব সংরক্ষিত হচ্ছে।{'\n'}
+                      অন্যান্য নির্ভরযোগ্য কিতাবসমূহ দেখতে পারেন।
+                    </Text>
+                  </View>
+                )}
+              </View>
+            </ScrollView>
+          )}
+
           {/* Bottom Close Action */}
           <View style={[styles.sheetFooter, { borderTopColor: isDark ? '#334155' : '#E2E8F0' }]}>
             <TouchableOpacity style={styles.returnQuranBtn} onPress={onClose} activeOpacity={0.8}>
@@ -1655,6 +2184,22 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 16,
     paddingTop: 10,
+  },
+  langSegmentRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 10,
+  },
+  langPill: {
+    paddingHorizontal: 12,
+    paddingVertical: 5.5,
+    borderRadius: 8,
+  },
+  langPillActive: {},
+  langPillText: {
+    fontSize: 12,
+    fontWeight: '700',
   },
   kitabSelectorRow: {
     flexDirection: 'row',
@@ -2061,6 +2606,52 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     borderRadius: 4,
     paddingHorizontal: 4,
+    writingDirection: 'rtl',
+  },
+  // I'rab al-Quran styles
+  irabCard: {
+    borderRadius: 14,
+    borderWidth: 1,
+    padding: 14,
+    marginBottom: 20,
+  },
+  irabEntryBox: {
+    borderRadius: 10,
+    borderWidth: 1,
+    padding: 12,
+    marginBottom: 10,
+  },
+  irabParagraph: {
+    fontFamily: 'serif',
+    textAlign: 'right',
+    writingDirection: 'rtl',
+  },
+  irabWordBadgeText: {
+    fontWeight: '700',
+    fontFamily: 'serif',
+    borderRadius: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    writingDirection: 'rtl',
+  },
+  irabSyntaxNominative: {
+    fontWeight: '700',
+    writingDirection: 'rtl',
+  },
+  irabSyntaxAccusative: {
+    fontWeight: '700',
+    writingDirection: 'rtl',
+  },
+  irabSyntaxGenitive: {
+    fontWeight: '700',
+    writingDirection: 'rtl',
+  },
+  irabSyntaxClause: {
+    fontWeight: '700',
+    writingDirection: 'rtl',
+  },
+  irabSyntaxParticle: {
+    fontWeight: '600',
     writingDirection: 'rtl',
   },
   sheetFooter: {

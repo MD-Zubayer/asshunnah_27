@@ -41,8 +41,8 @@ const STORAGE_KEY_BOOKMARKS = '@hafezi_quran_bookmarks';
 const STORAGE_KEY_GESTURES = '@hafezi_quran_gestures';
 
 const DEFAULT_GESTURES = {
-  doubleTapAction: 'study', // 'study' | 'translation' | 'tafsir' | 'tahqeeq' | 'fullscreen' | 'bookmark' | 'theme'
-  longPressAction: 'menu',  // 'menu' | 'study' | 'translation' | 'tafsir' | 'tahqeeq' | 'bookmark'
+  doubleTapAction: 'study', // 'study' | 'translation' | 'tafsir' | 'tahqeeq' | 'irab' | 'fullscreen' | 'bookmark' | 'theme'
+  longPressAction: 'menu',  // 'menu' | 'study' | 'translation' | 'tafsir' | 'tahqeeq' | 'irab' | 'bookmark'
 };
 
 // Convert English numbers to Bengali numerals
@@ -113,19 +113,24 @@ export default function HafeziQuranScreen() {
   const [bookmarks, setBookmarks] = useState([]);
 
   // Animation for toolbar fade in/out
-  const toolbarOpacity = useRef(new Animated.Value(1)).current;
+  const [toolbarOpacity] = useState(() => new Animated.Value(1));
 
-  // Page Info (Para, Surah, Sijdah)
-  const pageInfo = useMemo(() => getQuranPageInfo(currentPage), [currentPage]);
-
-  // Load Bookmarks, Gestures and Last Read on mount
-  useEffect(() => {
-    loadBookmarks();
-    loadGestureSettings();
-    if (!params.page) {
-      loadLastRead();
+  const showToast = (message) => {
+    if (Platform.OS === 'android') {
+      ToastAndroid.show(message, ToastAndroid.SHORT);
     }
-  }, []);
+  };
+
+  const loadBookmarks = async () => {
+    try {
+      const data = await AsyncStorage.getItem(STORAGE_KEY_BOOKMARKS);
+      if (data) {
+        setBookmarks(JSON.parse(data));
+      }
+    } catch (e) {
+      console.log('Error loading bookmarks:', e);
+    }
+  };
 
   const loadGestureSettings = async () => {
     try {
@@ -148,71 +153,14 @@ export default function HafeziQuranScreen() {
     }
   };
 
-  const executeQuranAction = (action) => {
-    switch (action) {
-      case 'menu':
-        setShowQuickActionMenu(true);
-        break;
-      case 'study':
-      case 'translation':
-        setStudyInitialTab('translation');
-        setShowStudySheet(true);
-        break;
-      case 'tafsir':
-        setStudyInitialTab('tafsir');
-        setShowStudySheet(true);
-        break;
-      case 'tahqeeq':
-        setStudyInitialTab('tahqeeq');
-        setShowStudySheet(true);
-        break;
-      case 'fullscreen':
-        setFullscreen((prev) => !prev);
-        break;
-      case 'bookmark':
-        toggleBookmarkCurrentPage();
-        break;
-      case 'theme':
-        handleThemeChange(readingTheme === 'night' ? 'day' : 'night');
-        break;
-      default:
-        setStudyInitialTab('translation');
-        setShowStudySheet(true);
-        break;
+  // Navigate to a specific page
+  const goToPage = (page) => {
+    const target = Math.max(1, Math.min(TOTAL_QURAN_PAGES, Number(page)));
+    setCurrentPage(target);
+    if (webViewRef.current) {
+      webViewRef.current.injectJavaScript(`window.goToPage && window.goToPage(${target}); true;`);
     }
   };
-
-  // Save Last Read whenever currentPage changes
-  useEffect(() => {
-    if (currentPage > 0) {
-      saveLastRead(currentPage);
-    }
-  }, [currentPage]);
-
-  // Fade animation when fullscreen changes
-  useEffect(() => {
-    Animated.timing(toolbarOpacity, {
-      toValue: fullscreen ? 0 : 1,
-      duration: 200,
-      useNativeDriver: true,
-    }).start();
-  }, [fullscreen]);
-
-  // Sync scrubPage with currentPage when not actively dragging
-  useEffect(() => {
-    if (!isScrubbing) {
-      Promise.resolve().then(() => setScrubPage(currentPage));
-    }
-  }, [currentPage, isScrubbing]);
-
-  // Clean up auto-flip interval on unmount
-  useEffect(() => {
-    return () => {
-      if (autoFlipIntervalRef.current) {
-        clearInterval(autoFlipIntervalRef.current);
-      }
-    };
-  }, []);
 
   const loadLastRead = async () => {
     try {
@@ -247,22 +195,98 @@ export default function HafeziQuranScreen() {
     }
   };
 
-  const showToast = (message) => {
-    if (Platform.OS === 'android') {
-      ToastAndroid.show(message, ToastAndroid.SHORT);
+  // Page Info (Para, Surah, Sijdah)
+  const pageInfo = useMemo(() => getQuranPageInfo(currentPage), [currentPage]);
+
+  // Load Bookmarks, Gestures and Last Read on mount
+  useEffect(() => {
+    let isMounted = true;
+    const init = async () => {
+      try {
+        await loadBookmarks();
+        await loadGestureSettings();
+        if (!params.page && isMounted) {
+          await loadLastRead();
+        }
+      } catch (_e) {
+        // ignore
+      }
+    };
+    Promise.resolve().then(init);
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const executeQuranAction = (action) => {
+    switch (action) {
+      case 'menu':
+        setShowQuickActionMenu(true);
+        break;
+      case 'study':
+      case 'translation':
+        setStudyInitialTab('translation');
+        setShowStudySheet(true);
+        break;
+      case 'tafsir':
+        setStudyInitialTab('tafsir');
+        setShowStudySheet(true);
+        break;
+      case 'tahqeeq':
+        setStudyInitialTab('tahqeeq');
+        setShowStudySheet(true);
+        break;
+      case 'irab':
+        setStudyInitialTab('irab');
+        setShowStudySheet(true);
+        break;
+      case 'fullscreen':
+        setFullscreen((prev) => !prev);
+        break;
+      case 'bookmark':
+        toggleBookmarkCurrentPage();
+        break;
+      case 'theme':
+        handleThemeChange(readingTheme === 'night' ? 'day' : 'night');
+        break;
+      default:
+        setStudyInitialTab('translation');
+        setShowStudySheet(true);
+        break;
     }
   };
 
-  const loadBookmarks = async () => {
-    try {
-      const data = await AsyncStorage.getItem(STORAGE_KEY_BOOKMARKS);
-      if (data) {
-        setBookmarks(JSON.parse(data));
-      }
-    } catch (e) {
-      console.log('Error loading bookmarks:', e);
+  // Save Last Read whenever currentPage changes
+  useEffect(() => {
+    if (currentPage > 0) {
+      saveLastRead(currentPage);
     }
-  };
+  }, [currentPage]);
+
+  // Fade animation when fullscreen changes
+  useEffect(() => {
+    Animated.timing(toolbarOpacity, {
+      toValue: fullscreen ? 0 : 1,
+      duration: 200,
+      useNativeDriver: true,
+    }).start();
+  }, [fullscreen, toolbarOpacity]);
+
+  // Sync scrubPage with currentPage when not actively dragging
+  useEffect(() => {
+    if (!isScrubbing) {
+      Promise.resolve().then(() => setScrubPage(currentPage));
+    }
+  }, [currentPage, isScrubbing]);
+
+  // Clean up auto-flip interval on unmount
+  useEffect(() => {
+    return () => {
+      if (autoFlipIntervalRef.current) {
+        clearInterval(autoFlipIntervalRef.current);
+      }
+    };
+  }, []);
 
   const isCurrentPageBookmarked = useMemo(() => {
     return bookmarks.some((b) => b.page === currentPage);
@@ -330,15 +354,6 @@ export default function HafeziQuranScreen() {
     const updated = bookmarks.filter((b) => b.id !== id);
     setBookmarks(updated);
     await AsyncStorage.setItem(STORAGE_KEY_BOOKMARKS, JSON.stringify(updated));
-  };
-
-  // Navigate to a specific page
-  const goToPage = (page) => {
-    const target = Math.max(1, Math.min(TOTAL_QURAN_PAGES, Number(page)));
-    setCurrentPage(target);
-    if (webViewRef.current) {
-      webViewRef.current.injectJavaScript(`window.goToPage && window.goToPage(${target}); true;`);
-    }
   };
 
   const handleNextPage = () => {
@@ -1733,7 +1748,38 @@ export default function HafeziQuranScreen() {
                 <Ionicons name="chevron-forward" size={16} color="#9CA3AF" />
               </TouchableOpacity>
 
-              {/* 4. Bookmark */}
+              {/* 4. I'rab al-Quran */}
+              <TouchableOpacity
+                style={[
+                  styles.quickActionItem,
+                  { borderBottomColor: readingTheme === 'night' ? '#27272A' : '#F3F4F6' },
+                ]}
+                onPress={() => {
+                  setShowQuickActionMenu(false);
+                  setStudyInitialTab('irab');
+                  setShowStudySheet(true);
+                }}
+              >
+                <View style={[styles.quickActionIconWrap, { backgroundColor: '#F0FDF4' }]}>
+                  <Ionicons name="git-network-outline" size={20} color="#059669" />
+                </View>
+                <View style={styles.quickActionTextWrap}>
+                  <Text
+                    style={[
+                      styles.quickActionItemTitle,
+                      { color: readingTheme === 'night' ? '#F9FAFB' : '#111827' },
+                    ]}
+                  >
+                    إعراب القرآن (নাহবী তাহকীক)
+                  </Text>
+                  <Text style={styles.quickActionItemDesc}>
+                    إعراب القرآن الكريم للدعاس ও الجدول لمحمود صافي
+                  </Text>
+                </View>
+                <Ionicons name="chevron-forward" size={16} color="#9CA3AF" />
+              </TouchableOpacity>
+
+              {/* 5. Bookmark */}
               <TouchableOpacity
                 style={[
                   styles.quickActionItem,
@@ -1924,6 +1970,11 @@ export default function HafeziQuranScreen() {
                     desc: 'আরবী শব্দমূল ও المعجم الوسيط অভিধান',
                   },
                   {
+                    id: 'irab',
+                    title: 'إعراب القرآن (নাহবী তাহকীক)',
+                    desc: 'আদ-দা‘আস ও মাহমুদ সাফীর প্রামাণ্য ব্যাকরণ বিশ্লেষণ',
+                  },
+                  {
                     id: 'fullscreen',
                     title: 'ফুলস্ক্রিন মোড টগল',
                     desc: 'হেডার ও ফুটার লুকানো বা দেখানো',
@@ -2015,6 +2066,11 @@ export default function HafeziQuranScreen() {
                     id: 'tahqeeq',
                     title: 'তাহকীক ও লোগাত',
                     desc: 'আরবী শব্দমূল ও المعجم الوسيط অভিধান',
+                  },
+                  {
+                    id: 'irab',
+                    title: 'إعراب القرآن (নাহবী তাহকীক)',
+                    desc: 'আদ-দা‘আস ও মাহমুদ সাফীর প্রামাণ্য ব্যাকরণ বিশ্লেষণ',
                   },
                   {
                     id: 'bookmark',
