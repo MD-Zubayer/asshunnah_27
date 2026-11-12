@@ -93,6 +93,7 @@ export default function HafeziQuranScreen() {
   // Modals & Sheets
   const [showStudySheet, setShowStudySheet] = useState(false);
   const [studyInitialTab, setStudyInitialTab] = useState('translation'); // 'translation' | 'tafsir' | 'tahqeeq'
+  const [studyInitialAyah, setStudyInitialAyah] = useState(null);
   const [showQuickActionMenu, setShowQuickActionMenu] = useState(false);
   const [showGestureSettingsModal, setShowGestureSettingsModal] = useState(false);
   const [gestureSettings, setGestureSettings] = useState(DEFAULT_GESTURES);
@@ -901,12 +902,19 @@ export default function HafeziQuranScreen() {
 
       {/* Sijdah Ayat Warning Banner */}
       {pageInfo.sijdah && !fullscreen && (
-        <View style={styles.sijdahBanner}>
+        <TouchableOpacity
+          style={styles.sijdahBanner}
+          onPress={() => {
+            setStudyInitialAyah(pageInfo.sijdah.ayah);
+            setShowStudySheet(true);
+          }}
+          activeOpacity={0.8}
+        >
           <MaterialCommunityIcons name="star-crescent" size={16} color="#DC2626" />
           <Text style={styles.sijdahBannerText}>
-            এই পৃষ্ঠায় তিলাওয়াতের সিজদাহ রয়েছে (আয়াত: {toBn(pageInfo.sijdah.ayah)})
+            এই পৃষ্ঠায় তিলাওয়াতের সিজদাহ রয়েছে (আয়াত: {toBn(pageInfo.sijdah.ayah)}) — বিস্তারিত দেখতে ট্যাপ করুন
           </Text>
-        </View>
+        </TouchableOpacity>
       )}
 
       {/* Khatam-e-Quran Dua Notification */}
@@ -1427,6 +1435,7 @@ export default function HafeziQuranScreen() {
                     style={[styles.listItem, { borderBottomColor: isDarkApp ? '#334155' : '#F1F5F9' }]}
                     onPress={() => {
                       goToPage(item.page);
+                      setStudyInitialAyah(item.ayah);
                       setShowIndexModal(false);
                     }}
                   >
@@ -2090,6 +2099,7 @@ export default function HafeziQuranScreen() {
         onClose={() => setShowStudySheet(false)}
         currentPage={currentPage}
         initialTab={studyInitialTab}
+        initialAyahNumber={studyInitialAyah}
       />
     </View>
   );
