@@ -897,7 +897,12 @@ export default function QuranStudyHubSheet({
                     </Text>
                   </View>
                 ) : (
-                  <View style={styles.tafsirTokensWrapper}>
+                  <Text
+                    style={[
+                      styles.tafsirTokensWrapper,
+                      { lineHeight: Math.round(tafsirFontSize * 1.85) },
+                    ]}
+                  >
                     {parseTafsirTokens(getActiveTafsirText()).map((tok, idx) => {
                       if (tok.type === 'ayah') {
                         return (
@@ -905,7 +910,7 @@ export default function QuranStudyHubSheet({
                             key={idx}
                             style={[
                               styles.tokenAyah,
-                              { fontSize: tafsirFontSize + 2, lineHeight: (tafsirFontSize + 2) * 1.7 },
+                              { fontSize: tafsirFontSize + 2 },
                             ]}
                           >
                             {tok.text}{' '}
@@ -918,7 +923,7 @@ export default function QuranStudyHubSheet({
                             key={idx}
                             style={[
                               styles.tokenSpeaker,
-                              { fontSize: tafsirFontSize, lineHeight: tafsirFontSize * 1.6 },
+                              { fontSize: tafsirFontSize },
                             ]}
                           >
                             {tok.text}{' '}
@@ -931,7 +936,7 @@ export default function QuranStudyHubSheet({
                             key={idx}
                             style={[
                               styles.tokenRef,
-                              { fontSize: tafsirFontSize - 2, lineHeight: tafsirFontSize * 1.5 },
+                              { fontSize: Math.max(12, tafsirFontSize - 2) },
                             ]}
                           >
                             {tok.text}{' '}
@@ -945,7 +950,6 @@ export default function QuranStudyHubSheet({
                             styles.tokenProse,
                             {
                               fontSize: tafsirFontSize,
-                              lineHeight: tafsirFontSize * 1.65,
                               color: isDark ? '#E2E8F0' : '#1F2937',
                             },
                           ]}
@@ -954,7 +958,7 @@ export default function QuranStudyHubSheet({
                         </Text>
                       );
                     })}
-                  </View>
+                  </Text>
                 )}
               </View>
             </ScrollView>
@@ -1482,30 +1486,43 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '700',
     fontFamily: 'serif',
+    writingDirection: 'rtl',
   },
   tafsirAuthorName: {
     fontSize: 11,
     marginTop: 2,
+    writingDirection: 'rtl',
   },
   tafsirTokensWrapper: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    textAlign: 'right',
+    writingDirection: 'rtl',
   },
   tokenAyah: {
     color: '#059669',
     fontWeight: '700',
     fontFamily: 'serif',
+    textAlign: 'right',
+    writingDirection: 'rtl',
   },
   tokenSpeaker: {
     color: '#2563EB',
     fontWeight: '700',
+    fontFamily: 'serif',
+    textAlign: 'right',
+    writingDirection: 'rtl',
   },
   tokenRef: {
     color: '#D97706',
     fontWeight: '600',
+    fontFamily: 'serif',
+    textAlign: 'right',
+    writingDirection: 'rtl',
   },
   tokenProse: {
     fontWeight: '400',
+    fontFamily: 'serif',
+    textAlign: 'right',
+    writingDirection: 'rtl',
   },
   wordsGridWrap: {
     flexDirection: 'row',
