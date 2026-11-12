@@ -116,13 +116,67 @@ class Command(BaseCommand):
                 "description": "বিশুদ্ধ ও সমসাময়িক শব্দশৈলীতে করা সাবলীল অনুবাদ।",
                 "sort_order": 3,
             },
+            {
+                "name_arabic": "ترجمة الدكتور أبو بكر محمد زكريا",
+                "name_bangla": "ড. আবু বকর মুহাম্মাদ যাকারিয়া",
+                "slug": "trans-zakaria",
+                "category": KitabCategory.TRANSLATION,
+                "author": "ড. আবু বকর মুহাম্মাদ যাকারিয়া",
+                "publisher": "মجمع الملك فهد لطباعة المصحف الشريف (মদীনা মুনাওয়ারা)",
+                "investigator": "বাদশাহ ফাহদ কুরআন মুদ্রণ কমপ্লেক্সের অফিসিয়াল বাংলা সংস্করণ",
+                "edition_info": "মদীনা সংস্করণ",
+                "total_volumes": 1,
+                "description": "বাদশাহ ফাহদ কুরআন মুদ্রণ কমপ্লেক্স কর্তৃক মুদ্রিত অফিশিয়াল প্রামাণ্য অনুবাদ।",
+                "sort_order": 4,
+            },
+            {
+                "name_arabic": "روائع البيان في ترجمة معاني القرآن",
+                "name_bangla": "রওয়ায়েউল বায়ান",
+                "slug": "trans-rawai",
+                "category": KitabCategory.TRANSLATION,
+                "author": "বায়ান ফাউন্ডেশন অনুবাদ পরিষদ",
+                "publisher": "বায়ান ফাউন্ডেশন",
+                "investigator": "সম্পাদনা পরিষদ",
+                "edition_info": "প্রামাণ্য সংস্করণ",
+                "total_volumes": 1,
+                "description": "বায়ান ফাউন্ডেশন কর্তৃক প্রকাশিত বিশুদ্ধ ও সাবলীল অনুবাদ।",
+                "sort_order": 5,
+            },
+            {
+                "name_arabic": "ترجمة شيخ الهند (تفسير عثماني)",
+                "name_bangla": "তাফসীরে উসমানী (শায়খুল হিন্দ)",
+                "slug": "trans-tafsir-usmani",
+                "category": KitabCategory.TRANSLATION,
+                "author": "শায়খুল হিন্দ মাহমুদ হাসান দেওবন্দী ও আল্লামা শাব্বীর আহমদ উসমানী রহ.",
+                "publisher": "দারুল উলূম দেওবন্দ / ইসলামিক ফাউন্ডেশন",
+                "investigator": "প্রখ্যাত ওলামায়ে কেরাম",
+                "edition_info": "দেওবন্দ প্রামাণ্য সংস্করণ",
+                "total_volumes": 3,
+                "description": "দারুল উলূম দেওবন্দের শ্রেষ্ঠ ঐতিহ্যবাহী ও প্রামাণ্য তরজমা।",
+                "sort_order": 6,
+            },
+            {
+                "name_arabic": "ترجمة المؤسسة الإسلامية بنغلاديش",
+                "name_bangla": "ইসলামিক ফাউন্ডেশন",
+                "slug": "trans-islamic-foundation",
+                "category": KitabCategory.TRANSLATION,
+                "author": "ইসলামিক ফাউন্ডেশন অনুবাদক পরিষদ",
+                "publisher": "ইসলামিক ফাউন্ডেশন, বায়তুল মোকাররম, ঢাকা",
+                "investigator": "জাতীয় অনুবাদক বোর্ড",
+                "edition_info": "জাতীয় সংস্করণ",
+                "total_volumes": 1,
+                "description": "বাংলাদেশের জাতীয় প্রামাণ্য সরকারি অনুবাদ।",
+                "sort_order": 7,
+            },
         ]
 
         kitab_objs = {}
+        valid_fields = {'name_arabic', 'name_bangla', 'slug', 'category', 'author', 'description', 'sort_order'}
         for kd in kitabs_data:
+            clean_defaults = {k: v for k, v in kd.items() if k in valid_fields}
             obj, _ = Kitab.objects.update_or_create(
                 slug=kd['slug'],
-                defaults=kd
+                defaults=clean_defaults
             )
             kitab_objs[kd['slug']] = obj
 

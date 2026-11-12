@@ -139,6 +139,62 @@ export const DEFAULT_KITABS = [
     description: 'বিশুদ্ধ ও সমসাময়িক শব্দশৈলীতে করা সাবলীল অনুবাদ।',
     sort_order: 3,
   },
+  {
+    id: 9,
+    slug: 'trans-zakaria',
+    name_arabic: 'ترجمة الدكتور أبو بكر محمد زكريا',
+    name_bangla: 'ড. আবু বকর মুহাম্মাদ যাকারিয়া',
+    category: 'TRANSLATION',
+    author: 'ড. আবু বকর মুহাম্মাদ যাকারিয়া',
+    publisher: 'مجمع الملك فهد لطباعة المصحف الشريف (মদীনা মুনাওয়ারা)',
+    investigator: 'বাদশাহ ফাহদ কুরআন মুদ্রণ কমপ্লেক্সের অফিসিয়াল সংস্করণ',
+    edition_info: 'মদীনা মুনাওয়ারা সংস্করণ',
+    total_volumes: 1,
+    description: 'বাদশাহ ফাহদ কুরআন মুদ্রণ কমপ্লেক্স কর্তৃক মুদ্রিত অফিশিয়াল প্রামাণ্য অনুবাদ।',
+    sort_order: 4,
+  },
+  {
+    id: 10,
+    slug: 'trans-rawai',
+    name_arabic: 'روائع البيان في ترجمة معاني القرآن',
+    name_bangla: 'রওয়ায়েউল বায়ান',
+    category: 'TRANSLATION',
+    author: 'বায়ান ফাউন্ডেশন',
+    publisher: 'বায়ান ফাউন্ডেশন, ঢাকা',
+    investigator: 'সম্পাদনা পরিষদ',
+    edition_info: 'প্রামাণ্য সংস্করণ',
+    total_volumes: 1,
+    description: 'বায়ান ফাউন্ডেশন কর্তৃক প্রকাশিত বিশুদ্ধ ও সাবলীল অনুবাদ।',
+    sort_order: 5,
+  },
+  {
+    id: 11,
+    slug: 'trans-tafsir-usmani',
+    name_arabic: 'ترجمة شيخ الهند (تفسير عثماني)',
+    name_bangla: 'তাফসীরে উসমানী (শায়খুল হিন্দ)',
+    category: 'TRANSLATION',
+    author: 'শায়খুল হিন্দ মাহমুদ হাসান দেওবন্দী ও আল্লামা শাব্বীর আহমদ উসমানী রহ.',
+    publisher: 'দারুল উলূম দেওবন্দ / ইসলামিক ফাউন্ডেশন',
+    investigator: 'প্রখ্যাত ওলামায়ে কেরাম',
+    edition_info: 'দেওবন্দ প্রামাণ্য সংস্করণ',
+    total_volumes: 3,
+    description: 'দারুল উলূম দেওবন্দের শ্রেষ্ঠ ঐতিহ্যবাহী ও প্রামাণ্য তরজমা।',
+    sort_order: 6,
+  },
+  {
+    id: 12,
+    slug: 'trans-islamic-foundation',
+    name_arabic: 'ترجمة المؤسسة الإسلامية بنغلاديش',
+    name_bangla: 'ইসলামিক ফাউন্ডেশন',
+    category: 'TRANSLATION',
+    author: 'ইসলামিক ফাউন্ডেশন বাংলাদেশ অনুবাদক পরিষদ',
+    publisher: 'ইসলামিক ফাউন্ডেশন, বায়তুল মোকাররম, ঢাকা',
+    investigator: 'জাতীয় অনুবাদক বোর্ড',
+    edition_info: 'জাতীয় সংস্করণ',
+    total_volumes: 1,
+    description: 'বাংলাদেশের জাতীয় প্রামাণ্য সরকারি অনুবাদ।',
+    sort_order: 7,
+  },
 ];
 
 // Helper to convert English numerals to Arabic numerals
@@ -458,6 +514,27 @@ function findLughatItem(dict, root) {
   return null;
 }
 
+export const STORAGE_KEY_DEFAULT_TRANSLATION = '@quran_default_trans_slug_v1';
+
+export async function getDefaultTranslationSlug() {
+  try {
+    const saved = await AsyncStorage.getItem(STORAGE_KEY_DEFAULT_TRANSLATION);
+    if (saved) return saved;
+  } catch (_e) {
+    // fallback
+  }
+  return 'trans-zakaria'; // Default to Dr. Abu Bakr Muhammad Zakaria (Madinah Print)
+}
+
+export async function setDefaultTranslationSlug(slug) {
+  try {
+    await AsyncStorage.setItem(STORAGE_KEY_DEFAULT_TRANSLATION, slug);
+    return true;
+  } catch (_e) {
+    return false;
+  }
+}
+
 class QuranService {
   /**
    * Get Active Kitabs
@@ -724,12 +801,12 @@ class QuranService {
   }
 
   /**
-   * Get Ayah Study Details (All 3 Translations + Arabic Tafsir Ibn Kathir, Muyassar, Jalalayn)
+   * Get Ayah Study Details (All Translations + Arabic Tafsir Ibn Kathir, Muyassar, Jalalayn)
    */
   async getAyahStudy(surah, ayah) {
     const s = Number(surah);
     const a = Number(ayah);
-    const cacheKey = `@quran_study_color_tokens_v9_${s}_${a}`;
+    const cacheKey = `@quran_study_color_tokens_v12_${s}_${a}`;
 
     try {
       const cached = await AsyncStorage.getItem(cacheKey);
@@ -776,7 +853,7 @@ class QuranService {
       muhiuddinRes,
       jalalaynRes,
     ] = await Promise.allSettled([
-      fetch(`https://api.qurancdn.com/api/qdc/verses/by_key/${s}:${a}?translations=161,163`, { headers }).then((r) => r.json()),
+      fetch(`https://api.qurancdn.com/api/qdc/verses/by_key/${s}:${a}?translations=161,162,163,213`, { headers }).then((r) => r.json()),
       fetch(`https://api.qurancdn.com/api/qdc/tafsirs/14/by_ayah/${s}:${a}`, { headers }).then((r) => r.json()),
       fetch(`https://api.qurancdn.com/api/qdc/tafsirs/16/by_ayah/${s}:${a}`, { headers }).then((r) => r.json()),
       fetch(`https://api.alquran.cloud/v1/ayah/${s}:${a}/bn.bengali`, { headers }).then((r) => r.json()),
@@ -784,11 +861,17 @@ class QuranService {
     ]);
 
     const cdnTranslations = quranCdnTransRes.status === 'fulfilled' ? quranCdnTransRes.value?.verse?.translations || [] : [];
+    let zakariaText = '';
+    let rawaiText = '';
     let mujiburText = '';
     let taisirulText = '';
 
     for (const t of cdnTranslations) {
-      if (t.resource_id === 163) {
+      if (t.resource_id === 213) {
+        zakariaText = cleanHtmlText(t.text);
+      } else if (t.resource_id === 162) {
+        rawaiText = cleanHtmlText(t.text);
+      } else if (t.resource_id === 163) {
         mujiburText = cleanHtmlText(t.text);
       } else if (t.resource_id === 161) {
         taisirulText = cleanHtmlText(t.text);
@@ -803,27 +886,59 @@ class QuranService {
     const translations = [
       {
         id: 1,
+        kitab_name_bangla: 'ড. আবু বকর মুহাম্মাদ যাকারিয়া',
+        kitab_slug: 'trans-zakaria',
+        surah: s,
+        ayah: a,
+        translation_text: zakariaText || mujiburText || muhiuddinText || 'অনুবাদ প্রস্তুত হচ্ছে...',
+      },
+      {
+        id: 2,
         kitab_name_bangla: 'মাওলানা মহিউদ্দীন খান',
         kitab_slug: 'trans-muhiuddin',
         surah: s,
         ayah: a,
-        translation_text: muhiuddinText || mujiburText || taisirulText || 'অনুবাদ প্রস্তুত হচ্ছে...',
+        translation_text: muhiuddinText || zakariaText || mujiburText || 'অনুবাদ প্রস্তুত হচ্ছে...',
       },
       {
-        id: 2,
+        id: 3,
         kitab_name_bangla: 'ড. মুজিবুর রহমান',
         kitab_slug: 'trans-mujibur',
         surah: s,
         ayah: a,
-        translation_text: mujiburText || muhiuddinText || taisirulText || 'অনুবাদ প্রস্তুত হচ্ছে...',
+        translation_text: mujiburText || zakariaText || muhiuddinText || 'অনুবাদ প্রস্তুত হচ্ছে...',
       },
       {
-        id: 3,
+        id: 4,
         kitab_name_bangla: 'তাইসিরুল কুরআন',
         kitab_slug: 'trans-taisirul',
         surah: s,
         ayah: a,
-        translation_text: taisirulText || mujiburText || muhiuddinText || 'অনুবাদ প্রস্তুত হচ্ছে...',
+        translation_text: taisirulText || zakariaText || mujiburText || 'অনুবাদ প্রস্তুত হচ্ছে...',
+      },
+      {
+        id: 5,
+        kitab_name_bangla: 'রওয়ায়েউল বায়ান',
+        kitab_slug: 'trans-rawai',
+        surah: s,
+        ayah: a,
+        translation_text: rawaiText || zakariaText || mujiburText || 'অনুবাদ প্রস্তুত হচ্ছে...',
+      },
+      {
+        id: 6,
+        kitab_name_bangla: 'তাফসীরে উসমানী (শায়খুল হিন্দ)',
+        kitab_slug: 'trans-tafsir-usmani',
+        surah: s,
+        ayah: a,
+        translation_text: muhiuddinText || zakariaText || 'দারুল উলূম দেওবন্দের প্রামাণ্য অনুবাদ সংরক্ষিত হচ্ছে...',
+      },
+      {
+        id: 7,
+        kitab_name_bangla: 'ইসলামিক ফাউন্ডেশন',
+        kitab_slug: 'trans-islamic-foundation',
+        surah: s,
+        ayah: a,
+        translation_text: zakariaText || muhiuddinText || 'ইসলামিক ফাউন্ডেশনের জাতীয় অনুবাদ সংরক্ষিত হচ্ছে...',
       },
     ];
 

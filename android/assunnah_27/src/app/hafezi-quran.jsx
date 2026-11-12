@@ -14,6 +14,8 @@ import {
   Animated,
   useColorScheme,
   ScrollView,
+  ToastAndroid,
+  Platform,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -232,7 +234,7 @@ export default function HafeziQuranScreen() {
         JSON.stringify({
           page,
           paraId: info.para.id,
-          paraName: info.para.bangla,
+          paraName: info.para.arabic ? `পারা ${toBn(info.para.id)} (${info.para.arabic})` : `পারা ${toBn(info.para.id)}`,
           surahId: info.surah.id,
           surahName: info.surah.nameBangla,
           timestamp: Date.now(),
@@ -240,6 +242,12 @@ export default function HafeziQuranScreen() {
       );
     } catch (e) {
       console.log('Error saving last read:', e);
+    }
+  };
+
+  const showToast = (message) => {
+    if (Platform.OS === 'android') {
+      ToastAndroid.show(message, ToastAndroid.SHORT);
     }
   };
 
@@ -260,15 +268,33 @@ export default function HafeziQuranScreen() {
 
   const toggleBookmarkCurrentPage = () => {
     if (isCurrentPageBookmarked) {
-      // Remove bookmark
+      // Remove bookmark instantly
       const updated = bookmarks.filter((b) => b.page !== currentPage);
       setBookmarks(updated);
       AsyncStorage.setItem(STORAGE_KEY_BOOKMARKS, JSON.stringify(updated));
+      showToast(`পৃষ্ঠা ${toBn(currentPage)} বুকমার্ক থেকে সরানো হয়েছে`);
     } else {
-      // Open add bookmark modal with default title
-      setBookmarkTitle(`${pageInfo.surah.nameBangla} (পৃষ্ঠা ${toBn(currentPage)})`);
-      setBookmarkNote(`পারা ${toBn(pageInfo.para.id)} - ${pageInfo.para.bangla}`);
-      setShowBookmarkModal(true);
+      // Instant 1-tap save bookmark without interrupting modal
+      const paraLabel = pageInfo.para.arabic
+        ? `পারা ${toBn(pageInfo.para.id)} • ${pageInfo.para.arabic}`
+        : `পারা ${toBn(pageInfo.para.id)}`;
+      const newBookmark = {
+        id: Date.now().toString(),
+        page: currentPage,
+        title: `${pageInfo.surah.nameBangla} (পৃষ্ঠা ${toBn(currentPage)})`,
+        note: paraLabel,
+        surah: pageInfo.surah.nameBangla,
+        para: paraLabel,
+        date: new Date().toLocaleDateString('bn-BD', {
+          day: 'numeric',
+          month: 'short',
+          year: 'numeric',
+        }),
+      };
+      const updated = [newBookmark, ...bookmarks.filter((b) => b.page !== currentPage)];
+      setBookmarks(updated);
+      AsyncStorage.setItem(STORAGE_KEY_BOOKMARKS, JSON.stringify(updated));
+      showToast(`পৃষ্ঠা ${toBn(currentPage)} বুকমার্কে সংরক্ষণ করা হয়েছে`);
     }
   };
 
@@ -961,7 +987,7 @@ export default function HafeziQuranScreen() {
           {isScrubbing && (
             <View style={styles.scrubberTooltip}>
               <Text style={styles.scrubberTooltipText}>
-                পৃষ্ঠা {toBn(scrubPage)} • পারা {toBn(getQuranPageInfo(scrubPage).para.id)} ({getQuranPageInfo(scrubPage).para.bangla}) • {getQuranPageInfo(scrubPage).surah.nameBangla}
+                পৃষ্ঠা {toBn(scrubPage)} • পারা {toBn(getQuranPageInfo(scrubPage).para.id)} {getQuranPageInfo(scrubPage).para.arabic ? `(${getQuranPageInfo(scrubPage).para.arabic})` : ''} • {getQuranPageInfo(scrubPage).surah.nameBangla}
               </Text>
             </View>
           )}
@@ -1318,7 +1344,7 @@ export default function HafeziQuranScreen() {
 
                     <View style={{ flex: 1, marginLeft: 12 }}>
                       <Text style={[styles.surahNameBn, { color: colors.text }]}>
-                        পারা {toBn(item.id)}: {item.bangla}
+                        পারা {toBn(item.id)}
                       </Text>
                       <Text style={styles.surahMeaning}>
                         শুরু: {item.surah} (আয়াত {toBn(item.ayah)})
@@ -2454,6 +2480,8 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     fontFamily: 'serif',
     color: '#059669',
+    textAlign: 'right',
+    writingDirection: 'rtl',
   },
   pageLabel: {
     fontSize: 11,

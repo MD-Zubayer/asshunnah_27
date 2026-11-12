@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   StyleSheet,
   Text,
@@ -11,12 +11,17 @@ import {
   ActivityIndicator,
   Share,
 } from 'react-native';
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
 import { Colors } from '../constants/theme';
 import { getQuranPageInfo } from '../data/quranIndex';
 import { getRootForWord } from '../data/quranWordRoots';
-import quranService, { DEFAULT_KITABS, getKitabCitationReference } from '../services/quranService';
+import quranService, {
+  DEFAULT_KITABS,
+  getKitabCitationReference,
+  getDefaultTranslationSlug,
+  setDefaultTranslationSlug,
+} from '../services/quranService';
 import quranWordMorphMap from '../data/quranWordMorphMap.json';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -165,11 +170,34 @@ export default function QuranStudyHubSheet({
   const [activeTab, setActiveTab] = useState(initialTab);
 
   // Sub-slugs for Translation & Tafsir
-  const [activeTransSlug, setActiveTransSlug] = useState('trans-muhiuddin');
+  const [activeTransSlug, setActiveTransSlug] = useState('trans-zakaria');
+  const [defaultTransSlug, setDefaultTransSlug] = useState('trans-zakaria');
+  const [defaultSavedToast, setDefaultSavedToast] = useState(false);
   const [activeTafsirSlug, setActiveTafsirSlug] = useState('tafsir-ibn-kathir');
   const [activeLughatSlug, setActiveLughatSlug] = useState('al-mujam-al-waseet');
   const [tafsirFontSize, setTafsirFontSize] = useState(16);
   const [isAyahExpanded, setIsAyahExpanded] = useState(false);
+
+  // Load saved default translation
+  useEffect(() => {
+    let isMounted = true;
+    getDefaultTranslationSlug().then((saved) => {
+      if (isMounted && saved) {
+        setDefaultTransSlug(saved);
+        setActiveTransSlug(saved);
+      }
+    });
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const handleSetDefaultTranslation = async (slug) => {
+    await setDefaultTranslationSlug(slug);
+    setDefaultTransSlug(slug);
+    setDefaultSavedToast(true);
+    setTimeout(() => setDefaultSavedToast(false), 2400);
+  };
 
   // Dynamic Ayahs for the current page
   const [pageData, setPageData] = useState(null);
@@ -192,7 +220,7 @@ export default function QuranStudyHubSheet({
   // Sync initial tab when opening
   useEffect(() => {
     if (visible && initialTab) {
-      setActiveTab(initialTab);
+      Promise.resolve().then(() => setActiveTab(initialTab));
     }
   }, [visible, initialTab]);
 
@@ -236,7 +264,7 @@ export default function QuranStudyHubSheet({
       {
         number: 1,
         arabic: pageInfo.para.arabic || 'بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ',
-        trans: `পারা ${pageInfo.para.id}: ${pageInfo.para.bangla}`,
+        trans: pageInfo.para.arabic ? `পারা ${toBn(pageInfo.para.id)}: ${pageInfo.para.arabic}` : `পারা ${toBn(pageInfo.para.id)}`,
       },
     ];
   }, [pageData, currentPage, pageInfo]);
@@ -257,7 +285,7 @@ export default function QuranStudyHubSheet({
 
   const isLongAyah = useMemo(() => {
     return (currentAyah?.arabic || '').length > 80;
-  }, [currentAyah?.arabic]);
+  }, [currentAyah]);
 
   // Fetch Ayah Study Details (Translations + Tafsirs) whenever selectedAyahNumber changes
   useEffect(() => {
@@ -301,8 +329,12 @@ export default function QuranStudyHubSheet({
     let isMounted = true;
     if (visible && activeTab === 'tahqeeq') {
       if (!activeWordMorph?.root) {
-        setLughatData({ entries: [] });
-        setLoadingLughat(false);
+        Promise.resolve().then(() => {
+          if (isMounted) {
+            setLughatData({ entries: [] });
+            setLoadingLughat(false);
+          }
+        });
         return;
       }
       const fetchLughat = async () => {
@@ -335,6 +367,124 @@ export default function QuranStudyHubSheet({
     const found = lughatData.entries.find((e) => e.kitab_slug === activeLughatSlug);
     return found?.content || (lughatData.entries[0]?.kitab_slug === activeLughatSlug ? lughatData.entries[0]?.content : null);
   }, [lughatData, activeLughatSlug]);
+
+  const renderFormattedLughatContent = (rawText) => {
+    if (!rawText) return null;
+    const paragraphs = rawText
+      .split(/[\n|]+/)
+      .map((p) => p.trim())
+      .filter(Boolean);
+
+    return paragraphs.map((para, pIdx) => {
+      const tokens = para
+        .split(/(\[\[[\s\S]*?\]\]|﴿[\s\S]*?﴾|\[[\s\S]*?\]|«[\s\S]*?»|\([^)]+\))/g)
+        .filter(Boolean);
+
+      return (
+        <Text
+          key={pIdx}
+          style={[styles.lughatParagraph, { color: isDark ? '#E2E8F0' : '#1E293B' }]}
+        >
+          {tokens.map((token, tIdx) => {
+            const trimmed = token.trim();
+
+            // 1. Double bracket footnote / tahqiq commentary: [[...]]
+            if (trimmed.startsWith('[[') && trimmed.endsWith(']]')) {
+              return (
+                <Text
+                  key={tIdx}
+                  style={[
+                    styles.lughatFootnote,
+                    {
+                      color: isDark ? '#9CA3AF' : '#64748B',
+                      backgroundColor: isDark ? '#33415530' : '#F1F5F9',
+                    },
+                  ]}
+                >
+                  {token}{' '}
+                </Text>
+              );
+            }
+
+            // 2. Quranic Ayah: ﴿...﴾
+            if (trimmed.startsWith('﴿') && trimmed.endsWith('﴾')) {
+              return (
+                <Text
+                  key={tIdx}
+                  style={[
+                    styles.lughatAyah,
+                    {
+                      color: isDark ? '#34D399' : '#047857',
+                      backgroundColor: isDark ? '#064E3B40' : '#ECFDF5',
+                    },
+                  ]}
+                >
+                  {token}{' '}
+                </Text>
+              );
+            }
+
+            // 3. Surah / Ayah reference citation: [...]
+            if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
+              return (
+                <Text
+                  key={tIdx}
+                  style={[
+                    styles.lughatRef,
+                    {
+                      color: isDark ? '#94A3B8' : '#475569',
+                      backgroundColor: isDark ? '#33415540' : '#F1F5F9',
+                    },
+                  ]}
+                >
+                  {token}{' '}
+                </Text>
+              );
+            }
+
+            // 4. Hadith / quotes: «...»
+            if (trimmed.startsWith('«') && trimmed.endsWith('»')) {
+              return (
+                <Text
+                  key={tIdx}
+                  style={[
+                    styles.lughatQuote,
+                    {
+                      color: isDark ? '#FBBF24' : '#92400E',
+                      backgroundColor: isDark ? '#78350F40' : '#FEF3C7',
+                    },
+                  ]}
+                >
+                  {token}{' '}
+                </Text>
+              );
+            }
+
+            // 5. Parenthesized headwords (Al-Mu'jam al-Waseet): (...)
+            if (trimmed.startsWith('(') && trimmed.endsWith(')')) {
+              return (
+                <Text
+                  key={tIdx}
+                  style={[
+                    styles.lughatHeadword,
+                    {
+                      color: isDark ? '#34D399' : '#047857',
+                      backgroundColor: isDark ? '#064E3B40' : '#ECFDF5',
+                    },
+                  ]}
+                >
+                  {token}{' '}
+                </Text>
+              );
+            }
+
+            // Regular Arabic text
+            return <Text key={tIdx}>{token}</Text>;
+          })}
+        </Text>
+      );
+    });
+  };
 
   // Kitabs list
   const transKitabs = DEFAULT_KITABS.filter((k) => k.category === 'TRANSLATION');
@@ -422,7 +572,7 @@ export default function QuranStudyHubSheet({
                     numberOfLines={1}
                     ellipsizeMode="tail"
                   >
-                    পারা {toBn(pageInfo.para.id)} • {pageInfo.para.bangla}
+                    পারা {toBn(pageInfo.para.id)} {pageInfo.para.arabic ? `• ${pageInfo.para.arabic}` : ''}
                   </Text>
                 </View>
               </View>
@@ -1023,7 +1173,7 @@ export default function QuranStudyHubSheet({
                       <Text style={styles.wordBadgeLargeText}>{activeWordText}</Text>
                     </View>
 
-                    <View style={{ flex: 1, marginLeft: 14, justifyContent: 'center' }}>
+                    <View style={{ flex: 1, marginRight: 14, justifyContent: 'center' }}>
                       {activeWordMorph.root ? (
                         <View style={styles.rootArabicRow}>
                           <Text style={[styles.rootArabicTag, { color: isDark ? '#34D399' : '#059669' }]}>
@@ -1069,7 +1219,7 @@ export default function QuranStudyHubSheet({
               ) : activeLughatContent ? (
                 <>
                   {/* Dictionary Selector */}
-                  <View style={[styles.kitabSelectorRow, { marginTop: 14 }]}>
+                  <View style={[styles.kitabSelectorRow, { marginTop: 14, flexDirection: 'row-reverse' }]}>
                     {[
                       { slug: 'al-mujam-al-waseet', name: 'المعجم الوسيط' },
                       { slug: 'al-mufradat', name: 'المفردات في غريب القرآن' },
@@ -1122,9 +1272,9 @@ export default function QuranStudyHubSheet({
                       </Text>
                     </View>
 
-                    <Text style={[styles.lughatContentText, { color: isDark ? '#E2E8F0' : '#1E293B' }]}>
-                      {activeLughatContent}
-                    </Text>
+                    <View style={styles.lughatContentContainer}>
+                      {renderFormattedLughatContent(activeLughatContent)}
+                    </View>
                   </View>
                 </>
               ) : null}
@@ -1305,6 +1455,7 @@ const styles = StyleSheet.create({
     fontFamily: 'serif',
     lineHeight: 34,
     textAlign: 'right',
+    writingDirection: 'rtl',
   },
   mainTabBar: {
     flexDirection: 'row',
@@ -1350,6 +1501,7 @@ const styles = StyleSheet.create({
   kitabChipText: {
     fontSize: 11,
     fontWeight: '600',
+    writingDirection: 'auto',
   },
   translationCard: {
     borderRadius: 14,
@@ -1525,7 +1677,7 @@ const styles = StyleSheet.create({
     writingDirection: 'rtl',
   },
   wordsGridWrap: {
-    flexDirection: 'row',
+    flexDirection: 'row-reverse',
     flexWrap: 'wrap',
     gap: 8,
     marginBottom: 12,
@@ -1547,6 +1699,8 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     fontFamily: 'serif',
+    textAlign: 'center',
+    writingDirection: 'rtl',
   },
   morphologyCard: {
     borderRadius: 14,
@@ -1555,7 +1709,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   morphHeaderRow: {
-    flexDirection: 'row',
+    flexDirection: 'row-reverse',
     alignItems: 'center',
   },
   wordBadgeLarge: {
@@ -1569,9 +1723,11 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '700',
     fontFamily: 'serif',
+    textAlign: 'center',
+    writingDirection: 'rtl',
   },
   rootArabicRow: {
-    flexDirection: 'row',
+    flexDirection: 'row-reverse',
     alignItems: 'center',
     gap: 6,
   },
@@ -1579,16 +1735,22 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: 'serif',
     fontWeight: '700',
+    textAlign: 'right',
+    writingDirection: 'rtl',
   },
   rootTextArabic: {
     fontSize: 18,
     fontWeight: '700',
     fontFamily: 'serif',
+    textAlign: 'right',
+    writingDirection: 'rtl',
   },
   lemmaTextArabic: {
     fontSize: 16,
     fontFamily: 'serif',
     fontWeight: '600',
+    textAlign: 'right',
+    writingDirection: 'rtl',
   },
   lughatCard: {
     borderRadius: 14,
@@ -1605,11 +1767,53 @@ const styles = StyleSheet.create({
   lughatTitle: {
     fontSize: 13,
     fontWeight: '700',
+    textAlign: 'right',
+    writingDirection: 'rtl',
   },
-  lughatContentText: {
-    fontSize: 14,
-    lineHeight: 24,
+  lughatContentContainer: {
+    paddingVertical: 4,
+  },
+  lughatParagraph: {
+    fontSize: 15,
+    lineHeight: 28,
     fontFamily: 'serif',
+    textAlign: 'right',
+    writingDirection: 'rtl',
+    marginBottom: 10,
+  },
+  lughatAyah: {
+    fontSize: 16,
+    fontWeight: '700',
+    fontFamily: 'serif',
+    borderRadius: 4,
+    paddingHorizontal: 4,
+    writingDirection: 'rtl',
+  },
+  lughatRef: {
+    fontSize: 12,
+    fontWeight: '600',
+    borderRadius: 4,
+    paddingHorizontal: 4,
+    writingDirection: 'rtl',
+  },
+  lughatFootnote: {
+    fontSize: 12,
+    fontStyle: 'italic',
+    borderRadius: 4,
+    paddingHorizontal: 4,
+    writingDirection: 'rtl',
+  },
+  lughatQuote: {
+    fontWeight: '700',
+    borderRadius: 4,
+    paddingHorizontal: 4,
+    writingDirection: 'rtl',
+  },
+  lughatHeadword: {
+    fontWeight: '700',
+    borderRadius: 4,
+    paddingHorizontal: 4,
+    writingDirection: 'rtl',
   },
   sheetFooter: {
     paddingHorizontal: 16,

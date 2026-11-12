@@ -46,7 +46,7 @@ def ensure_ayah_study_data(surah: int, ayah: int):
         AyahTafsir.objects.filter(surah=surah, ayah=ayah).values_list('kitab__slug', flat=True)
     )
 
-    required_trans = {'trans-muhiuddin', 'trans-mujibur', 'trans-taisirul'}
+    required_trans = {'trans-zakaria', 'trans-muhiuddin', 'trans-mujibur', 'trans-taisirul', 'trans-rawai'}
     required_tafsir = {'tafsir-ibn-kathir', 'tafsir-muyassar', 'tafsir-jalalayn'}
 
     needs_trans_fetch = not required_trans.issubset(existing_trans_slugs)
@@ -60,15 +60,22 @@ def ensure_ayah_study_data(surah: int, ayah: int):
 
     # 3. Fetch missing Translations if needed
     if needs_trans_fetch:
-        # A. QuranCDN for 161 (Taisirul Quran) and 163 (Dr. Mujibur Rahman)
-        cdn_url = f"https://api.qurancdn.com/api/qdc/verses/by_key/{surah}:{ayah}?translations=161,163"
+        # A. QuranCDN for 213 (Dr. Abu Bakr Zakaria), 161 (Taisirul Quran), 163 (Dr. Mujibur Rahman), 162 (Rawai Al-bayan)
+        cdn_url = f"https://api.qurancdn.com/api/qdc/verses/by_key/{surah}:{ayah}?translations=161,162,163,213"
         cdn_data = _http_get_json(cdn_url)
         if cdn_data and 'verse' in cdn_data:
             trans_list = cdn_data.get('verse', {}).get('translations', [])
             for t in trans_list:
                 res_id = t.get('resource_id')
                 txt = clean_html(t.get('text', ''))
-                if res_id == 163 and 'trans-mujibur' in kitabs and txt:
+                if res_id == 213 and 'trans-zakaria' in kitabs and txt:
+                    AyahTranslation.objects.update_or_create(
+                        kitab=kitabs['trans-zakaria'],
+                        surah=surah,
+                        ayah=ayah,
+                        defaults={'translation_text': txt}
+                    )
+                elif res_id == 163 and 'trans-mujibur' in kitabs and txt:
                     AyahTranslation.objects.update_or_create(
                         kitab=kitabs['trans-mujibur'],
                         surah=surah,
@@ -78,6 +85,13 @@ def ensure_ayah_study_data(surah: int, ayah: int):
                 elif res_id == 161 and 'trans-taisirul' in kitabs and txt:
                     AyahTranslation.objects.update_or_create(
                         kitab=kitabs['trans-taisirul'],
+                        surah=surah,
+                        ayah=ayah,
+                        defaults={'translation_text': txt}
+                    )
+                elif res_id == 162 and 'trans-rawai' in kitabs and txt:
+                    AyahTranslation.objects.update_or_create(
+                        kitab=kitabs['trans-rawai'],
                         surah=surah,
                         ayah=ayah,
                         defaults={'translation_text': txt}
