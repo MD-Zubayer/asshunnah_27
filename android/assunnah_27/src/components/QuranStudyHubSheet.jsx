@@ -357,6 +357,7 @@ export default function QuranStudyHubSheet({
             ayah: selectedAyahNumber,
             position: selectedWordIndex + 1,
             root: activeWordMorph.root,
+            kitabSlug: activeLughatSlug,
             kitab_slug: activeLughatSlug,
           });
           if (!isMounted) return;

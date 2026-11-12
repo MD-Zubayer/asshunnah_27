@@ -3,6 +3,9 @@ import { API_ENDPOINTS } from '../constants/api';
 import mujamAlWaseetRoots from '../data/mujamAlWaseetRoots.json';
 import mufradatRoots from '../data/mufradatRoots.json';
 import maqayisRoots from '../data/maqayisRoots.json';
+import qamusMuhitRoots from '../data/qamusMuhitRoots.json';
+import sihahRoots from '../data/sihahRoots.json';
+import lisanArabRoots from '../data/lisanArabRoots.json';
 import quranWordMorphMap from '../data/quranWordMorphMap.json';
 
 const CACHE_PREFIX = '@quran_study_cache_v6_';
@@ -1164,12 +1167,13 @@ class QuranService {
    * Get Word Lughat (Al-Mu'jam al-Waseet & other active lughats)
    * Fetches authentic Quranic root, lemma, and morphology per exact word location.
    */
-  async getWordLughat({ surah, ayah, position, root, wordArabic, kitabSlug = 'al-mujam-al-waseet' }) {
+  async getWordLughat({ surah, ayah, position, root, wordArabic, kitabSlug, kitab_slug }) {
     const s = Number(surah);
     const a = Number(ayah);
     const pos = Number(position) || 1;
     const targetRoot = (root || '').trim().replace(/\s+/g, '');
-    const cacheKey = `${CACHE_PREFIX}lughat_v8_offline_${s}_${a}_${pos}_${encodeURIComponent(wordArabic || '')}_${kitabSlug}`;
+    const activeKitabSlug = kitabSlug || kitab_slug || 'al-mujam-al-waseet';
+    const cacheKey = `${CACHE_PREFIX}lughat_v9_offline_${s}_${a}_${pos}_${encodeURIComponent(wordArabic || '')}_${activeKitabSlug}`;
 
     try {
       const cached = await getQuranCache(cacheKey);
@@ -1273,7 +1277,49 @@ class QuranService {
       });
     }
 
-    // 4. Classical Multi-Kitab Lexicon Entries (Built-in overrides)
+    // 4. Lisan al-Arab (Ibn Manzur - 1,572 Quranic roots offline)
+    const lisanItem = findLughatItem(lisanArabRoots, cleanRoot);
+    if (lisanItem) {
+      entries.push({
+        id: 15,
+        kitab_name_arabic: 'لسان العرب',
+        kitab_name_bangla: 'লিসানুল আরব',
+        kitab_slug: 'lisan-al-arab',
+        root: cleanRoot,
+        title: lisanItem.title || `لسان العرب (${cleanRoot})`,
+        content: lisanItem.content,
+      });
+    }
+
+    // 5. Al-Qamus al-Muhit (Al-Fayruzabadi - 1,669 Quranic roots offline)
+    const qamusItem = findLughatItem(qamusMuhitRoots, cleanRoot);
+    if (qamusItem) {
+      entries.push({
+        id: 16,
+        kitab_name_arabic: 'القاموس المحيط',
+        kitab_name_bangla: 'আল-কামূসুল মুহীত',
+        kitab_slug: 'al-qamus-al-muhit',
+        root: cleanRoot,
+        title: qamusItem.title || `القاموس المحيط (${cleanRoot})`,
+        content: qamusItem.content,
+      });
+    }
+
+    // 6. As-Sihah Taj al-Lughah (Al-Jawhari - 1,570 Quranic roots offline)
+    const sihahItem = findLughatItem(sihahRoots, cleanRoot);
+    if (sihahItem) {
+      entries.push({
+        id: 17,
+        kitab_name_arabic: 'الصحاح تاج اللغة',
+        kitab_name_bangla: 'আস-সিহাহ (তাজুল লুগাহ)',
+        kitab_slug: 'as-sihah',
+        root: cleanRoot,
+        title: sihahItem.title || `الصحاح (${cleanRoot})`,
+        content: sihahItem.content,
+      });
+    }
+
+    // 7. Classical Multi-Kitab Lexicon Entries (Built-in overrides)
     const classicalRootData = CLASSICAL_LEXICON_ENTRIES[cleanRoot];
     if (classicalRootData) {
       Object.keys(classicalRootData).forEach((kSlug) => {
@@ -1295,11 +1341,11 @@ class QuranService {
       });
     }
 
-    // 5. Query backend API if active kitabSlug is not yet populated
-    const hasRequestedKitab = entries.some((e) => e.kitab_slug === kitabSlug);
+    // 8. Query backend API if activeKitabSlug is not yet populated
+    const hasRequestedKitab = entries.some((e) => e.kitab_slug === activeKitabSlug);
     if (!hasRequestedKitab && cleanRoot) {
       try {
-        const url = `${API_ENDPOINTS.QURAN_WORD_LUGHAT}?root=${encodeURIComponent(cleanRoot)}&kitab=${encodeURIComponent(kitabSlug)}`;
+        const url = `${API_ENDPOINTS.QURAN_WORD_LUGHAT}?root=${encodeURIComponent(cleanRoot)}&kitab_slug=${encodeURIComponent(activeKitabSlug)}`;
         const res = await fetch(url, { headers: { Accept: 'application/json' } });
         if (res.ok) {
           const data = await res.json();
@@ -1316,12 +1362,12 @@ class QuranService {
       }
     }
 
-    // 6. Bilingual Arabic-Bengali Dictionary Synthesis for Quranic Root
+    // 9. Bilingual Arabic-Bengali Dictionary Synthesis for Quranic Root
     if (
-      (kitabSlug === 'mujam-al-kawsar' || kitabSlug === 'al-mujam-al-wafi') &&
-      !entries.some((e) => e.kitab_slug === kitabSlug)
+      (activeKitabSlug === 'mujam-al-kawsar' || activeKitabSlug === 'al-mujam-al-wafi') &&
+      !entries.some((e) => e.kitab_slug === activeKitabSlug)
     ) {
-      const isKawsar = kitabSlug === 'mujam-al-kawsar';
+      const isKawsar = activeKitabSlug === 'mujam-al-kawsar';
       const bName = isKawsar ? "মু'জামুল কাউসার" : "আল-মু'জামুল ওয়াফী";
       const bNameAr = isKawsar ? 'معجم الكوثر' : 'المعجم الوافي';
       const gloss = wordTranslation || extractedLemma || cleanRoot;
@@ -1329,7 +1375,7 @@ class QuranService {
         id: isKawsar ? 20 : 21,
         kitab_name_arabic: bNameAr,
         kitab_name_bangla: bName,
-        kitab_slug: kitabSlug,
+        kitab_slug: activeKitabSlug,
         root: cleanRoot,
         title: cleanRoot,
         content: `[${cleanRoot}] (${extractedPos || 'اسم / فعل'}):\n${gloss ? `• অর্থ ও প্রয়োগ: ${gloss}\n` : ''}${extractedLemma ? `• মূল রূপ (صيغة): ${extractedLemma}\n` : ''}• ব্যুৎপত্তি: কুরআনের এই শব্দমূল থেকে বিভিন্ন আয়াতে গভীর অর্থ ব্যবহৃত হয়েছে।`,

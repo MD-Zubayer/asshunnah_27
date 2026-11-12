@@ -41,7 +41,7 @@ class WordLughatView(APIView):
         ayah = request.query_params.get('ayah')
         position = request.query_params.get('position')
         root_query = request.query_params.get('root', '').strip()
-        kitab_slug = request.query_params.get('kitab_slug', '').strip()
+        kitab_slug = (request.query_params.get('kitab_slug') or request.query_params.get('kitab') or '').strip()
 
         word_obj = None
         target_root = root_query
