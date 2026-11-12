@@ -232,6 +232,14 @@ export default function DiaryDetailScreen() {
 
         <View style={styles.actionGroup}>
           <TouchableOpacity
+            onPress={() => router.push('/create-diary')}
+            style={[styles.iconBtn, { backgroundColor: '#05966918', borderColor: '#05966940', borderWidth: 1 }]}
+            accessibilityLabel="নতুন ডায়েরি লিখুন"
+          >
+            <Ionicons name="add" size={20} color="#059669" />
+          </TouchableOpacity>
+
+          <TouchableOpacity
             onPress={() => setShowFontSwitchModal(true)}
             style={[styles.iconBtn, { backgroundColor: colors.inputBg }]}
           >
@@ -275,6 +283,22 @@ export default function DiaryDetailScreen() {
       ) : (
         <View style={styles.emptyBox}>
           <Text style={[styles.emptyText, { color: colors.textSecondary }]}>কোনো ডায়েরি পৃষ্ঠা পাওয়া যায়নি</Text>
+          <TouchableOpacity
+            onPress={() => router.push('/create-diary')}
+            style={{
+              marginTop: 14,
+              backgroundColor: colors.primary,
+              paddingHorizontal: 16,
+              paddingVertical: 10,
+              borderRadius: 8,
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 6,
+            }}
+          >
+            <Ionicons name="add-circle-outline" size={18} color="#FFFFFF" />
+            <Text style={{ color: '#FFFFFF', fontWeight: 'bold' }}>নতুন ডায়েরি লিখুন</Text>
+          </TouchableOpacity>
         </View>
       )}
 

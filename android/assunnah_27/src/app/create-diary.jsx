@@ -30,7 +30,6 @@ import { Colors } from '../constants/theme';
 import diaryService from '../services/diary-service';
 import { useAuth } from '../context/AuthContext';
 import PhysicalDiaryPage from '../components/PhysicalDiaryPage';
-import PhysicalDiarySpread from '../components/PhysicalDiarySpread';
 import {
   DIARY_FONTS,
   PAPER_THEMES,
@@ -352,32 +351,6 @@ export default function CreateDiaryScreen() {
       {/* Quick Paper & Font Toolbar */}
       <View style={[styles.toolbarStrip, { backgroundColor: colors.card, borderBottomColor: colors.cardBorder }]}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.toolbarScroll}>
-          {/* 2-Part Spread vs Focus Mode Toggle */}
-          <TouchableOpacity
-            onPress={() => setViewMode((v) => (v === 'spread' ? 'focus-right' : 'spread'))}
-            style={[
-              styles.toolChip,
-              {
-                backgroundColor: viewMode === 'spread' ? '#D9770618' : '#2563EB18',
-                borderColor: viewMode === 'spread' ? '#D9770640' : '#2563EB40',
-              },
-            ]}
-          >
-            <Ionicons
-              name={viewMode === 'spread' ? 'albums-outline' : 'scan-outline'}
-              size={14}
-              color={viewMode === 'spread' ? '#D97706' : '#2563EB'}
-            />
-            <Text
-              style={[
-                styles.toolChipText,
-                { color: viewMode === 'spread' ? '#D97706' : '#2563EB' },
-              ]}
-            >
-              {viewMode === 'spread' ? '২ পার্ট খোলা খাতা' : 'ফোকাস পাতা'}
-            </Text>
-          </TouchableOpacity>
-
           {/* 3D Page Turn Button */}
           <TouchableOpacity
             onPress={flipPageCurl}
@@ -475,23 +448,17 @@ export default function CreateDiaryScreen() {
         keyboardShouldPersistTaps="handled"
       >
         <Animated.View style={flipAnimatedStyle}>
-          <PhysicalDiarySpread
+          <PhysicalDiaryPage
             entry={draftEntry}
             pageNumber={params?.page_number ? Number(params.page_number) : 1}
             mode="edit"
-            viewMode={viewMode}
             fontSize={fontSize}
             onChangeTitle={setTitle}
             onChangeContent={setContent}
-            onChangeReflection={setReflection}
             onTogglePin={() => setIsPinned((p) => !p)}
             onPressDate={() => setShowDatePicker(true)}
             contentInputRef={contentInputRef}
             onSelectionChange={(e) => setSelection(e.nativeEvent.selection)}
-            onToggleViewMode={() => setViewMode((v) => (v === 'spread' ? 'focus-right' : 'spread'))}
-            onFlipNext={flipPageCurl}
-            onFlipPrev={flipPageCurl}
-            hasNextSpread={true}
           />
         </Animated.View>
 

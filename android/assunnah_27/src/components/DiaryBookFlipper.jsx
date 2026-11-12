@@ -22,7 +22,6 @@ import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import PhysicalDiaryPage from './PhysicalDiaryPage';
-import PhysicalDiarySpread from './PhysicalDiarySpread';
 import { toBanglaDigits, getFullDiaryDateMeta } from '../utils/diaryDate';
 import { getPaperTheme } from '../constants/diaryThemes';
 
@@ -65,7 +64,6 @@ export default function DiaryBookFlipper({
   );
   const [underIndex, setUnderIndex] = useState(currentIndex);
   const [isFlipping, setIsFlipping] = useState(false);
-  const [isSpreadView, setIsSpreadView] = useState(true);
   const [showIndexModal, setShowIndexModal] = useState(false);
   const [scrubberPreviewIdx, setScrubberPreviewIdx] = useState(null);
   const [scrubberWidth, setScrubberWidth] = useState(PAGE_WIDTH - 40);
@@ -348,58 +346,29 @@ export default function DiaryBookFlipper({
       <View style={styles.stage}>
         {/* Underneath Target Page (Always mounted at bottom layer to reveal during curl) */}
         <Animated.View pointerEvents="none" style={[styles.underPageLayer, underPageStyle]}>
-          {isSpreadView ? (
-            <PhysicalDiarySpread
-              entry={parseDiaryEntry(underEntry)}
-              pageNumber={underIndex + 1}
-              totalPages={entries.length}
-              mode="read"
-              viewMode="spread"
-              fontSize={fontSize}
-            />
-          ) : (
-            <PhysicalDiaryPage
-              entry={underEntry}
-              pageNumber={underIndex + 1}
-              totalPages={entries.length}
-              mode="read"
-              fontSize={fontSize}
-              scrollEnabled={false}
-            />
-          )}
+          <PhysicalDiaryPage
+            entry={underEntry}
+            pageNumber={underIndex + 1}
+            totalPages={entries.length}
+            mode="read"
+            fontSize={fontSize}
+            scrollEnabled={false}
+          />
         </Animated.View>
 
         {/* Active Top Page with Swipe-to-Flip Gesture */}
         <GestureDetector gesture={panGesture}>
           <Animated.View style={[styles.topPageLayer, topPageAnimatedStyle]}>
-            {isSpreadView ? (
-              <PhysicalDiarySpread
-                entry={parseDiaryEntry(activeEntry)}
-                pageNumber={currentIndex + 1}
-                totalPages={entries.length}
-                mode="read"
-                viewMode="spread"
-                fontSize={fontSize}
-                onTogglePin={() => onTogglePin?.(activeEntry)}
-                onToggleChecklistLine={(lineIdx) => onToggleChecklistLine?.(activeEntry, lineIdx)}
-                onToggleViewMode={() => setIsSpreadView((v) => !v)}
-                onFlipNext={() => flipSinglePage('next')}
-                onFlipPrev={() => flipSinglePage('prev')}
-                hasNextSpread={currentIndex < entries.length - 1}
-                hasPrevSpread={currentIndex > 0}
-              />
-            ) : (
-              <PhysicalDiaryPage
-                entry={activeEntry}
-                pageNumber={currentIndex + 1}
-                totalPages={entries.length}
-                mode="read"
-                fontSize={fontSize}
-                scrollEnabled={true}
-                onTogglePin={() => onTogglePin?.(activeEntry)}
-                onToggleChecklistLine={(lineIdx) => onToggleChecklistLine?.(activeEntry, lineIdx)}
-              />
-            )}
+            <PhysicalDiaryPage
+              entry={activeEntry}
+              pageNumber={currentIndex + 1}
+              totalPages={entries.length}
+              mode="read"
+              fontSize={fontSize}
+              scrollEnabled={true}
+              onTogglePin={() => onTogglePin?.(activeEntry)}
+              onToggleChecklistLine={(lineIdx) => onToggleChecklistLine?.(activeEntry, lineIdx)}
+            />
             {/* Dynamic Fold Shadow */}
             <Animated.View pointerEvents="none" style={[styles.curlShadowOverlay, curlShadowStyle]} />
           </Animated.View>
@@ -499,31 +468,6 @@ export default function DiaryBookFlipper({
             <Ionicons name="list-outline" size={14} color={activeTheme.accentColor} />
             <Text style={[styles.indexPillText, { color: activeTheme.accentColor }]}>
               {toBanglaDigits(currentIndex + 1)} / {toBanglaDigits(entries.length)}
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            onPress={() => setIsSpreadView((v) => !v)}
-            style={[
-              styles.indexPill,
-              {
-                backgroundColor: isSpreadView ? '#D9770615' : '#2563EB15',
-                borderColor: isSpreadView ? '#D9770640' : '#2563EB40',
-              },
-            ]}
-          >
-            <Ionicons
-              name={isSpreadView ? 'albums-outline' : 'scan-outline'}
-              size={13}
-              color={isSpreadView ? '#D97706' : '#2563EB'}
-            />
-            <Text
-              style={[
-                styles.indexPillText,
-                { color: isSpreadView ? '#D97706' : '#2563EB' },
-              ]}
-            >
-              {isSpreadView ? '২ পার্ট' : '১ পাতা'}
             </Text>
           </TouchableOpacity>
 
