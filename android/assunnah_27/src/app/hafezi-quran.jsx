@@ -755,17 +755,25 @@ export default function HafeziQuranScreen() {
                     { color: readingTheme === 'night' ? '#10B981' : '#047857' },
                   ]}
                   numberOfLines={1}
+                  ellipsizeMode="tail"
                 >
                   {pageInfo.surah.nameBangla} ({pageInfo.surah.nameArabic})
                 </Text>
                 <Ionicons
                   name="chevron-down"
-                  size={14}
+                  size={12}
                   color={readingTheme === 'night' ? '#9CA3AF' : '#6B7280'}
                 />
               </View>
-              <Text style={styles.headerParaText}>
-                পারা {toBn(pageInfo.para.id)}: {pageInfo.para.bangla} • পৃষ্ঠা {toBn(currentPage)}
+              <Text
+                style={[
+                  styles.headerParaText,
+                  { color: readingTheme === 'night' ? '#9CA3AF' : '#6B7280' },
+                ]}
+                numberOfLines={1}
+                ellipsizeMode="tail"
+              >
+                পারা {toBn(pageInfo.para.id)} • পৃষ্ঠা {toBn(currentPage)}
               </Text>
             </TouchableOpacity>
 
@@ -780,9 +788,26 @@ export default function HafeziQuranScreen() {
               >
                 <Ionicons
                   name={isCurrentPageBookmarked ? 'bookmark' : 'bookmark-outline'}
-                  size={20}
+                  size={18}
                   color={isCurrentPageBookmarked ? '#D97706' : readingTheme === 'night' ? '#E5E7EB' : '#4B5563'}
                 />
+              </TouchableOpacity>
+
+              {/* Ayah Study & Tafsir Drawer */}
+              <TouchableOpacity
+                style={[
+                  styles.iconBtn,
+                  {
+                    backgroundColor: readingTheme === 'night' ? '#064E3B' : '#ECFDF5',
+                  },
+                ]}
+                onPress={() => {
+                  setStudyInitialTab('translation');
+                  setShowStudySheet(true);
+                }}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="book-outline" size={18} color="#059669" />
               </TouchableOpacity>
 
               {/* Theme Toggle (Day / Night / Sepia) */}
@@ -802,7 +827,7 @@ export default function HafeziQuranScreen() {
                         ? 'book-open-page-variant'
                         : 'white-balance-sunny'
                   }
-                  size={20}
+                  size={18}
                   color={
                     readingTheme === 'night'
                       ? '#FBBF24'
@@ -813,29 +838,11 @@ export default function HafeziQuranScreen() {
                 />
               </TouchableOpacity>
 
-              {/* Ayah Study & Lughat Drawer */}
-              <TouchableOpacity
-                style={[
-                  styles.iconBtn,
-                  {
-                    backgroundColor: readingTheme === 'night' ? '#064E3B' : '#ECFDF5',
-                    borderRadius: 8,
-                    paddingHorizontal: 8,
-                  },
-                ]}
-                onPress={() => {
-                  setStudyInitialTab('translation');
-                  setShowStudySheet(true);
-                }}
-              >
-                <Ionicons name="book-outline" size={18} color="#059669" />
-              </TouchableOpacity>
-
               {/* Index & Menu */}
               <TouchableOpacity style={styles.iconBtn} onPress={() => setShowIndexModal(true)}>
                 <Ionicons
                   name="list"
-                  size={22}
+                  size={20}
                   color={readingTheme === 'night' ? '#F3F4F6' : '#1F2937'}
                 />
               </TouchableOpacity>
@@ -899,69 +906,19 @@ export default function HafeziQuranScreen() {
         </TouchableOpacity>
       )}
 
-      {/* Bottom Floating Navigation Bar */}
+      {/* Bottom Floating Navigation Bar (Clean & Compact - Does not cover Quran text) */}
       {!fullscreen && (
         <Animated.View
           style={[
             styles.bottomBar,
             {
-              paddingBottom: Math.max(insets.bottom, 12),
+              paddingBottom: Math.max(insets.bottom, 10),
               backgroundColor: readingTheme === 'night' ? '#1E1E1E' : '#FFFFFF',
               borderTopColor: readingTheme === 'night' ? '#333333' : '#E5E7EB',
               opacity: toolbarOpacity,
             },
           ]}
         >
-          {/* Study Ayah & Tahqeeq Trigger Row */}
-          <View style={styles.studyTriggerRow}>
-            <TouchableOpacity
-              style={[
-                styles.studyTriggerBar,
-                {
-                  backgroundColor: readingTheme === 'night' ? '#064E3B' : '#ECFDF5',
-                  borderColor: readingTheme === 'night' ? '#047857' : '#A7F3D0',
-                },
-              ]}
-              onPress={() => {
-                setStudyInitialTab('translation');
-                setShowStudySheet(true);
-              }}
-              activeOpacity={0.8}
-            >
-              <View style={styles.studyTriggerInner}>
-                <Ionicons name="book-outline" size={15} color="#059669" />
-                <Text
-                  style={[
-                    styles.studyTriggerText,
-                    { color: readingTheme === 'night' ? '#A7F3D0' : '#065F46' },
-                  ]}
-                  numberOfLines={1}
-                >
-                  তরজমা • তাফসীর • তাহকীক
-                </Text>
-              </View>
-              <Ionicons name="chevron-up" size={16} color="#059669" />
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[
-                styles.gestureSettingsBtn,
-                {
-                  backgroundColor: readingTheme === 'night' ? '#1E293B' : '#F1F5F9',
-                  borderColor: readingTheme === 'night' ? '#334155' : '#E2E8F0',
-                },
-              ]}
-              onPress={() => setShowGestureSettingsModal(true)}
-              activeOpacity={0.7}
-            >
-              <Ionicons
-                name="hand-right-outline"
-                size={16}
-                color={readingTheme === 'night' ? '#9CA3AF' : '#4B5563'}
-              />
-            </TouchableOpacity>
-          </View>
-
           {/* 1. Para Horizontal Fast Selector */}
           <View style={styles.paraScrollViewWrapper}>
             <ScrollView
@@ -2132,29 +2089,33 @@ const styles = StyleSheet.create({
   topBarContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingBottom: 8,
-    gap: 8,
+    paddingHorizontal: 8,
+    paddingBottom: 6,
+    gap: 4,
   },
   iconBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 10,
+    width: 34,
+    height: 34,
+    borderRadius: 8,
     justifyContent: 'center',
     alignItems: 'center',
   },
   headerInfoBox: {
     flex: 1,
-    paddingHorizontal: 6,
+    minWidth: 0,
+    justifyContent: 'center',
+    paddingHorizontal: 4,
   },
   headerInfoTopRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
+    minWidth: 0,
   },
   headerSurahText: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '700',
+    flexShrink: 1,
   },
   headerParaText: {
     fontSize: 11,

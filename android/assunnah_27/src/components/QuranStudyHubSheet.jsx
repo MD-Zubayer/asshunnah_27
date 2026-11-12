@@ -16,7 +16,7 @@ import * as Clipboard from 'expo-clipboard';
 import { Colors } from '../constants/theme';
 import { getQuranPageInfo } from '../data/quranIndex';
 import { getRootForWord } from '../data/quranWordRoots';
-import quranService, { DEFAULT_KITABS } from '../services/quranService';
+import quranService, { DEFAULT_KITABS, getKitabCitationReference } from '../services/quranService';
 import quranWordMorphMap from '../data/quranWordMorphMap.json';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -169,6 +169,7 @@ export default function QuranStudyHubSheet({
   const [activeTafsirSlug, setActiveTafsirSlug] = useState('tafsir-ibn-kathir');
   const [activeLughatSlug, setActiveLughatSlug] = useState('al-mujam-al-waseet');
   const [tafsirFontSize, setTafsirFontSize] = useState(16);
+  const [isAyahExpanded, setIsAyahExpanded] = useState(false);
 
   // Dynamic Ayahs for the current page
   const [pageData, setPageData] = useState(null);
@@ -185,6 +186,8 @@ export default function QuranStudyHubSheet({
   const [loadingLughat, setLoadingLughat] = useState(false);
 
   const [copiedToast, setCopiedToast] = useState(false);
+  const [copiedCiteToast, setCopiedCiteToast] = useState(false);
+  const [copiedTransCiteToast, setCopiedTransCiteToast] = useState(false);
 
   // Sync initial tab when opening
   useEffect(() => {
@@ -251,6 +254,10 @@ export default function QuranStudyHubSheet({
     if (!currentAyah || !currentAyah.arabic) return [];
     return currentAyah.arabic.split(/\s+/).filter(Boolean);
   }, [currentAyah]);
+
+  const isLongAyah = useMemo(() => {
+    return (currentAyah?.arabic || '').length > 80;
+  }, [currentAyah?.arabic]);
 
   // Fetch Ayah Study Details (Translations + Tafsirs) whenever selectedAyahNumber changes
   useEffect(() => {
@@ -350,6 +357,32 @@ export default function QuranStudyHubSheet({
     return 'প্রামাণ্য তাফসীর প্রস্তুত হচ্ছে...';
   };
 
+  const activeTafsirRef = useMemo(() => {
+    return getKitabCitationReference(activeTafsirSlug, currentSurahId, selectedAyahNumber, currentPage);
+  }, [activeTafsirSlug, currentSurahId, selectedAyahNumber, currentPage]);
+
+  const activeTransRef = useMemo(() => {
+    return getKitabCitationReference(activeTransSlug, currentSurahId, selectedAyahNumber, currentPage);
+  }, [activeTransSlug, currentSurahId, selectedAyahNumber, currentPage]);
+
+  const handleCopyTafsirWithCitation = async () => {
+    const rawTafsir = getActiveTafsirText().replace(/<[^>]+>/g, '').trim();
+    const ref = activeTafsirRef?.fullCitation || 'تفسير القرآن الكريم';
+    const textToCopy = `﴿${currentAyah.arabic}﴾\n[সূরা ${pageInfo.surah.nameBangla}, আয়াত: ${toBn(currentAyah.number)}]\n\nতাফসীর:\n${rawTafsir}\n\n— রেফারেন্স: ${ref}\n[সংগ্রহ: জামিয়া ইসলামিয়া ইমদাদিয়া কুরআন অ্যাপ]`;
+    await Clipboard.setStringAsync(textToCopy);
+    setCopiedCiteToast(true);
+    setTimeout(() => setCopiedCiteToast(false), 2000);
+  };
+
+  const handleCopyTranslationWithCitation = async () => {
+    const trans = getActiveTranslationText();
+    const ref = activeTransRef?.fullCitation || 'কুরআনুল কারীম বাংলা অনুবাদ';
+    const textToCopy = `﴿${currentAyah.arabic}﴾\n[সূরা ${pageInfo.surah.nameBangla}, আয়াত: ${toBn(currentAyah.number)}]\n\nঅনুবাদ:\n"${trans}"\n\n— রেফারেন্স: ${ref}\n[সংগ্রহ: জামিয়া ইসলামিয়া ইমদাদিয়া কুরআন অ্যাপ]`;
+    await Clipboard.setStringAsync(textToCopy);
+    setCopiedTransCiteToast(true);
+    setTimeout(() => setCopiedTransCiteToast(false), 2000);
+  };
+
   const handleCopyAyah = async () => {
     const textToCopy = `﴿${currentAyah.arabic}﴾\n\n[সূরা ${pageInfo.surah.nameBangla}, আয়াত: ${toBn(currentAyah.number)}]\n\nঅনুবাদ: ${getActiveTranslationText()}`;
     await Clipboard.setStringAsync(textToCopy);
@@ -376,11 +409,19 @@ export default function QuranStudyHubSheet({
                 <View style={styles.pagePill}>
                   <Text style={styles.pagePillText}>পৃষ্ঠা {toBn(currentPage)}</Text>
                 </View>
-                <View>
-                  <Text style={[styles.surahTitle, { color: colors.text }]}>
+                <View style={styles.headerTitleWrap}>
+                  <Text
+                    style={[styles.surahTitle, { color: colors.text }]}
+                    numberOfLines={1}
+                    ellipsizeMode="tail"
+                  >
                     {pageInfo.surah.nameBangla} ({pageInfo.surah.nameArabic})
                   </Text>
-                  <Text style={styles.paraSubtitle}>
+                  <Text
+                    style={styles.paraSubtitle}
+                    numberOfLines={1}
+                    ellipsizeMode="tail"
+                  >
                     পারা {toBn(pageInfo.para.id)} • {pageInfo.para.bangla}
                   </Text>
                 </View>
@@ -414,13 +455,14 @@ export default function QuranStudyHubSheet({
                         backgroundColor: isActive
                           ? '#059669'
                           : isDark
-                          ? '#334155'
-                          : '#F1F5F9',
+                            ? '#334155'
+                            : '#F1F5F9',
                       },
                     ]}
                     onPress={() => {
                       setSelectedAyahNumber(item.number);
                       setSelectedWordIndex(0);
+                      setIsAyahExpanded(false);
                     }}
                   >
                     <Text
@@ -437,7 +479,7 @@ export default function QuranStudyHubSheet({
             </ScrollView>
           </View>
 
-          {/* Selected Ayah Arabic Banner Card */}
+          {/* Selected Ayah Arabic Banner Card (Smart Compact & Expandable) */}
           <View
             style={[
               styles.arabicBanner,
@@ -448,10 +490,44 @@ export default function QuranStudyHubSheet({
             ]}
           >
             <View style={styles.arabicBannerTop}>
-              <View style={styles.ayahNumberCircle}>
-                <Text style={styles.ayahNumberCircleText}>{toBn(currentAyah.number)}</Text>
+              <View style={styles.ayahBannerHeaderLeft}>
+                <View style={styles.ayahNumberCircle}>
+                  <Text style={styles.ayahNumberCircleText}>{toBn(currentAyah.number)}</Text>
+                </View>
+                <Text style={[styles.ayahHeaderLabel, { color: isDark ? '#94A3B8' : '#64748B' }]}>
+                  আয়াত {toBn(currentAyah.number)}
+                </Text>
               </View>
+
               <View style={styles.actionIconsRow}>
+                {isLongAyah && (
+                  <TouchableOpacity
+                    style={[
+                      styles.expandAyahPill,
+                      {
+                        backgroundColor: isDark ? '#1E293B' : '#E2E8F0',
+                        borderColor: isDark ? '#334155' : '#CBD5E1',
+                      },
+                    ]}
+                    onPress={() => setIsAyahExpanded((prev) => !prev)}
+                    activeOpacity={0.7}
+                  >
+                    <Ionicons
+                      name={isAyahExpanded ? 'chevron-up' : 'chevron-down'}
+                      size={12}
+                      color={isDark ? '#34D399' : '#059669'}
+                    />
+                    <Text
+                      style={[
+                        styles.expandAyahPillText,
+                        { color: isDark ? '#34D399' : '#059669' },
+                      ]}
+                    >
+                      {isAyahExpanded ? 'সংক্ষেপ' : 'সম্পূর্ণ আয়াত'}
+                    </Text>
+                  </TouchableOpacity>
+                )}
+
                 <TouchableOpacity style={styles.actionBtn} onPress={handleCopyAyah}>
                   <Ionicons
                     name={copiedToast ? 'checkmark-circle' : 'copy-outline'}
@@ -465,9 +541,32 @@ export default function QuranStudyHubSheet({
               </View>
             </View>
 
-            <Text style={[styles.ayahArabicText, { color: isDark ? '#F1F5F9' : '#047857' }]}>
-              {currentAyah.arabic}
-            </Text>
+            {isLongAyah && isAyahExpanded ? (
+              <ScrollView
+                style={styles.expandedAyahScroll}
+                nestedScrollEnabled={true}
+                showsVerticalScrollIndicator={true}
+              >
+                <Text style={[styles.ayahArabicText, { color: isDark ? '#F1F5F9' : '#047857' }]}>
+                  {currentAyah.arabic}
+                </Text>
+              </ScrollView>
+            ) : (
+              <Text
+                style={[
+                  styles.ayahArabicText,
+                  {
+                    color: isDark ? '#F1F5F9' : '#047857',
+                    fontSize: isLongAyah ? 17 : 19,
+                    lineHeight: isLongAyah ? 28 : 34,
+                  },
+                ]}
+                numberOfLines={isLongAyah ? 2 : undefined}
+                ellipsizeMode={isLongAyah ? 'tail' : undefined}
+              >
+                {currentAyah.arabic}
+              </Text>
+            )}
           </View>
 
           {/* Main 3 Navigation Tabs (Responsive & Pure Islamic Design) */}
@@ -531,8 +630,8 @@ export default function QuranStudyHubSheet({
                           backgroundColor: isSel
                             ? 'rgba(5, 150, 105, 0.12)'
                             : isDark
-                            ? '#334155'
-                            : '#F1F5F9',
+                              ? '#334155'
+                              : '#F1F5F9',
                           borderColor: isSel ? '#059669' : 'transparent',
                         },
                       ]}
@@ -562,12 +661,54 @@ export default function QuranStudyHubSheet({
                 ]}
               >
                 <View style={styles.translationCardHeader}>
-                  <Text style={[styles.translatorName, { color: '#059669' }]}>
-                    {transKitabs.find((k) => k.slug === activeTransSlug)?.name_bangla || 'বিশুদ্ধ বাংলা তরজমা'}
-                  </Text>
-                  <Text style={styles.translatorAuthor}>
-                    {transKitabs.find((k) => k.slug === activeTransSlug)?.description || ''}
-                  </Text>
+                  <View style={styles.headerTitleRow}>
+                    <View style={{ flex: 1, paddingRight: 8 }}>
+                      <Text style={[styles.translatorName, { color: '#059669' }]}>
+                        {transKitabs.find((k) => k.slug === activeTransSlug)?.name_bangla || 'বিশুদ্ধ বাংলা তরজমা'}
+                      </Text>
+                      <Text style={styles.translatorAuthor} numberOfLines={1}>
+                        {transKitabs.find((k) => k.slug === activeTransSlug)?.description || ''}
+                      </Text>
+                    </View>
+
+                    <TouchableOpacity
+                      style={styles.citeCopyBtn}
+                      onPress={handleCopyTranslationWithCitation}
+                      activeOpacity={0.7}
+                    >
+                      <Ionicons
+                        name={copiedTransCiteToast ? 'checkmark-circle' : 'newspaper-outline'}
+                        size={14}
+                        color={copiedTransCiteToast ? '#059669' : colors.textMuted}
+                      />
+                      <Text style={[styles.citeCopyBtnText, { color: copiedTransCiteToast ? '#059669' : colors.textMuted }]}>
+                        {copiedTransCiteToast ? 'কপি হয়েছে' : 'রেফারেন্সসহ কপি'}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+
+                  {/* Publication Reference Tag */}
+                  {activeTransRef ? (
+                    <View
+                      style={[
+                        styles.referenceBadgeRow,
+                        {
+                          backgroundColor: isDark ? '#1E293B' : '#F1F5F9',
+                          borderColor: isDark ? '#334155' : '#E2E8F0',
+                        },
+                      ]}
+                    >
+                      <Ionicons name="book-outline" size={12} color="#059669" />
+                      <Text style={[styles.referenceBadgeText, { color: isDark ? '#E2E8F0' : '#374151' }]} numberOfLines={1}>
+                        {activeTransRef.badgeText}
+                      </Text>
+                      {activeTransRef.edition ? (
+                        <Text style={[styles.referenceBadgeSub, { color: colors.textMuted }]} numberOfLines={1}>
+                          • {activeTransRef.edition}
+                        </Text>
+                      ) : null}
+                    </View>
+                  ) : null}
                 </View>
 
                 {loadingAyah ? (
@@ -637,8 +778,8 @@ export default function QuranStudyHubSheet({
                           backgroundColor: isSel
                             ? 'rgba(5, 150, 105, 0.12)'
                             : isDark
-                            ? '#334155'
-                            : '#F1F5F9',
+                              ? '#334155'
+                              : '#F1F5F9',
                           borderColor: isSel ? '#059669' : 'transparent',
                         },
                       ]}
@@ -688,12 +829,54 @@ export default function QuranStudyHubSheet({
                 ]}
               >
                 <View style={styles.tafsirCardHeader}>
-                  <Text style={[styles.tafsirKitabArabic, { color: '#059669' }]}>
-                    {tafsirKitabs.find((k) => k.slug === activeTafsirSlug)?.name_arabic}
-                  </Text>
-                  <Text style={[styles.tafsirAuthorName, { color: colors.textMuted }]}>
-                    {tafsirKitabs.find((k) => k.slug === activeTafsirSlug)?.author}
-                  </Text>
+                  <View style={styles.headerTitleRow}>
+                    <View style={{ flex: 1, paddingRight: 8 }}>
+                      <Text style={[styles.tafsirKitabArabic, { color: '#059669' }]}>
+                        {tafsirKitabs.find((k) => k.slug === activeTafsirSlug)?.name_arabic}
+                      </Text>
+                      <Text style={[styles.tafsirAuthorName, { color: colors.textMuted }]} numberOfLines={1}>
+                        {tafsirKitabs.find((k) => k.slug === activeTafsirSlug)?.author}
+                      </Text>
+                    </View>
+
+                    <TouchableOpacity
+                      style={styles.citeCopyBtn}
+                      onPress={handleCopyTafsirWithCitation}
+                      activeOpacity={0.7}
+                    >
+                      <Ionicons
+                        name={copiedCiteToast ? 'checkmark-circle' : 'newspaper-outline'}
+                        size={14}
+                        color={copiedCiteToast ? '#059669' : colors.textMuted}
+                      />
+                      <Text style={[styles.citeCopyBtnText, { color: copiedCiteToast ? '#059669' : colors.textMuted }]}>
+                        {copiedCiteToast ? 'কপি হয়েছে' : 'রেফারেন্সসহ কপি'}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+
+                  {/* Publication & Volume/Page Reference Badge */}
+                  {activeTafsirRef ? (
+                    <View
+                      style={[
+                        styles.referenceBadgeRow,
+                        {
+                          backgroundColor: isDark ? '#064E3B20' : '#ECFDF5',
+                          borderColor: isDark ? '#047857' : '#A7F3D0',
+                        },
+                      ]}
+                    >
+                      <Ionicons name="bookmark-outline" size={12} color="#059669" />
+                      <Text style={[styles.referenceBadgeText, { color: isDark ? '#6EE7B7' : '#065F46' }]} numberOfLines={1}>
+                        {activeTafsirRef.badgeText}
+                      </Text>
+                      {activeTafsirRef.investigator ? (
+                        <Text style={[styles.referenceBadgeSub, { color: colors.textMuted }]} numberOfLines={1}>
+                          • {activeTafsirRef.investigator}
+                        </Text>
+                      ) : null}
+                    </View>
+                  ) : null}
                 </View>
 
                 {loadingAyah ? (
@@ -790,8 +973,8 @@ export default function QuranStudyHubSheet({
                           backgroundColor: isSelWord
                             ? '#059669'
                             : isDark
-                            ? '#334155'
-                            : '#FFFFFF',
+                              ? '#334155'
+                              : '#FFFFFF',
                           borderColor: isSelWord ? '#047857' : isDark ? '#475569' : '#CBD5E1',
                         },
                       ]}
@@ -888,8 +1071,8 @@ export default function QuranStudyHubSheet({
                               backgroundColor: isSel
                                 ? 'rgba(2, 132, 199, 0.12)'
                                 : isDark
-                                ? '#334155'
-                                : '#F1F5F9',
+                                  ? '#334155'
+                                  : '#F1F5F9',
                               borderColor: isSel ? '#0284C7' : 'transparent',
                             },
                           ]}
@@ -982,9 +1165,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   headerLeft: {
+    flex: 1,
+    minWidth: 0,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 10,
+  },
+  headerTitleWrap: {
+    flex: 1,
+    minWidth: 0,
   },
   pagePill: {
     backgroundColor: '#059669',
@@ -995,10 +1184,10 @@ const styles = StyleSheet.create({
   pagePillText: {
     color: '#FFFFFF',
     fontWeight: '700',
-    fontSize: 13,
+    fontSize: 12,
   },
   surahTitle: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '700',
   },
   paraSubtitle: {
@@ -1041,8 +1230,8 @@ const styles = StyleSheet.create({
   arabicBanner: {
     marginHorizontal: 16,
     marginTop: 6,
-    marginBottom: 8,
-    padding: 12,
+    marginBottom: 6,
+    padding: 10,
     borderRadius: 14,
     borderWidth: 1,
   },
@@ -1050,7 +1239,32 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 6,
+    marginBottom: 4,
+  },
+  ayahBannerHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  ayahHeaderLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  expandAyahPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  expandAyahPillText: {
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  expandedAyahScroll: {
+    maxHeight: 140,
   },
   ayahNumberCircle: {
     width: 24,
@@ -1131,6 +1345,45 @@ const styles = StyleSheet.create({
   },
   translationCardHeader: {
     marginBottom: 8,
+  },
+  headerTitleRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+  },
+  citeCopyBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    backgroundColor: 'rgba(0,0,0,0.02)',
+  },
+  citeCopyBtnText: {
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  referenceBadgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    borderWidth: 0.8,
+    marginTop: 6,
+    alignSelf: 'flex-start',
+  },
+  referenceBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+    fontFamily: 'serif',
+  },
+  referenceBadgeSub: {
+    fontSize: 10,
   },
   translatorName: {
     fontSize: 14,

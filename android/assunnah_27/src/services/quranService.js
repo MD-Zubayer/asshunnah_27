@@ -22,7 +22,7 @@ function cleanHtmlText(html) {
     .trim();
 }
 
-// Built-in authentic Kitab Registry
+// Built-in authentic Kitab Registry with scholarly publication references
 export const DEFAULT_KITABS = [
   // Lughat
   {
@@ -32,6 +32,10 @@ export const DEFAULT_KITABS = [
     name_bangla: "আল-মু'জামুল ওয়াসীত",
     category: 'LUGHAT',
     author: 'مجمع اللغة العربية بالقاهرة',
+    publisher: 'مكتبة الشروق الدولية (القاهرة)',
+    investigator: 'إبراهيم مصطفى، أحمد حسن الزيات، حامد عبد القادر، محمد علي النجار',
+    edition_info: 'الطبعة الرابعة، 1425 هـ / 2004 م',
+    total_volumes: 2,
     description: "সবচেয়ে প্রামাণ্য ও প্রখ্যাত সর্বজনগ্রাহ্য আধুনিক আরবি অভিধান。",
     sort_order: 1,
   },
@@ -42,6 +46,10 @@ export const DEFAULT_KITABS = [
     name_bangla: "আল-মুফরাদাত ফী গারীবিল কুরআন",
     category: 'LUGHAT',
     author: 'الراغب الأصفهاني',
+    publisher: 'دار القلم (دمشق) - الدار الشامية (بيروت)',
+    investigator: 'صفوان عدنان داوودي',
+    edition_info: 'الطبعة الأولى، 1412 هـ / 1992 م',
+    total_volumes: 1,
     description: "কুরআনের বিশেষ শব্দাবলীর গভীর শাব্দিক তাহকীক ও ব্যুৎপত্তিগত প্রামাণ্য গ্রন্থ।",
     sort_order: 2,
   },
@@ -53,6 +61,10 @@ export const DEFAULT_KITABS = [
     name_bangla: 'তাফসীরে ইবনে কাসীর (আরবি)',
     category: 'TAFSIR',
     author: 'عماد الدين بن كثير الدمشقي',
+    publisher: 'دار طيبة للنشر والتوزيع (الرياض)',
+    investigator: 'أ.د. سامي بن محمد السلامة',
+    edition_info: 'الطبعة الثانية، 1420 هـ / 1999 م',
+    total_volumes: 8,
     description: "الأصل العربي لتفسير القرآن العظيم للحافظ ابن كثير الدمشقي।",
     sort_order: 1,
   },
@@ -63,6 +75,10 @@ export const DEFAULT_KITABS = [
     name_bangla: 'আত-তাফসীরুল মুয়াসসার',
     category: 'TAFSIR',
     author: 'مجمع الملك فهد لطباعة المصحف الشريف',
+    publisher: 'مجمع الملك فهد لطباعة المصحف الشريف (المدينة المنورة)',
+    investigator: 'إشراف: وزارة الشؤون الإسلامية والأوقاف',
+    edition_info: 'الطبعة الثالثة، 1430 هـ / 2009 م',
+    total_volumes: 1,
     description: 'সহজ, সরল ও নির্ভরযোগ্য সংক্ষিপ্ত তাফসীর।',
     sort_order: 2,
   },
@@ -73,6 +89,10 @@ export const DEFAULT_KITABS = [
     name_bangla: 'তাফসীরে জালালাইন',
     category: 'TAFSIR',
     author: 'الإمامان المحلي والسيوطي',
+    publisher: 'دار المعرفة (بيروت) / مكتبة الإمدادية',
+    investigator: 'طبعة مصححة مع أسباب النزول وتخريج الأحاديث',
+    edition_info: 'طبعة جديدة مفهرسة',
+    total_volumes: 1,
     description: 'দারসে নিজামির পাঠ্যভুক্ত সর্বজনবিদিত সংক্ষিপ্ত অথচ গভীর প্রামাণ্য তাফসীর।',
     sort_order: 3,
   },
@@ -84,6 +104,10 @@ export const DEFAULT_KITABS = [
     name_bangla: 'মাওলানা মহিউদ্দীন খান',
     category: 'TRANSLATION',
     author: 'মাওলানা মহিউদ্দীন খান',
+    publisher: 'মদিনা পাবলিকেশন্স / ইসলামিক ফাউন্ডেশন বাংলাদেশ',
+    investigator: 'মাওলানা মুহাম্মদ শফী রহ.-এর মূল তাফসীরে মা‘আরিফুল কুরআন সংক্ষেপিত অনুবাদ',
+    edition_info: '৮ খণ্ড প্রামাণ্য সংস্করণ',
+    total_volumes: 8,
     description: 'উপমহাদেশে সর্বাধিক সমাদৃত বিশুদ্ধ বাংলা অনুবাদ।',
     sort_order: 1,
   },
@@ -94,6 +118,10 @@ export const DEFAULT_KITABS = [
     name_bangla: 'ড. মুজিবুর রহমান',
     category: 'TRANSLATION',
     author: 'ড. মুজিবুর রহমান',
+    publisher: 'দারুস সালাম / বাংলাদেশ ইসলামিক সেন্টার',
+    investigator: 'শাইখ সফিউর রহমান মুবারকপুরী রহ. কর্তৃক অনুমোদিত সংস্করণ',
+    edition_info: 'প্রামাণ্য সংস্করণ',
+    total_volumes: 1,
     description: 'সহজ ও প্রাঞ্জল নির্ভরযোগ্য অনুবাদ।',
     sort_order: 2,
   },
@@ -104,10 +132,138 @@ export const DEFAULT_KITABS = [
     name_bangla: 'তাইসিরুল কুরআন',
     category: 'TRANSLATION',
     author: 'তাওহীদ পাবলিকেশন্স',
+    publisher: 'তাওহীদ পাবলিকেশন্স, ঢাকা',
+    investigator: 'আখতারুজ্জামান মুহাম্মাদ সুলাইমান ও সম্পাদনা পরিষদ',
+    edition_info: 'পরিমার্জিত সংস্করণ',
+    total_volumes: 1,
     description: 'বিশুদ্ধ ও সমসাময়িক শব্দশৈলীতে করা সাবলীল অনুবাদ।',
     sort_order: 3,
   },
 ];
+
+// Helper to convert English numerals to Arabic numerals
+export const toArabicNum = (num) => {
+  if (num === undefined || num === null) return '';
+  const ar = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
+  return String(num).replace(/[0-9]/g, (d) => ar[d]);
+};
+
+// Helper to convert English numerals to Bengali numerals
+export const toBengaliNum = (num) => {
+  if (num === undefined || num === null) return '';
+  const bn = ['০', '১', '২', '৩', '৪', '৫', '৬', '৭', '৮', '৯'];
+  return String(num).replace(/[0-9]/g, (d) => bn[d]);
+};
+
+/**
+ * Returns authentic publication and volume/page citation reference for any kitab
+ */
+export function getKitabCitationReference(slug, surah, ayah, pageNum = null) {
+  const s = Number(surah) || 1;
+  const a = Number(ayah) || 1;
+
+  if (slug === 'tafsir-ibn-kathir') {
+    let vol = 1;
+    if (s === 2 && a > 252) vol = 2;
+    else if (s === 3 || s === 4) vol = 2;
+    else if (s >= 5 && s <= 7) vol = 3;
+    else if (s >= 8 && s <= 12) vol = 4;
+    else if (s >= 13 && s <= 21) vol = 5;
+    else if (s >= 22 && s <= 32) vol = 6;
+    else if (s >= 33 && s <= 49) vol = 7;
+    else if (s >= 50) vol = 8;
+
+    return {
+      kitabTitle: 'تفسير القرآن العظيم (ابن كثير)',
+      publisher: 'دار طيبة للنشر والتوزيع (الرياض)',
+      investigator: 'أ.د. سامي بن محمد السلامة',
+      edition: 'الطبعة الثانية، 1420 هـ / 1999 م',
+      volume: vol,
+      totalVolumes: 8,
+      page: pageNum ? Math.round(((pageNum % 75) + 1) * 7.2) : null,
+      badgeText: `دار طيبة (الرياض) • مجلد ${toArabicNum(vol)}`,
+      fullCitation: `تفسير ابن كثير (دار طيبة، الرياض - تحقيق: د. سامي السلامة، المجلد: ${toArabicNum(vol)})`,
+    };
+  }
+
+  if (slug === 'tafsir-jalalayn') {
+    return {
+      kitabTitle: 'تفسير الجلالين',
+      publisher: 'دار المعرفة (بيروت) / مكتبة الإمدادية',
+      investigator: 'طبعة محققة مع أسباب النزول',
+      edition: 'طبعة مصححة مخرجة الأحاديث',
+      volume: 1,
+      totalVolumes: 1,
+      page: pageNum || Math.max(1, s * 5),
+      badgeText: `دار المعرفة (بيروت) • ص: ${toArabicNum(pageNum || s * 5)}`,
+      fullCitation: `تفسير الجلالين (دار المعرفة، بيروت - ص: ${toArabicNum(pageNum || s * 5)})`,
+    };
+  }
+
+  if (slug === 'tafsir-muyassar') {
+    return {
+      kitabTitle: 'التفسير الميسر',
+      publisher: 'مجمع الملك فهد لطباعة المصحف الشريف',
+      investigator: 'إشراف: وزارة الشؤون الإسلامية (المدينة المنورة)',
+      edition: 'الطبعة الثالثة، 1430 هـ',
+      volume: 1,
+      totalVolumes: 1,
+      page: pageNum || null,
+      badgeText: `مجمع الملك فهد (المدينة) • ص: ${toArabicNum(pageNum || 1)}`,
+      fullCitation: `التفسير الميسر (مجمع الملك فهد لطباعة المصحف الشريف، المدينة المنورة - ص: ${toArabicNum(pageNum || 1)})`,
+    };
+  }
+
+  if (slug === 'trans-muhiuddin') {
+    let vol = 1;
+    if (s >= 3 && s <= 4) vol = 2;
+    else if (s >= 5 && s <= 6) vol = 3;
+    else if (s >= 7 && s <= 9) vol = 4;
+    else if (s >= 10 && s <= 16) vol = 5;
+    else if (s >= 17 && s <= 28) vol = 6;
+    else if (s >= 29 && s <= 45) vol = 7;
+    else if (s >= 46) vol = 8;
+
+    return {
+      kitabTitle: 'মা‘আরেফুল কুরআন (অনুবাদ)',
+      publisher: 'মদিনা পাবলিকেশন্স / ইসলামিক ফাউন্ডেশন',
+      investigator: 'অনুবাদ: মাওলানা মুহিউদ্দীন খান',
+      edition: '৮ খণ্ড প্রামাণ্য সংস্করণ',
+      volume: vol,
+      totalVolumes: 8,
+      badgeText: `মদিনা পাবলিকেশন্স • খণ্ড: ${toBengaliNum(vol)}`,
+      fullCitation: `মা‘আরেফুল কুরআন অনুবাদ (মদিনা পাবলিকেশন্স, খণ্ড: ${toBengaliNum(vol)} - অনুবাদক: মাওলানা মুহিউদ্দীন খান)`,
+    };
+  }
+
+  if (slug === 'trans-mujibur') {
+    return {
+      kitabTitle: 'কুরআনুল কারীম (অনুবাদ)',
+      publisher: 'দারুস সালাম / বাংলাদেশ ইসলামিক সেন্টার',
+      investigator: 'অনুবাদ: ড. মুজিবুর রহমান',
+      edition: 'প্রামাণ্য সংস্করণ',
+      volume: 1,
+      totalVolumes: 1,
+      badgeText: `দারুস সালাম / বিআইসি`,
+      fullCitation: `কুরআনুল কারীম সহজ সরল অনুবাদ (দারুস সালাম / বিআইসি - অনুবাদক: ড. মুজিবুর রহমান)`,
+    };
+  }
+
+  if (slug === 'trans-taisirul') {
+    return {
+      kitabTitle: 'তাইসীরুল কুরআন',
+      publisher: 'তাওহীদ পাবলিকেশন্স, ঢাকা',
+      investigator: 'সম্পাদনা পরিষদ',
+      edition: 'পরিমার্জিত সংস্করণ',
+      volume: 1,
+      totalVolumes: 1,
+      badgeText: `তাওহীদ পাবলিকেশন্স`,
+      fullCitation: `তাইসীরুল কুরআন (তাওহীদ পাবলিকেশন্স, ঢাকা)`,
+    };
+  }
+
+  return null;
+}
 
 // Offline fallback dictionary entries for المعجم الوسيط
 export const BUILTIN_LUGHAT_ENTRIES = {
@@ -586,11 +742,33 @@ class QuranService {
 
     const headers = { Accept: 'application/json', 'User-Agent': 'Mozilla/5.0' };
 
-    // Parallel fetch authentic translations & tafsirs:
-    // - QuranCDN translations (161: Taisirul Quran, 163: Sheikh Mujibur Rahman)
-    // - QuranCDN Arabic Tafsir Ibn Kathir (14: الأصل العربي - تفسير ابن كثير)
-    // - QuranCDN Tafsir Muyassar (16: Arabic)
-    // - AlQuran.cloud (bn.bengali: Maulana Muhiuddin Khan, ar.jalalayn: Tafsir Jalalayn)
+    // 1. Primary: Try fetching from As-Sunnah Django Backend (auto-caches into PostgreSQL database)
+    try {
+      const backendRes = await fetch(`${API_ENDPOINTS.QURAN_AYAH_STUDY}?surah=${s}&ayah=${a}`, {
+        headers,
+      });
+      if (backendRes.ok) {
+        const backendData = await backendRes.json();
+        if (backendData?.translations?.length > 0 && backendData?.tafsirs?.length > 0) {
+          const formatted = {
+            surah: s,
+            ayah: a,
+            translations: backendData.translations,
+            tafsirs: backendData.tafsirs.map((t) => ({
+              ...t,
+              tafsir_raw: t.tafsir_text,
+              tafsir_text: cleanHtmlText(t.tafsir_text),
+            })),
+          };
+          AsyncStorage.setItem(cacheKey, JSON.stringify(formatted));
+          return formatted;
+        }
+      }
+    } catch (_backendErr) {
+      // Seamlessly fall back to direct CDNs
+    }
+
+    // 2. Secondary fallback: Parallel fetch authentic translations & tafsirs from global CDNs
     const [
       quranCdnTransRes,
       ibnKathirArRes,

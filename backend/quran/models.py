@@ -14,6 +14,10 @@ class Kitab(models.Model):
     category = models.CharField(max_length=20, choices=KitabCategory.choices, db_index=True)
     author = models.CharField(max_length=200, blank=True)
     description = models.TextField(blank=True)
+    publisher = models.CharField(max_length=200, blank=True, help_text="প্রকাশনী (e.g. دار طيبة للنشر والتوزيع)")
+    investigator = models.CharField(max_length=200, blank=True, help_text="মুহাক্কিক / তাহকীককারী (e.g. د. سامي السلامة)")
+    edition_info = models.CharField(max_length=150, blank=True, help_text="সংস্করণ ও সন (e.g. الطبعة الثانية، 1420 هـ / 1999 م)")
+    total_volumes = models.PositiveSmallIntegerField(default=1, help_text="মোট খণ্ড সংখ্যা")
     is_active = models.BooleanField(default=True, db_index=True)
     sort_order = models.PositiveIntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -67,6 +71,8 @@ class AyahTranslation(models.Model):
     surah = models.PositiveSmallIntegerField(db_index=True)
     ayah = models.PositiveSmallIntegerField(db_index=True)
     translation_text = models.TextField()
+    volume_number = models.PositiveSmallIntegerField(null=True, blank=True, help_text="খণ্ড নম্বর")
+    page_number = models.PositiveIntegerField(null=True, blank=True, help_text="পৃষ্ঠা নম্বর")
 
     class Meta:
         unique_together = ('kitab', 'surah', 'ayah')
@@ -82,6 +88,9 @@ class AyahTafsir(models.Model):
     surah = models.PositiveSmallIntegerField(db_index=True)
     ayah = models.PositiveSmallIntegerField(db_index=True)
     tafsir_text = models.TextField()
+    volume_number = models.PositiveSmallIntegerField(null=True, blank=True, help_text="খণ্ড নম্বর")
+    page_number = models.PositiveIntegerField(null=True, blank=True, help_text="পৃষ্ঠা নম্বর")
+    edition_reference = models.CharField(max_length=255, blank=True, help_text="মুদ্রণ ও পৃষ্ঠা রেফারেন্স")
 
     class Meta:
         unique_together = ('kitab', 'surah', 'ayah')

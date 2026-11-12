@@ -1,6 +1,7 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
+from rest_framework.permissions import AllowAny
 from .models import Kitab, QuranWord, LughatEntry, AyahTranslation, AyahTafsir, KitabCategory
 from .serializers import (
     KitabSerializer,
@@ -10,9 +11,11 @@ from .serializers import (
     AyahTafsirSerializer,
 )
 from .lexicon_service import lookup_lexicon
+from .sync_service import ensure_ayah_study_data
 
 
 class KitabListView(APIView):
+    permission_classes = [AllowAny]
     """
     List all active kitabs (Lughat, Tafsir, Translation)
     Optional query param: ?category=LUGHAT | TAFSIR | TRANSLATION
@@ -27,6 +30,7 @@ class KitabListView(APIView):
 
 
 class WordLughatView(APIView):
+    permission_classes = [AllowAny]
     """
     Returns authentic word morphological breakdown and real dictionary entries from:
     1. Al-Mu'jam al-Waseet (المعجم الوسيط)
@@ -113,6 +117,7 @@ class WordLughatView(APIView):
 
 
 class AyahStudyView(APIView):
+    permission_classes = [AllowAny]
     """
     Returns full study details for a given Ayah:
     - Translations (from all active translation kitabs)
@@ -131,6 +136,12 @@ class AyahStudyView(APIView):
             ayah_num = int(ayah)
         except ValueError:
             return Response({"detail": "surah and ayah must be integers."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Auto-populate missing translations & tafsirs into the PostgreSQL DB (Write-Through Cache)
+        try:
+            ensure_ayah_study_data(surah_num, ayah_num)
+        except Exception as _sync_err:
+            pass
 
         translations = AyahTranslation.objects.filter(
             surah=surah_num,
