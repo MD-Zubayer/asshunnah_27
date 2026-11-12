@@ -69,37 +69,33 @@ class WordLughatView(APIView):
 
         entries = []
 
-        # 1. Query authentic lexicons.sqlite for Al-Mu'jam al-Waseet
-        if not kitab_slug or kitab_slug == 'al-mujam-al-waseet':
-            waseet = lookup_lexicon(clean_root, 'al-mujam-al-waseet')
-            if waseet:
-                entries.append({
-                    "id": 1,
-                    "kitab": 1,
-                    "kitab_name_arabic": "المعجم الوسيط",
-                    "kitab_name_bangla": "আল-মু'জামুল ওয়াসীত",
-                    "kitab_slug": "al-mujam-al-waseet",
-                    "root": clean_root,
-                    "title": f"جذر ({waseet['root']})",
-                    "content": waseet['content'],
-                })
+        lexicon_catalog = [
+            ("al-mujam-al-waseet", 1, "المعجم الوسيط", "আল-মু'জামুল ওয়াসীত"),
+            ("al-mufradat", 2, "المفردات في غريب القرآن", "আল-মুফরাদাত ফী গারীবিল কুরআন"),
+            ("maqayis-al-lughah", 13, "معجم مقاييس اللغة", "মু'জামু মাকায়ীসিল লুগাহ"),
+            ("lisan-al-arab", 15, "لسان العرب", "লিসানুল আরব"),
+            ("al-qamus-al-muhit", 16, "القاموس المحيط", "আল-কামূসুল মুহীত"),
+            ("as-sihah", 17, "الصحاح تاج اللغة", "আস-সিহাহ (তাজুল লুগাহ)"),
+        ]
 
-        # 2. Query authentic lexicons.sqlite for Al-Mufradat (Raghib al-Isfahani)
-        if not kitab_slug or kitab_slug == 'al-mufradat':
-            mufradat = lookup_lexicon(clean_root, 'al-mufradat')
-            if mufradat:
-                entries.append({
-                    "id": 2,
-                    "kitab": 2,
-                    "kitab_name_arabic": "المفردات في غريب القرآن",
-                    "kitab_name_bangla": "আল-মুফরাদাত ফী গারীবিল কুরআন",
-                    "kitab_slug": "al-mufradat",
-                    "root": clean_root,
-                    "title": f"مفردات ({mufradat['root']})",
-                    "content": mufradat['content'],
-                })
+        target_slugs = [kitab_slug] if kitab_slug else [c[0] for c in lexicon_catalog]
 
-        # 3. If also present in Django database LughatEntry, append
+        for slug, k_id, name_ar, name_bn in lexicon_catalog:
+            if slug in target_slugs:
+                res = lookup_lexicon(clean_root, slug)
+                if res:
+                    entries.append({
+                        "id": k_id,
+                        "kitab": k_id,
+                        "kitab_name_arabic": name_ar,
+                        "kitab_name_bangla": name_bn,
+                        "kitab_slug": slug,
+                        "root": clean_root,
+                        "title": f"({res['root']})",
+                        "content": res['content'],
+                    })
+
+        # Query Django database LughatEntry if any exist
         db_entries = LughatEntry.objects.filter(
             kitab__is_active=True,
             kitab__category=KitabCategory.LUGHAT,

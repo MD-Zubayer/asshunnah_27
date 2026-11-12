@@ -28,6 +28,10 @@ def lookup_lexicon(root, kitab_slug='al-mujam-al-waseet'):
 
     clean_root = root.strip().replace(' ', '')
     variants = [clean_root]
+    if clean_root.startswith('ا'):
+        variants.append('أ' + clean_root[1:])
+    elif clean_root.startswith('أ'):
+        variants.append('ا' + clean_root[1:])
     if clean_root.endswith('ي'):
         variants.append(clean_root[:-1] + 'ى')
     elif clean_root.endswith('ى'):
@@ -35,7 +39,16 @@ def lookup_lexicon(root, kitab_slug='al-mujam-al-waseet'):
     if clean_root.endswith('و'):
         variants.append(clean_root[:-1] + 'ا')
 
-    table_name = 'mujamul_wasith' if kitab_slug == 'al-mujam-al-waseet' else 'mufradat'
+    table_map = {
+        'al-mujam-al-waseet': 'mujamul_wasith',
+        'al-mufradat': 'mufradat',
+        'maqayis-al-lughah': 'maqayeesul_luga',
+        'lisan-al-arab': 'lisanularab',
+        'al-qamus-al-muhit': 'mujamul_muhith',
+        'as-sihah': 'mujamul_shihah',
+    }
+
+    table_name = table_map.get(kitab_slug, 'mujamul_wasith')
 
     try:
         conn = sqlite3.connect(LEXICON_DB_PATH)
