@@ -6,6 +6,85 @@ import maqayisRoots from '../data/maqayisRoots.json';
 import quranWordMorphMap from '../data/quranWordMorphMap.json';
 
 const CACHE_PREFIX = '@quran_study_cache_v6_';
+export const MAX_QURAN_CACHE_ITEMS = 60;
+export const CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+
+export async function getQuranCache(key) {
+  try {
+    const raw = await AsyncStorage.getItem(key);
+    if (!raw) return null;
+    const entry = JSON.parse(raw);
+    if (entry && typeof entry === 'object' && entry.__t) {
+      if (Date.now() - entry.__t > CACHE_TTL_MS) {
+        AsyncStorage.removeItem(key).catch(() => {});
+        return null;
+      }
+      return entry.data;
+    }
+    return entry;
+  } catch (_e) {
+    return null;
+  }
+}
+
+let isPruning = false;
+export async function pruneOldQuranCache() {
+  if (isPruning) return;
+  isPruning = true;
+  try {
+    const allKeys = await AsyncStorage.getAllKeys();
+    const quranCacheKeys = allKeys.filter((k) => k.startsWith('@quran_study_'));
+    if (quranCacheKeys.length > MAX_QURAN_CACHE_ITEMS) {
+      const entriesWithTime = [];
+      for (const k of quranCacheKeys) {
+        try {
+          const raw = await AsyncStorage.getItem(k);
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            entriesWithTime.push({ key: k, time: (parsed && parsed.__t) || 0 });
+          } else {
+            entriesWithTime.push({ key: k, time: 0 });
+          }
+        } catch (_err) {
+          entriesWithTime.push({ key: k, time: 0 });
+        }
+      }
+      entriesWithTime.sort((a, b) => a.time - b.time);
+      const toRemoveCount = entriesWithTime.length - MAX_QURAN_CACHE_ITEMS;
+      if (toRemoveCount > 0) {
+        const keysToRemove = entriesWithTime.slice(0, toRemoveCount).map((e) => e.key);
+        await AsyncStorage.multiRemove(keysToRemove);
+      }
+    }
+  } catch (_err) {
+    // ignore
+  } finally {
+    isPruning = false;
+  }
+}
+
+export async function saveQuranCache(key, data) {
+  try {
+    const payload = JSON.stringify({ data, __t: Date.now() });
+    await AsyncStorage.setItem(key, payload);
+    pruneOldQuranCache().catch(() => {});
+  } catch (_e) {
+    // ignore
+  }
+}
+
+export async function clearAllQuranStudyCache() {
+  try {
+    const allKeys = await AsyncStorage.getAllKeys();
+    const quranCacheKeys = allKeys.filter((k) => k.startsWith('@quran_study_'));
+    if (quranCacheKeys.length > 0) {
+      await AsyncStorage.multiRemove(quranCacheKeys);
+    }
+    return quranCacheKeys.length;
+  } catch (_e) {
+    return 0;
+  }
+}
 
 function cleanHtmlText(html) {
   if (!html) return '';
@@ -1051,9 +1130,9 @@ class QuranService {
   async getKitabs(category = null) {
     const cacheKey = `${CACHE_PREFIX}kitabs_${category || 'ALL'}`;
     try {
-      const cached = await AsyncStorage.getItem(cacheKey);
+      const cached = await getQuranCache(cacheKey);
       if (cached) {
-        return JSON.parse(cached);
+        return cached;
       }
     } catch (_e) {
       // ignore
@@ -1067,7 +1146,7 @@ class QuranService {
       if (res.ok) {
         const data = await res.json();
         if (Array.isArray(data) && data.length > 0) {
-          AsyncStorage.setItem(cacheKey, JSON.stringify(data));
+          saveQuranCache(cacheKey, data);
           return data;
         }
       }
@@ -1093,9 +1172,9 @@ class QuranService {
     const cacheKey = `${CACHE_PREFIX}lughat_v8_offline_${s}_${a}_${pos}_${encodeURIComponent(wordArabic || '')}_${kitabSlug}`;
 
     try {
-      const cached = await AsyncStorage.getItem(cacheKey);
+      const cached = await getQuranCache(cacheKey);
       if (cached) {
-        return JSON.parse(cached);
+        return cached;
       }
     } catch (_e) {
       // ignore
@@ -1266,7 +1345,7 @@ class QuranService {
       entries: entries,
     };
 
-    AsyncStorage.setItem(cacheKey, JSON.stringify(finalResult));
+    saveQuranCache(cacheKey, finalResult);
     return finalResult;
   }
 
@@ -1278,9 +1357,9 @@ class QuranService {
     const cacheKey = `${CACHE_PREFIX}page_ayahs_v5_${p}`;
 
     try {
-      const cached = await AsyncStorage.getItem(cacheKey);
+      const cached = await getQuranCache(cacheKey);
       if (cached) {
-        return JSON.parse(cached);
+        return cached;
       }
     } catch (_e) {
       // ignore
@@ -1317,7 +1396,7 @@ class QuranService {
             ayahs: combinedAyahs,
           };
 
-          AsyncStorage.setItem(cacheKey, JSON.stringify(result));
+          saveQuranCache(cacheKey, result);
           return result;
         }
       }
@@ -1359,7 +1438,7 @@ class QuranService {
         };
 
         if (combinedAyahs.length > 0) {
-          AsyncStorage.setItem(cacheKey, JSON.stringify(result));
+          saveQuranCache(cacheKey, result);
           return result;
         }
       }
@@ -1379,9 +1458,9 @@ class QuranService {
     const cacheKey = `@quran_study_color_tokens_v13_${s}_${a}`;
 
     try {
-      const cached = await AsyncStorage.getItem(cacheKey);
+      const cached = await getQuranCache(cacheKey);
       if (cached) {
-        return JSON.parse(cached);
+        return cached;
       }
     } catch (_e) {
       // ignore
@@ -1407,7 +1486,7 @@ class QuranService {
               tafsir_text: cleanHtmlText(t.tafsir_text),
             })),
           };
-          AsyncStorage.setItem(cacheKey, JSON.stringify(formatted));
+          saveQuranCache(cacheKey, formatted);
           return formatted;
         }
       }
@@ -1591,11 +1670,19 @@ class QuranService {
     };
 
     if (translations.length > 0 || tafsirs.length > 0) {
-      AsyncStorage.setItem(cacheKey, JSON.stringify(result));
+      saveQuranCache(cacheKey, result);
       return result;
     }
 
     return null;
+  }
+
+  async clearCache() {
+    return clearAllQuranStudyCache();
+  }
+
+  async pruneCache() {
+    return pruneOldQuranCache();
   }
 }
 

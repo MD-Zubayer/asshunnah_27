@@ -32,6 +32,7 @@ import {
   getQuranPageInfo,
 } from '../data/quranIndex';
 import QuranStudyHubSheet from '../components/QuranStudyHubSheet';
+import { clearAllQuranStudyCache } from '../services/quranService';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -2066,6 +2067,54 @@ export default function HafeziQuranScreen() {
                   );
                 })}
               </View>
+
+              {/* Section 3: Cache Memory Optimization */}
+              <View
+                style={[
+                  styles.gestureSection,
+                  {
+                    marginTop: 18,
+                    marginBottom: 10,
+                    padding: 12,
+                    borderRadius: 12,
+                    backgroundColor:
+                      readingTheme === 'night' ? '#1F2937' : '#F9FAFB',
+                    borderWidth: 1,
+                    borderColor:
+                      readingTheme === 'night' ? '#374151' : '#E5E7EB',
+                  },
+                ]}
+              >
+                <View style={styles.gestureSectionTitleRow}>
+                  <Ionicons name="server-outline" size={16} color="#DC2626" />
+                  <Text
+                    style={[
+                      styles.gestureSectionTitle,
+                      { color: readingTheme === 'night' ? '#F87171' : '#DC2626' },
+                    ]}
+                  >
+                    ক্যাশে মেমোরি ব্যবস্থাপনা
+                  </Text>
+                </View>
+                <Text style={styles.gestureSectionHint}>
+                  অস্থায়ীভাবে ডাউনলোড হওয়া তাফসীর ও পৃষ্ঠা ক্যাশ মুছে ফোনের জায়গা ফাঁকা রাখুন। আপনার বুকমার্ক ও পঠিত পৃষ্ঠা সুরক্ষিত থাকবে।
+                </Text>
+                <TouchableOpacity
+                  style={styles.clearCacheBtn}
+                  onPress={async () => {
+                    const count = await clearAllQuranStudyCache();
+                    showToast(
+                      count > 0
+                        ? `ক্যাশে সফলভাবে খালি করা হয়েছে (${toBn(count)} টি আইটেম)`
+                        : 'কোনো অতিরিক্ত ক্যাশে জমা নেই'
+                    );
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons name="trash-outline" size={16} color="#DC2626" />
+                  <Text style={styles.clearCacheBtnText}>অস্থায়ী স্টাডি ক্যাশে খালি করুন</Text>
+                </TouchableOpacity>
+              </View>
             </ScrollView>
 
             {/* Footer Buttons */}
@@ -2819,5 +2868,24 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '700',
     color: '#FFFFFF',
+  },
+  clearCacheBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#FEE2E2',
+    borderWidth: 1,
+    borderColor: '#FCA5A5',
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 8,
+    marginTop: 10,
+  },
+  clearCacheBtnText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#DC2626',
+    fontFamily: Platform.OS === 'ios' ? 'System' : 'sans-serif-medium',
   },
 });
