@@ -6,12 +6,12 @@ import {
   TextInput,
   TouchableOpacity,
   ScrollView,
+  useWindowDimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { getFullDiaryDateMeta, toBanglaDigits } from '../utils/diaryDate';
 import { getDiaryFont, getPaperTheme, TAG_COLORS } from '../constants/diaryThemes';
 
-const RULE_HEIGHT = 32;
 const TOTAL_BG_LINES = 26;
 
 function isArabicOnlyLine(line) {
@@ -43,12 +43,21 @@ export default function PhysicalDiaryPage({
   const theme = getPaperTheme(entry?.paper_theme);
   const font = getDiaryFont(entry?.font_family);
   const tagStyle = TAG_COLORS[entry?.tag] || TAG_COLORS['সাধারণ'];
+  const { width: windowWidth } = useWindowDimensions();
+
+  // Responsive geometry based on device screen width
+  const isSmallScreen = windowWidth < 360;
+  const bindingWidth = isSmallScreen ? 18 : 24;
+  const marginOffset = isSmallScreen ? 34 : 42;
+  const contentLeftPad = isSmallScreen ? 42 : 54;
+  const effectiveRuleHeight = Math.max(30, Math.round(fontSize * 1.85));
+
   const dateMeta = useMemo(
     () => getFullDiaryDateMeta(entry?.entry_date || entry?.created_at, entry?.hijri_date),
     [entry?.entry_date, entry?.created_at, entry?.hijri_date]
   );
 
-  const lineHeight = mode === 'edit' ? RULE_HEIGHT : Math.max(28, Math.round(fontSize * 1.85));
+  const lineHeight = mode === 'edit' ? effectiveRuleHeight : Math.max(28, Math.round(fontSize * 1.85));
   const bgLinesCount = Math.max(TOTAL_BG_LINES, Math.ceil((entry?.content?.split('\n')?.length || 12) + 8));
 
   const renderReadLine = (line, idx) => {
@@ -186,20 +195,20 @@ export default function PhysicalDiaryPage({
       {/* Main Physical Paper Sheet */}
       <View style={[styles.paperSheet, { backgroundColor: theme.paperBg, borderColor: theme.borderColor }]}>
         {/* Left Spiral/Binding Holes */}
-        <View style={[styles.bindingStrip, { borderRightColor: theme.lineColor }]}>
+        <View style={[styles.bindingStrip, { width: bindingWidth, borderRightColor: theme.lineColor }]}>
           {Array.from({ length: 12 }).map((_, i) => (
             <View key={i} style={styles.holeGroup}>
-              <View style={[styles.bindingHole, { backgroundColor: theme.holeBg, borderColor: theme.borderColor }]} />
-              <View style={[styles.bindingRing, { backgroundColor: theme.spineColor }]} />
+              <View style={[styles.bindingHole, { width: isSmallScreen ? 7 : 9, height: isSmallScreen ? 7 : 9, backgroundColor: theme.holeBg, borderColor: theme.borderColor }]} />
+              <View style={[styles.bindingRing, { width: isSmallScreen ? 9 : 11, backgroundColor: theme.spineColor }]} />
             </View>
           ))}
         </View>
 
         {/* Double Red Vertical Margin Line */}
-        <View pointerEvents="none" style={[styles.doubleMargin, { borderLeftColor: theme.marginColor, borderRightColor: theme.marginColor }]} />
+        <View pointerEvents="none" style={[styles.doubleMargin, { left: marginOffset, borderLeftColor: theme.marginColor, borderRightColor: theme.marginColor }]} />
 
         {/* Physical Diary Header (Date, Day, Hijri, Bangla, Page #, Bookmark) */}
-        <View style={[styles.diaryHeader, { backgroundColor: theme.headerBg, borderBottomColor: theme.marginColor }]}>
+        <View style={[styles.diaryHeader, { paddingLeft: contentLeftPad, backgroundColor: theme.headerBg, borderBottomColor: theme.marginColor }]}>
           <View style={styles.headerTopRow}>
             <TouchableOpacity
               activeOpacity={onPressDate ? 0.7 : 1}
@@ -276,7 +285,7 @@ export default function PhysicalDiaryPage({
         </View>
 
         {/* Diary Title Area */}
-        <View style={[styles.titleSection, { borderBottomColor: theme.lineColor }]}>
+        <View style={[styles.titleSection, { paddingLeft: contentLeftPad, borderBottomColor: theme.lineColor }]}>
           {mode === 'edit' ? (
             <TextInput
               value={entry?.title || ''}
@@ -312,7 +321,7 @@ export default function PhysicalDiaryPage({
         {/* Ruled Lines Background + Content */}
         <View style={styles.ruledBodyContainer}>
           {/* Horizontal Notebook Lines */}
-          <View pointerEvents="none" style={styles.ruledLinesOverlay}>
+          <View pointerEvents="none" style={[styles.ruledLinesOverlay, { left: bindingWidth }]}>
             {Array.from({ length: bgLinesCount }).map((_, idx) => (
               <View
                 key={idx}
@@ -341,16 +350,17 @@ export default function PhysicalDiaryPage({
               style={[
                 styles.contentInput,
                 {
+                  paddingLeft: contentLeftPad,
                   color: theme.textColor,
                   fontFamily: font.fontFamily,
                   fontSize,
-                  lineHeight: RULE_HEIGHT,
-                  minHeight: RULE_HEIGHT * 14,
+                  lineHeight: effectiveRuleHeight,
+                  minHeight: effectiveRuleHeight * 14,
                 },
               ]}
             />
           ) : (
-            <View style={styles.readContentWrap}>
+            <View style={[styles.readContentWrap, { paddingLeft: contentLeftPad }]}>
               {String(entry?.content || '')
                 .split('\n')
                 .map((line, idx) => renderReadLine(line, idx))}
@@ -359,7 +369,7 @@ export default function PhysicalDiaryPage({
         </View>
 
         {/* Physical Page Footer */}
-        <View style={[styles.diaryFooter, { borderTopColor: theme.lineColor }]}>
+        <View style={[styles.diaryFooter, { paddingLeft: contentLeftPad, borderTopColor: theme.lineColor }]}>
           <Text style={[styles.footerNote, { color: theme.mutedColor }]}>
             জামিয়াতুস সুন্নাহ ব্যক্তিগত ডায়েরি
           </Text>
@@ -558,7 +568,7 @@ const styles = StyleSheet.create({
   },
   ruledBodyContainer: {
     position: 'relative',
-    minHeight: RULE_HEIGHT * 12,
+    minHeight: 360,
   },
   ruledLinesOverlay: {
     position: 'absolute',

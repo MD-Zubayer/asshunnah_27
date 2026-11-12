@@ -323,11 +323,11 @@ export default function CreateDiaryScreen() {
         </TouchableOpacity>
 
         <View style={styles.topBarCenter}>
-          <Text style={[styles.topBarTitle, { color: colors.text }]}>
+          <Text style={[styles.topBarTitle, { color: colors.text }]} numberOfLines={1}>
             {isEditMode ? 'পৃষ্ঠা সম্পাদনা' : 'নতুন ডায়েরি পৃষ্ঠা'}
           </Text>
-          <Text style={[styles.topBarSub, { color: colors.textSecondary }]}>
-            ফন্ট: {activeFontObj.label} • {PAPER_THEMES[paperTheme]?.label || 'ক্রিম কাগজ'}
+          <Text style={[styles.topBarSub, { color: colors.textSecondary }]} numberOfLines={1}>
+            {activeFontObj.label} • {PAPER_THEMES[paperTheme]?.label || 'ক্রিম কাগজ'}
           </Text>
         </View>
 

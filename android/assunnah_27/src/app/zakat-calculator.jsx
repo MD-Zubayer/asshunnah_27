@@ -140,25 +140,61 @@ export default function ZakatCalculatorScreen() {
   // Net Wealth
   const netWealth = Math.max(0, totalAssets - totalLiabilities);
 
-  // Applicable Nisab Threshold (Hanafi Fiqh)
-  const hasMultipleAssetTypes = totalCash > 0 || totalBusiness > 0 || silverBhori > 0 || parseAmount(silverExtraCash) > 0;
-  const applicableNisab =
-    hasMultipleAssetTypes && silverNisabValue > 0
-      ? silverNisabValue
-      : goldNisabValue > 0
-        ? goldNisabValue
-        : silverNisabValue;
+  // =========================================================================
+  // HANAFI FIQH NISAB BENCHMARK (আল-হিদায়া, রদ্দুল মুহতার ও বাদায়েউস সানায়ে')
+  // =========================================================================
+  // ১. যদি কারও কাছে শুধুমাত্র স্বর্ণ থাকে এবং কোনো প্রকার নগদ টাকা, রূপা বা
+  //    ব্যবসাপণ্য না থাকে (১ টাকাও নগদ নেই), কেবল তখনই স্বর্ণের একক নেসাব (৭.৫ ভরি)।
+  // ২. যদি স্বর্ণের সাথে সামান্য নগদ টাকা (এমনকি ৫০০/১০০০ টাকা), রূপা বা ব্যবসাপণ্য থাকে,
+  //    তাহলে হানাফী মাযহাবের ইজমা (ضم الأموال بالقيمة وأنفع للفقراء) অনুযায়ী
+  //    নেসাব হবে রূপার সাড়ে ৫২ ভরির বাজারদর!
+  // =========================================================================
+  const isPureGoldOnly =
+    goldBhori > 0 &&
+    totalCash === 0 &&
+    totalBusiness === 0 &&
+    silverBhori === 0 &&
+    parseAmount(silverExtraCash) === 0;
 
-  const isRatesProvided = silverRate > 0 || goldRate > 0;
-  const isNisabReached =
-    isRatesProvided && applicableNisab > 0
-      ? (!hasMultipleAssetTypes && goldBhori > 0 && goldRate > 0)
-        ? goldBhori >= 7.5
-        : netWealth >= applicableNisab
-      : null;
+  const isPureSilverOnly =
+    silverBhori > 0 &&
+    totalCash === 0 &&
+    totalBusiness === 0 &&
+    goldBhori === 0 &&
+    parseAmount(goldExtraCash) === 0;
+
+  const isMixedWealth =
+    (totalGoldValue > 0 && (totalCash > 0 || totalBusiness > 0 || totalSilverValue > 0)) ||
+    (totalSilverValue > 0 && (totalCash > 0 || totalBusiness > 0)) ||
+    (totalCash > 0 || totalBusiness > 0);
+
+  let applicableNisab = 0;
+  let nisabExplanation = '';
+  let isNisabReached = null;
+
+  if (isPureGoldOnly) {
+    applicableNisab = goldNisabValue;
+    nisabExplanation = 'আপনার কাছে শুধুই স্বর্ণ রয়েছে (কোনো নগদ টাকা বা রূপা নেই)। তাই একক স্বর্ণের নেসাব (৭.৫ ভরি বা ৮৭.৪৮ গ্রাম) প্রযোজ্য।';
+    if (goldBhori >= 7.5) {
+      isNisabReached = true;
+    } else {
+      isNisabReached = false;
+    }
+  } else if (isMixedWealth || isPureSilverOnly) {
+    applicableNisab = silverNisabValue;
+    nisabExplanation = isMixedWealth && totalGoldValue > 0
+      ? 'হানাফী ফিকহ (আল-হিদায়া ও রদ্দুল মুহতার): আপনার স্বর্ণের সাথে নগদ টাকা/অন্য সম্পদ থাকায় একক স্বর্ণের নেসাব নয়, বরং রূপার নেসাব (সাড়ে ৫২ ভরি) প্রযোজ্য এবং সম্পূর্ণ সম্পদের ওপর যাকাত আসবে।'
+      : 'হানাফী ফিকহ অনুযায়ী নগদ টাকা, ব্যবসা ও রূপার নেসাব মানদণ্ড হলো সাড়ে ৫২ ভরি রূপার বাজারদর।';
+
+    if (silverRate > 0) {
+      isNisabReached = netWealth >= silverNisabValue;
+    } else {
+      isNisabReached = null; // Silver rate required
+    }
+  }
 
   // Zakat amounts (2.5% or 1/40)
-  const baseZakat = isNisabReached ? netWealth * 0.025 : 0;
+  const baseZakat = isNisabReached === true ? netWealth * 0.025 : 0;
   const netPayableZakat = Math.max(
     0,
     baseZakat - parseAmount(advanceZakat) + parseAmount(previousDueZakat)
@@ -213,32 +249,33 @@ export default function ZakatCalculatorScreen() {
       today.toLocaleDateString('bn-BD', { year: 'numeric', month: 'long', day: 'numeric' })
     );
 
-    return `❖ বার্ষিক যাকাত হিসাব খতিয়ান ❖\nতারিখ: ${engDate} (${hijri})\n\n` +
-      `[১] বাজারদর ও পরিমাণ:\n` +
-      `• স্বর্ণের দর: ${goldRate > 0 ? `${formatTaka(goldRate)}/ভরি` : 'দেওয়া নেই'}\n` +
-      `• আপনার স্বর্ণ: ${goldBhori > 0 ? `${toBanglaDigits(goldBhori.toFixed(2))} ভরি (${formatTaka(totalGoldValue)})` : 'নেই'}\n` +
-      `• রূপার দর: ${silverRate > 0 ? `${formatTaka(silverRate)}/ভরি` : 'দেওয়া নেই'}\n` +
-      `• আপনার রূপা: ${silverBhori > 0 ? `${toBanglaDigits(silverBhori.toFixed(2))} ভরি (${formatTaka(totalSilverValue)})` : 'নেই'}\n` +
-      `• প্রযোজ্য নেসাব মান: ${applicableNisab > 0 ? formatTaka(applicableNisab) : 'দর অপ্রাপ্ত'}\n\n` +
-      `[২] যাকাতযোগ্য মোট সম্পদ: ${formatTaka(totalAssets)}\n` +
-      `• সোনা ও রূপা: ${formatTaka(totalGoldSilver)}\n` +
-      `• নগদ, ব্যাংক ও জমানো অর্থ: ${formatTaka(totalCash)}\n` +
-      `• ব্যবসা-বাণিজ্য ও শেয়ার: ${formatTaka(totalBusiness)}\n\n` +
-      `[৩] বাদ দেওয়ার মোট দায়/দেনা: ${formatTaka(totalLiabilities)}\n\n` +
+    return `❖ বার্ষিক যাকাত হিসাব খতিয়ান (হানাফী ফিকহ অনুযায়ী) ❖\nতারিখ: ${engDate} (${hijri})\n\n` +
+      `[১] বাজারদর ও নেসাব মানদণ্ড:\n` +
+      `• রূপার দর (মূল নেসাব): ${silverRate > 0 ? `${formatTaka(silverRate)}/ভরি (সাড়ে ৫২ ভরি = ${formatTaka(silverNisabValue)})` : 'দেওয়া নেই'}\n` +
+      `• স্বর্ণের দর: ${goldRate > 0 ? `${formatTaka(goldRate)}/ভরি (সাড়ে ৭ ভরি = ${formatTaka(goldNisabValue)})` : 'দেওয়া নেই'}\n` +
+      `• ফিকহ কানুন: ${nisabExplanation}\n\n` +
+      `[২] আপনার সম্পদ বিবরণ:\n` +
+      `• স্বর্ণ: ${goldBhori > 0 ? `${toBanglaDigits(goldBhori.toFixed(2))} ভরি (${formatTaka(totalGoldValue)})` : 'নেই'}\n` +
+      `• রূপা: ${silverBhori > 0 ? `${toBanglaDigits(silverBhori.toFixed(2))} ভরি (${formatTaka(totalSilverValue)})` : 'নেই'}\n` +
+      `• নগদ টাকা ও ব্যাংক জমা: ${formatTaka(totalCash)}\n` +
+      `• ব্যবসা-বাণিজ্য ও শেয়ার: ${formatTaka(totalBusiness)}\n` +
+      `• মোট যাকাতযোগ্য সম্পদ: ${formatTaka(totalAssets)}\n\n` +
+      `[৩] বাদ দেওয়ার মোট দায়/দেনা: - ${formatTaka(totalLiabilities)}\n\n` +
       `[৪] নিট যাকাতযোগ্য সম্পদ: ${formatTaka(netWealth)}\n` +
       `• নেসাব স্ট্যাটাস: ${
         isNisabReached === true
-          ? 'আলহামদুলিল্লাহ, নেসাব পূর্ণ হয়েছে (যাকাত ফরজ)'
+          ? 'আলহামদুলিল্লাহ, নেসাব পূর্ণ হয়েছে (সম্পূর্ণ সম্পদের ওপর যাকাত ফরজ)'
           : isNisabReached === false
             ? 'নেসাব পরিমাণ হয়নি (যাকাত প্রযোজ্য নয়)'
-            : 'বাজারদর উল্লেখ করা হয়নি'
+            : 'রূপার বাজারদর উল্লেখ না থাকায় অমীমাংসিত'
       }\n\n` +
-      `[৫] চূড়ান্ত যাকাত হিসাব (২.৫%):\n` +
+      `[৫] চূড়ান্ত যাকাত হিসাব (২.৫% বা ৪০ ভাগের ১ ভাগ):\n` +
       `• চলতি বছরের মূল যাকাত: ${formatTaka(baseZakat)}\n` +
       `• বাদ: চলতি বছরে অগ্রিম দেওয়া যাকাত: ${formatTaka(parseAmount(advanceZakat))}\n` +
       `• যোগ: পূর্বের বছরের বকেয়া যাকাত: ${formatTaka(parseAmount(previousDueZakat))}\n` +
       `━━━━━━━━━━━━━━━━━━━━\n` +
       `পরিশোধযোগ্য নিট যাকাত: ${formatTaka(netPayableZakat)}\n\n` +
+      `রেফারেন্স: আল-হিদায়া, রদ্দুল মুহতার আলাদ দুররিল মুখতার (ফাতাওয়া শামী), বাদায়েউস সানায়ে'।\n` +
       `— জামিয়া ইসলামিয়া ইমদাদিয়া অ্যাপ যাকাত ক্যালকুলেটর`;
   };
 
@@ -450,7 +487,7 @@ export default function ZakatCalculatorScreen() {
         <View style={styles.headerCenter}>
           <Text style={[styles.headerTitle, { color: colors.text }]}>যাকাত ক্যালকুলেটর</Text>
           <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>
-            হানাফী ফিকহ ও প্রামাণ্য বিধান অনুযায়ী
+            হানাফী ফিকহ (আল-হিদায়া ও ফাতাওয়া শামী) অনুযায়ী
           </Text>
         </View>
 
@@ -481,13 +518,13 @@ export default function ZakatCalculatorScreen() {
       >
         {/* Banner Alert about Market Rates */}
         <View style={[styles.infoBanner, { backgroundColor: isDark ? '#064E3B30' : '#ECFDF5', borderColor: '#05966940' }]}>
-          <Ionicons name="information-circle" size={22} color="#059669" style={{ marginTop: 2 }} />
+          <Ionicons name="shield-checkmark" size={22} color="#059669" style={{ marginTop: 2 }} />
           <View style={{ flex: 1 }}>
             <Text style={[styles.infoBannerTitle, { color: isDark ? '#A7F3D0' : '#065F46' }]}>
-              স্বর্ণ ও রূপার বাজারদর সতকর্তা
+              হানাফী মাযহাবের মূল নেসাব মানদণ্ড
             </Text>
             <Text style={[styles.infoBannerText, { color: isDark ? '#D1FAE5' : '#047857' }]}>
-              ভুল এড়াতে কোনো ডিফল্ট দাম রাখা হয়নি। নেসাব নির্ধারণে আজকের জুয়েলার্স / বাজুস (BAJUS) নির্ধারিত ১ ভরি স্বর্ণ ও রূপার বিক্রয়মূল্য লিখুন।
+              স্বর্ণের সাথে সামান্য নগদ টাকা বা রূপা থাকলে রূপার নেসাব (সাড়ে ৫২ ভরি) দ্বারা বিচার হয়। তাই নির্ভুল হিসাবের জন্য নিচে আজকের রূপা ও স্বর্ণের ১ ভরির বাজারদর লিখুন।
             </Text>
           </View>
         </View>
@@ -495,40 +532,40 @@ export default function ZakatCalculatorScreen() {
         {/* 1. Nisab Configuration Section */}
         <View style={[styles.sectionCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
           <View style={styles.sectionHeaderRow}>
-            <View style={[styles.sectionIconBadge, { backgroundColor: '#D9770618' }]}>
-              <Ionicons name="diamond-outline" size={18} color="#D97706" />
+            <View style={[styles.sectionIconBadge, { backgroundColor: '#05966918' }]}>
+              <Ionicons name="diamond-outline" size={18} color="#059669" />
             </View>
             <Text style={[styles.sectionTitle, { color: colors.text }]}>১. আজকের বাজারদর ও নেসাব</Text>
           </View>
+
+          {renderInputField(
+            '১ ভরি রূপার বিক্রয়মূল্য (হানাফী মূল মানদণ্ড)',
+            silverRatePerBhori,
+            setSilverRatePerBhori,
+            'যেমন: ২,৫০০',
+            'সাড়ে ৫২ ভরি রূপা = ৬১২.৩৬ গ্রাম'
+          )}
 
           {renderInputField(
             '১ ভরি স্বর্ণের বিক্রয়মূল্য',
             goldRatePerBhori,
             setGoldRatePerBhori,
             'যেমন: ১৫০,০০০',
-            '১ ভরি = ১১.৬৬ গ্রাম'
-          )}
-
-          {renderInputField(
-            '১ ভরি রূপার বিক্রয়মূল্য',
-            silverRatePerBhori,
-            setSilverRatePerBhori,
-            'যেমন: ২,৫০০',
-            '১ ভরি = ১১.৬৬ গ্রাম'
+            'সাড়ে ৭ ভরি সোনা = ৮৭.৪৮ গ্রাম'
           )}
 
           <View style={[styles.nisabSummaryRow, { backgroundColor: colors.inputBg, borderColor: colors.cardBorder }]}>
             <View style={styles.nisabItem}>
-              <Text style={[styles.nisabLabel, { color: colors.textMuted }]}>স্বর্ণের নেসাব (৭.৫ ভরি):</Text>
-              <Text style={[styles.nisabValue, { color: '#D97706' }]}>
-                {goldNisabValue > 0 ? formatTaka(goldNisabValue) : 'দর দিন'}
+              <Text style={[styles.nisabLabel, { color: colors.textMuted }]}>রূপার নেসাব (৫২.৫ ভরি):</Text>
+              <Text style={[styles.nisabValue, { color: '#059669' }]}>
+                {silverNisabValue > 0 ? formatTaka(silverNisabValue) : 'দর দিন'}
               </Text>
             </View>
             <View style={styles.nisabDivider} />
             <View style={styles.nisabItem}>
-              <Text style={[styles.nisabLabel, { color: colors.textMuted }]}>রূপার নেসাব (৫২.৫ ভরি):</Text>
-              <Text style={[styles.nisabValue, { color: '#059669' }]}>
-                {silverNisabValue > 0 ? formatTaka(silverNisabValue) : 'দর দিন'}
+              <Text style={[styles.nisabLabel, { color: colors.textMuted }]}>স্বর্ণের নেসাব (৭.৫ ভরি):</Text>
+              <Text style={[styles.nisabValue, { color: '#D97706' }]}>
+                {goldNisabValue > 0 ? formatTaka(goldNisabValue) : 'দর দিন'}
               </Text>
             </View>
           </View>
@@ -640,6 +677,29 @@ export default function ZakatCalculatorScreen() {
           )}
         </View>
 
+        {/* Dynamic Hanafi Fiqh Insight Card */}
+        {nisabExplanation ? (
+          <View style={[styles.fiqhInsightCard, { backgroundColor: isDark ? '#1E293B' : '#F8FAFC', borderColor: colors.primary }]}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+              <Ionicons name="ribbon-outline" size={16} color={colors.primary} />
+              <Text style={[styles.fiqhInsightTitle, { color: colors.primary }]}>
+                হানাফী ফিকহ সিদ্ধান্ত (আল-হিদায়া ও রদ্দুল মুহতার)
+              </Text>
+            </View>
+            <Text style={[styles.fiqhInsightText, { color: colors.textSecondary }]}>
+              {nisabExplanation}
+            </Text>
+            {isMixedWealth && silverRate === 0 && (
+              <View style={styles.warningPill}>
+                <Ionicons name="warning" size={14} color="#B45309" />
+                <Text style={styles.warningPillText}>
+                  সতর্কতা: আপনার স্বর্ণের সাথে নগদ/অন্যান্য সম্পদ থাকায় নেসাব যাচাইয়ের জন্য উপরে রূপার ভরির দর দেওয়া আবশ্যক।
+                </Text>
+              </View>
+            )}
+          </View>
+        ) : null}
+
         {/* 5. Final Result Card */}
         <View style={[styles.resultCard, { backgroundColor: isDark ? '#064E3B' : '#047857' }]}>
           <View style={styles.resultHeader}>
@@ -695,10 +755,10 @@ export default function ZakatCalculatorScreen() {
             />
             <Text style={styles.statusPillText}>
               {isNisabReached === true
-                ? 'আলহামদুলিল্লাহ, আপনার সম্পদ নেসাব স্পর্শ করেছে। যাকাত ফরজ।'
+                ? `আলহামদুলিল্লাহ, নেসাব পূর্ণ হয়েছে (${applicableNisab > 0 ? formatTaka(applicableNisab) : ''})। সম্পূর্ণ সম্পদের ওপর যাকাত ফরজ।`
                 : isNisabReached === false
-                  ? 'আপনার সম্পদ নেসাব পরিমাণ হয়নি। যাকাত ফরজ নয়।'
-                  : 'নেসাব মূল্যায়নের জন্য স্বর্ণ বা রূপার বাজারদর উল্লেখ করুন।'}
+                  ? `আপনার সম্পদ নেসাব পরিমাণ হয়নি (${applicableNisab > 0 ? formatTaka(applicableNisab) : ''})। যাকাত ফরজ নয়।`
+                  : 'হানাফী ফিকহ অনুযায়ী নেসাব যাচাইয়ের জন্য দয়া করে রূপার বাজারদর লিখুন।'}
             </Text>
           </View>
 
@@ -706,11 +766,11 @@ export default function ZakatCalculatorScreen() {
 
           {/* Main Payable Zakat */}
           <View style={styles.finalPayableBox}>
-            <Text style={styles.finalPayableLabel}>সর্বমোট প্রদেয় নিট যাকাত (২.৫%):</Text>
+            <Text style={styles.finalPayableLabel}>সর্বমোট প্রদেয় নিট যাকাত (২.৫% বা ৪০ ভাগের ১ ভাগ):</Text>
             <Text style={styles.finalPayableAmount}>{formatTaka(netPayableZakat)}</Text>
             {isNisabReached === false && (
               <Text style={styles.finalPayableNote}>
-                (নেসাব স্পর্শ না করায় বর্তমান হিসাবে যাকাত বাধ্যতামূলক নয়)
+                (নেসাব স্পর্শ না করায় বর্তমান হিসাবে যাকাত ওয়াজিব নয়)
               </Text>
             )}
           </View>
@@ -737,7 +797,7 @@ export default function ZakatCalculatorScreen() {
         </View>
       </ScrollView>
 
-      {/* Fiqh Rules Modal */}
+      {/* Fiqh Rules Modal with Classical References */}
       <Modal
         visible={showFiqhModal}
         transparent
@@ -749,38 +809,58 @@ export default function ZakatCalculatorScreen() {
             <View style={styles.modalHeader}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                 <Ionicons name="book" size={22} color={colors.primary} />
-                <Text style={[styles.modalTitle, { color: colors.text }]}>যাকাতের শরয়ী বিধান</Text>
+                <Text style={[styles.modalTitle, { color: colors.text }]}>হানাফী ফিকহের প্রামাণ্য নস ও বিধান</Text>
               </View>
               <TouchableOpacity onPress={() => setShowFiqhModal(false)}>
                 <Ionicons name="close-circle" size={26} color={colors.textMuted} />
               </TouchableOpacity>
             </View>
 
-            <ScrollView style={{ maxHeight: 420 }} showsVerticalScrollIndicator={true}>
+            <ScrollView style={{ maxHeight: 440 }} showsVerticalScrollIndicator={true}>
               <Text style={[styles.modalSectionHeading, { color: colors.primary }]}>
-                ১. যাকাতযোগ্য সম্পদ ৪ প্রকার
+                ১. সোনা ও নগদ টাকা একত্রীকরণ (ضم الذهب إلى الفضة والنقد)
+              </Text>
+              <Text style={[styles.modalArabic, { color: colors.text }]}>
+                «وتضم قيمة العروض إلى الثمنين والذهب إلى الفضة قيمة بالإجماع... والمعتمد الضم بالقيمة مطلقاً لأن المقصود هو المالية والغنى وأنفع للفقراء»
               </Text>
               <Text style={[styles.modalBody, { color: colors.textSecondary }]}>
-                • সোনা ও রূপা: কাঁচা, বার, মুদ্রা, ব্যবহৃত বা অব্যবহৃত অলংকার এবং লকারে রাখা অংশের সম্পূর্ণ বিক্রয়মূল্য।{'\n'}
-                • নগদ টাকা: হাতে নগদ, চেক, ডেবিট কার্ড, প্রাইজবন্ড, বোনাস, হজের টাকা ও ব্যাংকে নিজের অংশ।{'\n'}
-                • ব্যবসা-পণ্য: বিক্রয়ের উদ্দেশ্যে রাখা পণ্যের বাজারমূল্য, কারখানার কাঁচামাল ও ফিনিশড প্রডাক্ট।{'\n'}
-                • শেয়ার ও বিনিয়োগ: ক্যাপিটাল গেইনের উদ্দেশ্যে কেনা শেয়ারের বাজারমূল্য।
+                — রদ্দুল মুহতার আলাদ দুররিল মুখতার (ফাতাওয়া শামী), বাব জাকাতির মাল।{'\n'}
+                হানাফী মাযহাবের ইজমা অনুযায়ী: কারও কাছে ৭.৫ ভরির কম সোনা থাকলে এবং সাথে যদি সামান্য কিছু নগদ টাকা, রূপা বা ব্যবসাপণ্য থাকে, তবে উভয়টির মূল্য যোগ হবে এবং সাড়ে বায়ান্ন ভরি রূপার মূল্য অনুযায়ী নেসাব নির্ধারিত হবে। রূপার সমমূল্য হলেই সম্পূর্ণ সোনা ও নগদ টাকার ওপর ২.৫% যাকাত দিতে হবে।
               </Text>
 
               <Text style={[styles.modalSectionHeading, { color: colors.primary, marginTop: 12 }]}>
-                ২. যাকাতের নেসাব
+                ২. ব্যবহৃত অলংকারের যাকাত (حلي مستعمل)
+              </Text>
+              <Text style={[styles.modalArabic, { color: colors.text }]}>
+                «تجب الزكاة في الحلي مستعملاً كان أو غير مستعمل، تبراً كان أو مصوغاً»
               </Text>
               <Text style={[styles.modalBody, { color: colors.textSecondary }]}>
-                • সোনা: সাড়ে সাত ভরি বা ৮৭.৪৮ গ্রাম সোনা।{'\n'}
-                • রূপা: সাড়ে বায়ান্ন ভরি বা ৬১২.৩৬ গ্রাম রূপা।{'\n'}
-                • নগদ বা ব্যবসা-পণ্য থাকলে: হানাফী ফিকহ অনুযায়ী সাড়ে বায়ান্ন ভরি রূপার সমমূল্যের সম্পদ থাকলে নেসাবের মালিক গণ্য হবে।
+                — আল-হিদায়া ও আল-বাহরুর রায়েক।{'\n'}
+                ইমাম আবু হানীফা (রহ.)-এর মতে নারীদের নিত্য ব্যবহৃত অলংকার হোক বা লকারে রাখা স্বর্ণ—নেসাব পূর্ণ হলে সব ধরণের স্বর্ণ-রৌপ্যেই যাকাত ফরজ।
               </Text>
 
               <Text style={[styles.modalSectionHeading, { color: colors.primary, marginTop: 12 }]}>
-                ৩. যাকাতের হিসাব কখন করবেন? (যাকাতবর্ষ)
+                ৩. যাকাতের নেসাব ও পরিমাণ
               </Text>
               <Text style={[styles.modalBody, { color: colors.textSecondary }]}>
-                ব্যক্তি যেদিন প্রথম নেসাবের মালিক হবে, সেদিন থেকেই তার যাকাতবর্ষ শুরু হয়। চাঁদের হিসাবে যাকাতবর্ষ পূর্ণ হয় ৩৫৪ দিনে। ৩৫৪তম দিনে নেসাব পরিমাণ সম্পদ অবশিষ্ট থাকলে ওই দিন বিদ্যমান সম্পদের ৪০ ভাগের ১ ভাগ তথা ২.৫% যাকাত আদায় করা ফরজ।
+                • সোনা: সাড়ে সাত ভরি (তোলা) বা ৮৭.৪৮ গ্রাম (একক স্বর্ণের ক্ষেত্রে)।{'\n'}
+                • রূপা: সাড়ে বায়ান্ন ভরি (তোলা) বা ৬১২.৩৬ গ্রাম রূপা।{'\n'}
+                • নগদ বা ব্যবসা থাকলে: সাড়ে বায়ান্ন ভরি রূপার বর্তমান বাজারমূল্যই হানাফী মাযহাবের সর্বজনগ্রাহ্য নেসাব।
+              </Text>
+
+              <Text style={[styles.modalSectionHeading, { color: colors.primary, marginTop: 12 }]}>
+                ৪. যাকাতবর্ষ ও حولান الحول (Hawlan al-Hawl)
+              </Text>
+              <Text style={[styles.modalBody, { color: colors.textSecondary }]}>
+                ব্যক্তি যেদিন প্রথম নেসাবের মালিক হবে, সেদিন থেকেই তার যাকাতবর্ষ শুরু হয়। চন্দ্রবর্ষ ৩৫৪ দিনে পূর্ণ হয়। ৩৫৪তম দিনে নেসাব পরিমাণ সম্পদ অবশিষ্ট থাকলে ওই দিন বিদ্যমান সমুদয় সম্পদের ৪০ ভাগের ১ ভাগ তথা ২.৫% যাকাত আদায় করা ফরজ।
+              </Text>
+
+              <Text style={[styles.modalSectionHeading, { color: colors.primary, marginTop: 12 }]}>
+                ৫. দীর্ঘমেয়াদী ঋণের হানাফী ফতোয়া
+              </Text>
+              <Text style={[styles.modalBody, { color: colors.textSecondary }]}>
+                — ফাতাওয়া উসমানী ও আহসানুল ফাতাওয়া।{'\n'}
+                গৃহঋণ বা দীর্ঘমেয়াদী ঋণের পুরো মূল টাকা একবারে বাদ যাবে না, বরং চলতি বছরে যে পরিমাণ কিস্তি পরিশোধ করতে হবে, কেবল সেই অংশটুকুই দায় হিসেবে সম্পদ থেকে বিয়োগ হবে।
               </Text>
             </ScrollView>
 
@@ -788,7 +868,7 @@ export default function ZakatCalculatorScreen() {
               onPress={() => setShowFiqhModal(false)}
               style={[styles.modalCloseBtn, { backgroundColor: colors.primary }]}
             >
-              <Text style={styles.modalCloseBtnText}>বুঝেছি</Text>
+              <Text style={styles.modalCloseBtnText}>আলহামদুলিল্লাহ, বুঝেছি</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -996,6 +1076,35 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '800',
   },
+  fiqhInsightCard: {
+    borderRadius: 12,
+    padding: 14,
+    borderWidth: 1,
+    gap: 6,
+  },
+  fiqhInsightTitle: {
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  fiqhInsightText: {
+    fontSize: 11,
+    lineHeight: 17,
+  },
+  warningPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#FEF3C7',
+    padding: 8,
+    borderRadius: 8,
+    marginTop: 4,
+  },
+  warningPillText: {
+    flex: 1,
+    fontSize: 11,
+    color: '#92400E',
+    fontWeight: '600',
+  },
   resultCard: {
     borderRadius: 16,
     padding: 18,
@@ -1128,13 +1237,20 @@ const styles = StyleSheet.create({
     paddingBottom: 8,
   },
   modalTitle: {
-    fontSize: 17,
+    fontSize: 16,
     fontWeight: '700',
   },
   modalSectionHeading: {
     fontSize: 14,
     fontWeight: '700',
     marginBottom: 4,
+  },
+  modalArabic: {
+    fontSize: 13,
+    fontFamily: 'Amiri-Bold',
+    lineHeight: 22,
+    marginBottom: 4,
+    textAlign: 'right',
   },
   modalBody: {
     fontSize: 12,
