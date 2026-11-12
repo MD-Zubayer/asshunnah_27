@@ -662,8 +662,8 @@ export default function QuranStudyHubSheet({
               >
                 <View style={styles.translationCardHeader}>
                   <View style={styles.headerTitleRow}>
-                    <View style={{ flex: 1, paddingRight: 8 }}>
-                      <Text style={[styles.translatorName, { color: '#059669' }]}>
+                    <View style={styles.headerTitleTextWrap}>
+                      <Text style={[styles.translatorName, { color: '#059669' }]} numberOfLines={1}>
                         {transKitabs.find((k) => k.slug === activeTransSlug)?.name_bangla || 'বিশুদ্ধ বাংলা তরজমা'}
                       </Text>
                       <Text style={styles.translatorAuthor} numberOfLines={1}>
@@ -678,11 +678,11 @@ export default function QuranStudyHubSheet({
                     >
                       <Ionicons
                         name={copiedTransCiteToast ? 'checkmark-circle' : 'newspaper-outline'}
-                        size={14}
+                        size={13}
                         color={copiedTransCiteToast ? '#059669' : colors.textMuted}
                       />
                       <Text style={[styles.citeCopyBtnText, { color: copiedTransCiteToast ? '#059669' : colors.textMuted }]}>
-                        {copiedTransCiteToast ? 'কপি হয়েছে' : 'রেফারেন্সসহ কপি'}
+                        {copiedTransCiteToast ? 'কপি হয়েছে' : 'উদ্ধৃতি কপি'}
                       </Text>
                     </TouchableOpacity>
                   </View>
@@ -691,20 +691,25 @@ export default function QuranStudyHubSheet({
                   {activeTransRef ? (
                     <View
                       style={[
-                        styles.referenceBadgeRow,
+                        styles.referenceCardBox,
                         {
                           backgroundColor: isDark ? '#1E293B' : '#F1F5F9',
                           borderColor: isDark ? '#334155' : '#E2E8F0',
                         },
                       ]}
                     >
-                      <Ionicons name="book-outline" size={12} color="#059669" />
-                      <Text style={[styles.referenceBadgeText, { color: isDark ? '#E2E8F0' : '#374151' }]} numberOfLines={1}>
-                        {activeTransRef.badgeText}
-                      </Text>
+                      <View style={styles.referenceBadgeLine}>
+                        <Ionicons name="book-outline" size={12} color="#059669" />
+                        <Text
+                          style={[styles.referenceBadgeText, { color: isDark ? '#E2E8F0' : '#374151' }]}
+                          numberOfLines={1}
+                        >
+                          {activeTransRef.badgeText}
+                        </Text>
+                      </View>
                       {activeTransRef.edition ? (
-                        <Text style={[styles.referenceBadgeSub, { color: colors.textMuted }]} numberOfLines={1}>
-                          • {activeTransRef.edition}
+                        <Text style={[styles.referenceBadgeSub, { color: colors.textMuted }]} numberOfLines={2}>
+                          {activeTransRef.edition}
                         </Text>
                       ) : null}
                     </View>
@@ -830,8 +835,8 @@ export default function QuranStudyHubSheet({
               >
                 <View style={styles.tafsirCardHeader}>
                   <View style={styles.headerTitleRow}>
-                    <View style={{ flex: 1, paddingRight: 8 }}>
-                      <Text style={[styles.tafsirKitabArabic, { color: '#059669' }]}>
+                    <View style={styles.headerTitleTextWrap}>
+                      <Text style={[styles.tafsirKitabArabic, { color: '#059669' }]} numberOfLines={1}>
                         {tafsirKitabs.find((k) => k.slug === activeTafsirSlug)?.name_arabic}
                       </Text>
                       <Text style={[styles.tafsirAuthorName, { color: colors.textMuted }]} numberOfLines={1}>
@@ -846,11 +851,11 @@ export default function QuranStudyHubSheet({
                     >
                       <Ionicons
                         name={copiedCiteToast ? 'checkmark-circle' : 'newspaper-outline'}
-                        size={14}
+                        size={13}
                         color={copiedCiteToast ? '#059669' : colors.textMuted}
                       />
                       <Text style={[styles.citeCopyBtnText, { color: copiedCiteToast ? '#059669' : colors.textMuted }]}>
-                        {copiedCiteToast ? 'কপি হয়েছে' : 'রেফারেন্সসহ কপি'}
+                        {copiedCiteToast ? 'কপি হয়েছে' : 'উদ্ধৃতি কপি'}
                       </Text>
                     </TouchableOpacity>
                   </View>
@@ -859,20 +864,25 @@ export default function QuranStudyHubSheet({
                   {activeTafsirRef ? (
                     <View
                       style={[
-                        styles.referenceBadgeRow,
+                        styles.referenceCardBox,
                         {
                           backgroundColor: isDark ? '#064E3B20' : '#ECFDF5',
                           borderColor: isDark ? '#047857' : '#A7F3D0',
                         },
                       ]}
                     >
-                      <Ionicons name="bookmark-outline" size={12} color="#059669" />
-                      <Text style={[styles.referenceBadgeText, { color: isDark ? '#6EE7B7' : '#065F46' }]} numberOfLines={1}>
-                        {activeTafsirRef.badgeText}
-                      </Text>
+                      <View style={styles.referenceBadgeLine}>
+                        <Ionicons name="bookmark-outline" size={12} color="#059669" />
+                        <Text
+                          style={[styles.referenceBadgeText, { color: isDark ? '#6EE7B7' : '#065F46' }]}
+                          numberOfLines={1}
+                        >
+                          {activeTafsirRef.badgeText}
+                        </Text>
+                      </View>
                       {activeTafsirRef.investigator ? (
-                        <Text style={[styles.referenceBadgeSub, { color: colors.textMuted }]} numberOfLines={1}>
-                          • {activeTafsirRef.investigator}
+                        <Text style={[styles.referenceBadgeSub, { color: colors.textMuted }]} numberOfLines={2}>
+                          {activeTafsirRef.investigator}
                         </Text>
                       ) : null}
                     </View>
@@ -1349,41 +1359,55 @@ const styles = StyleSheet.create({
   headerTitleRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    alignItems: 'center',
+    gap: 8,
+  },
+  headerTitleTextWrap: {
+    flex: 1,
+    minWidth: 0,
   },
   citeCopyBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
     paddingHorizontal: 8,
-    paddingVertical: 4,
+    paddingVertical: 5,
     borderRadius: 8,
     borderWidth: 1,
     borderColor: '#CBD5E1',
     backgroundColor: 'rgba(0,0,0,0.02)',
+    flexShrink: 0,
   },
   citeCopyBtnText: {
     fontSize: 10,
     fontWeight: '700',
   },
-  referenceBadgeRow: {
+  referenceCardBox: {
+    marginTop: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 10,
+    borderWidth: 0.8,
+    alignSelf: 'stretch',
+    maxWidth: '100%',
+  },
+  referenceBadgeLine: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-    borderWidth: 0.8,
-    marginTop: 6,
-    alignSelf: 'flex-start',
+    flexWrap: 'wrap',
+    maxWidth: '100%',
   },
   referenceBadgeText: {
-    fontSize: 11,
+    fontSize: 11.5,
     fontWeight: '700',
     fontFamily: 'serif',
+    flexShrink: 1,
   },
   referenceBadgeSub: {
-    fontSize: 10,
+    fontSize: 10.5,
+    marginTop: 3,
+    lineHeight: 15,
   },
   translatorName: {
     fontSize: 14,
