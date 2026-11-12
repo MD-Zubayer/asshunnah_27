@@ -52,9 +52,18 @@ const originalFetch = global.fetch;
 global.fetch = async (...args) => {
   const response = await originalFetch(...args);
   if (response.status === 401) {
-    console.warn('[Global Fetch Interceptor] 401 Unauthorized detected. Auto-logging out.');
-    if (globalLogout) {
-      globalLogout();
+    const rawUrl = typeof args[0] === 'string' ? args[0] : (args[0]?.url || '');
+    // Do not trigger global auto-logout for auth endpoints or public media/static assets
+    const isAuthEndpoint = rawUrl.includes('/auth/login') ||
+      rawUrl.includes('/auth/signup') ||
+      rawUrl.includes('/password-reset') ||
+      rawUrl.includes('/media/');
+
+    if (!isAuthEndpoint) {
+      console.warn('[Global Fetch Interceptor] 401 Unauthorized detected on:', rawUrl, 'Auto-logging out.');
+      if (globalLogout) {
+        globalLogout();
+      }
     }
   }
   return response;

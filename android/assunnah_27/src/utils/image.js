@@ -11,6 +11,14 @@ import { API_BASE_URL } from '../constants/api';
 export const getImageUri = (url) => {
   if (!url) return null;
 
+  // If passed an object with uri property
+  if (typeof url === 'object' && url?.uri) {
+    url = url.uri;
+  }
+  if (typeof url !== 'string') return null;
+  url = url.trim();
+  if (!url) return null;
+
   // If it starts with file:// or data:, return it as is
   if (url.startsWith('file://') || url.startsWith('data:')) {
     return url;

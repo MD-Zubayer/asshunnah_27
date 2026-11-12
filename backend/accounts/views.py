@@ -1164,22 +1164,82 @@ class UploadCoverPhotoView(APIView):
 # ============================================
 
 class MinIOMediaView(APIView):
-    """Serve media files from MinIO through Django."""
+    """Serve media files from MinIO through Django with CORS and Range (206) support."""
     permission_classes = [AllowAny]
 
+    def _add_cors_headers(self, response):
+        response["Access-Control-Allow-Origin"] = "*"
+        response["Access-Control-Allow-Methods"] = "GET, HEAD, OPTIONS"
+        response["Access-Control-Allow-Headers"] = "*"
+        response["Access-Control-Expose-Headers"] = "Content-Length, Content-Range, Accept-Ranges, Content-Type"
+        return response
+
+    def options(self, request, *args, **kwargs):
+        from django.http import HttpResponse
+        response = HttpResponse()
+        return self._add_cors_headers(response)
+
+    def head(self, request, object_name):
+        from django.http import HttpResponse, HttpResponseNotFound
+        try:
+            client = get_minio_client()
+            bucket = os.getenv('MINIO_BUCKET', 'media')
+            stat = client.stat_object(bucket, object_name)
+            content_type = stat.content_type or 'application/octet-stream'
+
+            response = HttpResponse(content_type=content_type)
+            response["Content-Length"] = str(stat.size)
+            response["Accept-Ranges"] = "bytes"
+            return self._add_cors_headers(response)
+        except Exception:
+            return HttpResponseNotFound('File not found')
+
     def get(self, request, object_name):
-        """Fetch object from MinIO and return as streaming response."""
+        """Fetch object from MinIO and return as streaming response with Range support."""
         try:
             client = get_minio_client()
             bucket = os.getenv('MINIO_BUCKET', 'media')
 
-            response = client.get_object(bucket, object_name)
-            content_type = response.headers.get('Content-Type', 'application/octet-stream')
+            stat = client.stat_object(bucket, object_name)
+            total_size = stat.size
+            content_type = stat.content_type or 'application/octet-stream'
 
-            return StreamingHttpResponse(
-                io.BytesIO(response.read()),
+            # Check HTTP Range header
+            range_header = request.META.get('HTTP_RANGE', '').strip()
+            if range_header.startswith('bytes='):
+                range_str = range_header[6:].strip()
+                parts = range_str.split('-')
+                start = int(parts[0]) if parts[0] else 0
+                end = int(parts[1]) if len(parts) > 1 and parts[1] else total_size - 1
+
+                if start >= total_size or end >= total_size or start > end:
+                    from django.http import HttpResponse
+                    resp = HttpResponse(status=416)
+                    resp["Content-Range"] = f"bytes */{total_size}"
+                    return self._add_cors_headers(resp)
+
+                length = end - start + 1
+                response_data = client.get_object(bucket, object_name, offset=start, length=length)
+                resp = StreamingHttpResponse(
+                    io.BytesIO(response_data.read()),
+                    content_type=content_type,
+                    status=206
+                )
+                resp["Content-Range"] = f"bytes {start}-{end}/{total_size}"
+                resp["Content-Length"] = str(length)
+                resp["Accept-Ranges"] = "bytes"
+                return self._add_cors_headers(resp)
+
+            # Full file request
+            response_data = client.get_object(bucket, object_name)
+            resp = StreamingHttpResponse(
+                io.BytesIO(response_data.read()),
                 content_type=content_type
             )
+            resp["Content-Length"] = str(total_size)
+            resp["Accept-Ranges"] = "bytes"
+            return self._add_cors_headers(resp)
+
         except Exception:
             from django.conf import settings
             import os as local_os
@@ -1187,11 +1247,12 @@ class MinIOMediaView(APIView):
 
             local_path = local_os.path.join(settings.MEDIA_ROOT, object_name)
             if local_os.path.exists(local_path):
-                # Guess mime type if possible
                 import mimetypes
                 content_type, _ = mimetypes.guess_type(local_path)
                 content_type = content_type or 'application/octet-stream'
-                return FileResponse(open(local_path, 'rb'), content_type=content_type)
+                resp = FileResponse(open(local_path, 'rb'), content_type=content_type)
+                resp["Accept-Ranges"] = "bytes"
+                return self._add_cors_headers(resp)
 
             return HttpResponseNotFound('File not found')
 

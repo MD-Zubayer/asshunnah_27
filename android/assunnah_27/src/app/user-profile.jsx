@@ -24,6 +24,7 @@ import { API_ENDPOINTS } from '../constants/api';
 import ShareOptionsModal from '../components/ShareOptionsModal';
 import StyledPostContent from '../components/StyledPostContent';
 import { API_BASE_URL } from '../constants/api';
+import { getImageUri } from '../utils/image';
 
 const DEFAULT_COVER = require('../../assets/expo.icon/Assets/images/madrasa1.jpg');
 const DEFAULT_AVATAR = require('../../assets/expo.icon/Assets/images/icon.png');
@@ -341,7 +342,11 @@ export default function UserProfileScreen() {
                     {/* Avatar */}
                     <View style={styles.avatarWrap}>
                         {profileUser?.profile_image ? (
-                            <Image source={profileUser.profile_image} style={styles.avatar} contentFit="cover" />
+                            <Image
+                                source={typeof profileUser.profile_image === 'string' ? { uri: getImageUri(profileUser.profile_image) } : profileUser.profile_image}
+                                style={styles.avatar}
+                                contentFit="cover"
+                            />
                         ) : (
                             <Image source={DEFAULT_AVATAR} style={styles.avatar} contentFit="cover" />
                         )}
@@ -417,9 +422,17 @@ export default function UserProfileScreen() {
                                     });
                                     if (response.ok) {
                                         const room = await response.json();
+                                        const avatarUrl = typeof profileUser?.profile_image === 'string'
+                                            ? getImageUri(profileUser.profile_image)
+                                            : (profileUser?.profile_image?.uri || '');
                                         router.push({
                                             pathname: '/chat-conversation',
-                                            params: { roomId: room.id, otherUserName: getUserName(), otherUserId: resolvedUserId }
+                                            params: { 
+                                                roomId: room.id, 
+                                                otherUserName: getUserName(), 
+                                                otherUserId: resolvedUserId,
+                                                otherUserProfileImage: avatarUrl || ''
+                                            }
                                         });
                                     } else {
                                         Alert.alert('ত্রুটি', 'চ্যাট শুরু করা সম্ভব হয়নি');
@@ -436,12 +449,33 @@ export default function UserProfileScreen() {
 
                         <TouchableOpacity
                             style={[styles.iconActionBtn, { backgroundColor: '#10b98118', borderColor: '#10b98133' }]}
-                            onPress={() => {
+                            onPress={async () => {
                                 if (!token) {
                                     router.push('/login');
                                     return;
                                 }
-                                initiateCall(resolvedUserId, getUserName(), 'audio');
+                                try {
+                                    const response = await fetch(API_ENDPOINTS.CHAT_GET_OR_CREATE_ROOM, {
+                                        method: 'POST',
+                                        headers: {
+                                            'Authorization': `Token ${token}`,
+                                            'Content-Type': 'application/json',
+                                        },
+                                        body: JSON.stringify({ user_id: resolvedUserId })
+                                    });
+                                    if (response.ok) {
+                                        const room = await response.json();
+                                        const avatarUrl = typeof profileUser?.profile_image === 'string'
+                                            ? getImageUri(profileUser.profile_image)
+                                            : (profileUser?.profile_image?.uri || null);
+                                        initiateCall(room.id, resolvedUserId, getUserName(), 'audio', avatarUrl);
+                                    } else {
+                                        Alert.alert('ত্রুটি', 'কল শুরু করা সম্ভব হয়নি');
+                                    }
+                                } catch (e) {
+                                    console.error('Error starting audio call from profile:', e);
+                                    Alert.alert('ত্রুটি', 'সার্ভারে কানেক্ট করা সম্ভব হয়নি');
+                                }
                             }}
                             title="অডিও কল"
                         >
@@ -450,12 +484,33 @@ export default function UserProfileScreen() {
 
                         <TouchableOpacity
                             style={[styles.iconActionBtn, { backgroundColor: '#3b82f618', borderColor: '#3b82f633' }]}
-                            onPress={() => {
+                            onPress={async () => {
                                 if (!token) {
                                     router.push('/login');
                                     return;
                                 }
-                                initiateCall(resolvedUserId, getUserName(), 'video');
+                                try {
+                                    const response = await fetch(API_ENDPOINTS.CHAT_GET_OR_CREATE_ROOM, {
+                                        method: 'POST',
+                                        headers: {
+                                            'Authorization': `Token ${token}`,
+                                            'Content-Type': 'application/json',
+                                        },
+                                        body: JSON.stringify({ user_id: resolvedUserId })
+                                    });
+                                    if (response.ok) {
+                                        const room = await response.json();
+                                        const avatarUrl = typeof profileUser?.profile_image === 'string'
+                                            ? getImageUri(profileUser.profile_image)
+                                            : (profileUser?.profile_image?.uri || null);
+                                        initiateCall(room.id, resolvedUserId, getUserName(), 'video', avatarUrl);
+                                    } else {
+                                        Alert.alert('ত্রুটি', 'কল শুরু করা সম্ভব হয়নি');
+                                    }
+                                } catch (e) {
+                                    console.error('Error starting video call from profile:', e);
+                                    Alert.alert('ত্রুটি', 'সার্ভারে কানেক্ট করা সম্ভব হয়নি');
+                                }
                             }}
                             title="ভিডিও কল"
                         >
@@ -481,7 +536,11 @@ export default function UserProfileScreen() {
                         {/* Post Header */}
                         <View style={styles.postHeader}>
                             {profileUser?.profile_image ? (
-                                <Image source={profileUser.profile_image} style={styles.postAvatar} contentFit="cover" />
+                                <Image
+                                    source={typeof profileUser.profile_image === 'string' ? { uri: getImageUri(profileUser.profile_image) } : profileUser.profile_image}
+                                    style={styles.postAvatar}
+                                    contentFit="cover"
+                                />
                             ) : (
                                 <Image source={DEFAULT_AVATAR} style={styles.postAvatar} contentFit="cover" />
                             )}

@@ -651,7 +651,15 @@ export default function ChatConversationScreen() {
       <View style={[styles.messageRow, { justifyContent: isMe ? 'flex-end' : 'flex-start' }]}>
         {!isMe && (
           <View style={[styles.avatarContainer, { backgroundColor: colors.inputBg }]}>
-            <Ionicons name="person" size={16} color={colors.textSecondary} />
+            {otherUserProfileImage ? (
+              <Image
+                source={{ uri: getImageUri(otherUserProfileImage) }}
+                style={styles.messageAvatar}
+                contentFit="cover"
+              />
+            ) : (
+              <Ionicons name="person" size={16} color={colors.textSecondary} />
+            )}
           </View>
         )}
         <View style={{ maxWidth: '75%' }}>
@@ -860,12 +868,33 @@ export default function ChatConversationScreen() {
           <Ionicons name="arrow-back" size={24} color={colors.text} />
         </TouchableOpacity>
         
-        <View style={{ flex: 1, marginLeft: 12 }}>
-          <Text style={[styles.userName, { color: colors.text }]} numberOfLines={1}>{otherUserName}</Text>
-          <Text style={{ fontSize: 10, color: isOtherUserOnline ? '#10B981' : colors.textMuted, fontWeight: '600' }}>
-            {isOtherUserOnline ? 'অনলাইন' : 'অফলাইন'}
-          </Text>
-        </View>
+        <TouchableOpacity 
+          activeOpacity={0.8}
+          onPress={() => otherUserId && router.push(`/user-profile?id=${otherUserId}`)}
+          style={{ flexDirection: 'row', alignItems: 'center', flex: 1, marginLeft: 8 }}
+        >
+          <View style={styles.headerAvatarWrapper}>
+            {otherUserProfileImage ? (
+              <Image
+                source={{ uri: getImageUri(otherUserProfileImage) }}
+                style={styles.headerAvatar}
+                contentFit="cover"
+              />
+            ) : (
+              <View style={[styles.headerAvatar, { backgroundColor: colors.inputBg, justifyContent: 'center', alignItems: 'center' }]}>
+                <Ionicons name="person" size={18} color={colors.textSecondary} />
+              </View>
+            )}
+            {isOtherUserOnline && <View style={styles.headerActiveDot} />}
+          </View>
+          
+          <View style={{ marginLeft: 10, flex: 1 }}>
+            <Text style={[styles.userName, { color: colors.text }]} numberOfLines={1}>{otherUserName}</Text>
+            <Text style={{ fontSize: 10, color: isOtherUserOnline ? '#10B981' : colors.textMuted, fontWeight: '600' }}>
+              {isOtherUserOnline ? 'অনলাইন' : 'অফলাইন'}
+            </Text>
+          </View>
+        </TouchableOpacity>
 
         <View style={styles.headerActions}>
           <TouchableOpacity onPress={() => startCall('audio')} style={[styles.callBtn, { marginRight: 12 }]}>
@@ -1206,6 +1235,25 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
     marginBottom: 12,
   },
+  headerAvatarWrapper: {
+    position: 'relative',
+  },
+  headerAvatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+  },
+  headerActiveDot: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#10B981',
+    borderWidth: 2,
+    borderColor: '#FFF',
+  },
   avatarContainer: {
     width: 28,
     height: 28,
@@ -1213,6 +1261,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 8,
+    overflow: 'hidden',
+  },
+  messageAvatar: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
   },
   messageBubble: {
     paddingHorizontal: 12,

@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from .models import ChatRoom, ChatMessage, CallLog
+from accounts.serializers import _build_minio_url
 
 from .consumers import ONLINE_USERS
 
@@ -9,6 +10,7 @@ User = get_user_model()
 class ChatUserSerializer(serializers.ModelSerializer):
     name = serializers.SerializerMethodField()
     is_online = serializers.SerializerMethodField()
+    profile_image = serializers.SerializerMethodField()
 
     class Meta:
         model = User
@@ -19,6 +21,15 @@ class ChatUserSerializer(serializers.ModelSerializer):
 
     def get_is_online(self, obj):
         return obj.id in ONLINE_USERS
+
+    def get_profile_image(self, obj):
+        if obj.profile_image:
+            url = _build_minio_url(obj.profile_image)
+            request = self.context.get('request')
+            if request and url and url.startswith('/'):
+                return request.build_absolute_uri(url)
+            return url
+        return None
 
 class ParentMessageSerializer(serializers.ModelSerializer):
     sender_name = serializers.CharField(source='sender.get_full_name', read_only=True)

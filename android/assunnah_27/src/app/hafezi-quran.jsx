@@ -13,13 +13,13 @@ import {
   Dimensions,
   Animated,
   useColorScheme,
+  ScrollView,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { WebView } from 'react-native-webview';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as FileSystem from 'expo-file-system';
 import { Colors } from '../constants/theme';
 import { API_ENDPOINTS } from '../constants/api';
 import {
@@ -75,6 +75,12 @@ export default function HafeziQuranScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [pdfSourceUrl, setPdfSourceUrl] = useState(API_ENDPOINTS.QURAN_PDF);
 
+  // Fast-Scroll Scrubber & Continuous Navigation States
+  const [isScrubbing, setIsScrubbing] = useState(false);
+  const [scrubPage, setScrubPage] = useState(initialPage);
+  const scrubberWidthRef = useRef(SCREEN_WIDTH - 32);
+  const autoFlipIntervalRef = useRef(null);
+
   // Modals
   const [showIndexModal, setShowIndexModal] = useState(false);
   const [indexTab, setIndexTab] = useState('surah'); // 'surah' | 'para' | 'sijdah' | 'bookmarks'
@@ -118,6 +124,22 @@ export default function HafeziQuranScreen() {
       useNativeDriver: true,
     }).start();
   }, [fullscreen]);
+
+  // Sync scrubPage with currentPage when not actively dragging
+  useEffect(() => {
+    if (!isScrubbing) {
+      setScrubPage(currentPage);
+    }
+  }, [currentPage, isScrubbing]);
+
+  // Clean up auto-flip interval on unmount
+  useEffect(() => {
+    return () => {
+      if (autoFlipIntervalRef.current) {
+        clearInterval(autoFlipIntervalRef.current);
+      }
+    };
+  }, []);
 
   const loadLastRead = async () => {
     try {
@@ -234,6 +256,39 @@ export default function HafeziQuranScreen() {
     if (currentPage > 1) {
       goToPage(currentPage - 1);
     }
+  };
+
+  const handleSkipPages = (delta) => {
+    const target = Math.max(1, Math.min(TOTAL_QURAN_PAGES, currentPage + delta));
+    goToPage(target);
+  };
+
+  const startAutoFlip = (direction) => {
+    stopAutoFlip();
+    autoFlipIntervalRef.current = setInterval(() => {
+      setCurrentPage((prev) => {
+        const next = Math.max(1, Math.min(TOTAL_QURAN_PAGES, prev + direction));
+        if (webViewRef.current) {
+          webViewRef.current.injectJavaScript(`window.goToPage && window.goToPage(${next}); true;`);
+        }
+        return next;
+      });
+    }, 180);
+  };
+
+  const stopAutoFlip = () => {
+    if (autoFlipIntervalRef.current) {
+      clearInterval(autoFlipIntervalRef.current);
+      autoFlipIntervalRef.current = null;
+    }
+  };
+
+  const handleScrubberTouch = (event) => {
+    const touchX = event.nativeEvent.locationX;
+    const width = Math.max(100, scrubberWidthRef.current || (SCREEN_WIDTH - 32));
+    const ratio = Math.max(0, Math.min(1, touchX / width));
+    const targetPage = Math.max(1, Math.min(TOTAL_QURAN_PAGES, Math.round(ratio * (TOTAL_QURAN_PAGES - 1)) + 1));
+    setScrubPage(targetPage);
   };
 
   const handleThemeChange = (newTheme) => {
@@ -384,31 +439,47 @@ export default function HafeziQuranScreen() {
     const ctx = canvas.getContext('2d');
     const loader = document.getElementById('loader');
 
-    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-
     function sendToApp(type, payload) {
       if (window.ReactNativeWebView) {
         window.ReactNativeWebView.postMessage(JSON.stringify({ type, ...payload }));
       }
     }
 
-    // Load PDF Document
-    const loadingTask = pdfjsLib.getDocument({
-      url: PDF_URL,
-      cMapUrl: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/cmaps/',
-      cMapPacked: true,
-      rangeChunkSize: 65536,
-      disableAutoFetch: true,
-      disableStream: false
-    });
+    function initPdf() {
+      if (!window.pdfjsLib) {
+        setTimeout(initPdf, 100);
+        return;
+      }
 
-    loadingTask.promise.then(function(pdf) {
-      pdfDoc = pdf;
-      renderPage(currentPageNum);
-    }).catch(function(err) {
-      sendToApp('LOG', { message: 'PDF Load Error: ' + err.message });
-      loader.innerHTML = '<div style="color: #DC2626; padding: 20px; text-align: center;">কুরআন লোড করা সম্ভব হয়নি। ইন্টারনেট সংযোগ পরীক্ষা করুন।</div>';
-    });
+      // Disable external worker to prevent cross-origin SecurityError in WebView:
+      try {
+        window.pdfjsLib.GlobalWorkerOptions.workerSrc = '';
+      } catch (e) {}
+
+      // Load PDF Document
+      const loadingTask = window.pdfjsLib.getDocument({
+        url: PDF_URL,
+        cMapUrl: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/cmaps/',
+        cMapPacked: true,
+        rangeChunkSize: 65536,
+        disableAutoFetch: false,
+        disableStream: false
+      });
+
+      loadingTask.promise.then(function(pdf) {
+        pdfDoc = pdf;
+        renderPage(currentPageNum);
+      }).catch(function(err) {
+        sendToApp('LOG', { message: 'PDF Load Error: ' + err.message });
+        loader.innerHTML = '<div style="color: #DC2626; padding: 24px; text-align: center; font-size: 14px;">' +
+          '<div style="font-weight: 700; margin-bottom: 6px;">কুরআন লোড করা সম্ভব হয়নি</div>' +
+          '<div style="color: #6B7280; font-size: 12px; margin-bottom: 14px;">' + (err.message || 'ইন্টারনেট সংযোগ পরীক্ষা করুন') + '</div>' +
+          '<button onclick="location.reload()" style="padding: 8px 20px; background: #059669; color: #FFF; border: none; border-radius: 20px; font-weight: 600; cursor: pointer;">আবার চেষ্টা করুন</button>' +
+          '</div>';
+      });
+    }
+
+    initPdf();
 
     function renderPage(num) {
       pageRendering = true;
@@ -496,16 +567,22 @@ export default function HafeziQuranScreen() {
           sendToApp('TOGGLE_FULLSCREEN', {});
         } 
         // Horizontal Swipe (RTL: swipe right-to-left -> Next Page, swipe left-to-right -> Prev Page)
-        else if (Math.abs(deltaX) > 60 && Math.abs(deltaY) < 50 && deltaTime < 400) {
+        else if (Math.abs(deltaX) > 50 && Math.abs(deltaY) < 60 && deltaTime < 500) {
+          let step = 1;
+          const velocity = Math.abs(deltaX) / Math.max(1, deltaTime); // px per ms
+          if (velocity > 1.2 || Math.abs(deltaX) > 200) {
+            step = Math.min(5, Math.max(2, Math.round(velocity * 2.5)));
+          }
+
           if (deltaX < 0) {
-            // Swipe Left -> Next Page (Quran Page + 1)
+            // Swipe Left -> Next Page(s)
             if (currentPageNum < 614) {
-              window.goToPage(currentPageNum + 1);
+              window.goToPage(Math.min(614, currentPageNum + step));
             }
           } else {
-            // Swipe Right -> Prev Page (Quran Page - 1)
+            // Swipe Right -> Prev Page(s)
             if (currentPageNum > 1) {
-              window.goToPage(currentPageNum - 1);
+              window.goToPage(Math.max(1, currentPageNum - step));
             }
           }
         }
@@ -633,7 +710,10 @@ export default function HafeziQuranScreen() {
       <View style={styles.webViewWrapper}>
         <WebView
           ref={webViewRef}
-          source={{ html: htmlContent }}
+          source={{
+            html: htmlContent,
+            baseUrl: 'https://api-assunnah-27.newsmartagent.com'
+          }}
           style={styles.webView}
           onMessage={handleWebViewMessage}
           javaScriptEnabled={true}
@@ -694,7 +774,115 @@ export default function HafeziQuranScreen() {
             },
           ]}
         >
+          {/* 1. Para Horizontal Fast Selector */}
+          <View style={styles.paraScrollViewWrapper}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.paraScrollContent}
+            >
+              {QURAN_PARAS.map((para) => {
+                const isActive = pageInfo.para.id === para.id;
+                return (
+                  <TouchableOpacity
+                    key={para.id}
+                    onPress={() => goToPage(para.page)}
+                    style={[
+                      styles.paraChip,
+                      isActive && styles.paraChipActive,
+                      {
+                        backgroundColor: isActive
+                          ? '#059669'
+                          : (readingTheme === 'night' ? '#2A2A2A' : '#F1F5F9'),
+                        borderColor: isActive ? '#047857' : (readingTheme === 'night' ? '#3E3E3E' : '#E2E8F0'),
+                      }
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.paraChipText,
+                        { color: isActive ? '#FFFFFF' : (readingTheme === 'night' ? '#D1D5DB' : '#4B5563') }
+                      ]}
+                    >
+                      পারা {toBn(para.id)}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          </View>
+
+          {/* 2. Live Scrubber Tooltip when Dragging */}
+          {isScrubbing && (
+            <View style={styles.scrubberTooltip}>
+              <Text style={styles.scrubberTooltipText}>
+                পৃষ্ঠা {toBn(scrubPage)} • পারা {toBn(getQuranPageInfo(scrubPage).para.id)} ({getQuranPageInfo(scrubPage).para.bangla}) • {getQuranPageInfo(scrubPage).surah.nameBangla}
+              </Text>
+            </View>
+          )}
+
+          {/* 3. Fast-Scroll Scrubber Track */}
+          <View
+            style={styles.scrubberContainer}
+            onLayout={(e) => {
+              scrubberWidthRef.current = e.nativeEvent.layout.width;
+            }}
+            onStartShouldSetResponder={() => true}
+            onMoveShouldSetResponder={() => true}
+            onResponderGrant={(e) => {
+              setIsScrubbing(true);
+              handleScrubberTouch(e);
+            }}
+            onResponderMove={(e) => {
+              handleScrubberTouch(e);
+            }}
+            onResponderRelease={(e) => {
+              setIsScrubbing(false);
+              goToPage(scrubPage);
+            }}
+          >
+            <View style={[styles.scrubberTrack, { backgroundColor: readingTheme === 'night' ? '#333333' : '#E2E8F0' }]}>
+              <View
+                style={[
+                  styles.scrubberProgress,
+                  {
+                    width: `${((isScrubbing ? scrubPage : currentPage) / TOTAL_QURAN_PAGES) * 100}%`,
+                    backgroundColor: '#059669',
+                  }
+                ]}
+              />
+              <View
+                style={[
+                  styles.scrubberThumb,
+                  {
+                    left: `${((isScrubbing ? scrubPage : currentPage) / TOTAL_QURAN_PAGES) * 100}%`,
+                  }
+                ]}
+              />
+            </View>
+            <View style={styles.scrubberLabelsRow}>
+              <Text style={styles.scrubberLabelText}>পৃষ্ঠা ১</Text>
+              <Text style={styles.scrubberLabelText}>পৃষ্ঠা {toBn(TOTAL_QURAN_PAGES)}</Text>
+            </View>
+          </View>
+
+          {/* 4. Multi-Page Navigation Buttons Row */}
           <View style={styles.bottomBarRow}>
+            {/* -10 Pages Quick Skip */}
+            <TouchableOpacity
+              style={[
+                styles.navBtnSmall,
+                currentPage <= 1 && styles.navBtnDisabled,
+                { backgroundColor: readingTheme === 'night' ? '#2A2A2A' : '#F1F5F9' },
+              ]}
+              onPress={() => handleSkipPages(-10)}
+              disabled={currentPage <= 1}
+            >
+              <Text style={[styles.navBtnSmallText, { color: currentPage <= 1 ? '#9CA3AF' : readingTheme === 'night' ? '#E5E7EB' : '#1F2937' }]}>
+                -১০
+              </Text>
+            </TouchableOpacity>
+
             {/* Prev Page Button (RTL: Previous page is right) */}
             <TouchableOpacity
               style={[
@@ -703,6 +891,8 @@ export default function HafeziQuranScreen() {
                 { backgroundColor: readingTheme === 'night' ? '#2A2A2A' : '#F1F5F9' },
               ]}
               onPress={handlePrevPage}
+              onLongPress={() => startAutoFlip(-1)}
+              onPressOut={stopAutoFlip}
               disabled={currentPage <= 1}
             >
               <Ionicons
@@ -745,6 +935,8 @@ export default function HafeziQuranScreen() {
                 { backgroundColor: readingTheme === 'night' ? '#2A2A2A' : '#F1F5F9' },
               ]}
               onPress={handleNextPage}
+              onLongPress={() => startAutoFlip(1)}
+              onPressOut={stopAutoFlip}
               disabled={currentPage >= TOTAL_QURAN_PAGES}
             >
               <Text
@@ -773,6 +965,21 @@ export default function HafeziQuranScreen() {
                     : '#1F2937'
                 }
               />
+            </TouchableOpacity>
+
+            {/* +10 Pages Quick Skip */}
+            <TouchableOpacity
+              style={[
+                styles.navBtnSmall,
+                currentPage >= TOTAL_QURAN_PAGES && styles.navBtnDisabled,
+                { backgroundColor: readingTheme === 'night' ? '#2A2A2A' : '#F1F5F9' },
+              ]}
+              onPress={() => handleSkipPages(10)}
+              disabled={currentPage >= TOTAL_QURAN_PAGES}
+            >
+              <Text style={[styles.navBtnSmallText, { color: currentPage >= TOTAL_QURAN_PAGES ? '#9CA3AF' : readingTheme === 'night' ? '#E5E7EB' : '#1F2937' }]}>
+                +১০
+              </Text>
             </TouchableOpacity>
           </View>
         </Animated.View>
@@ -1320,8 +1527,109 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    paddingHorizontal: 12,
+    paddingTop: 6,
+    gap: 4,
+  },
+  paraScrollViewWrapper: {
+    paddingVertical: 4,
+    borderBottomWidth: 0.5,
+    borderBottomColor: 'rgba(0,0,0,0.06)',
+  },
+  paraScrollContent: {
+    paddingHorizontal: 12,
+    gap: 6,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  paraChip: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 14,
+    borderWidth: 1,
+  },
+  paraChipActive: {
+    shadowColor: '#059669',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  paraChipText: {
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  scrubberContainer: {
     paddingHorizontal: 16,
     paddingTop: 8,
+    paddingBottom: 4,
+  },
+  scrubberTrack: {
+    height: 6,
+    borderRadius: 3,
+    position: 'relative',
+    justifyContent: 'center',
+  },
+  scrubberProgress: {
+    height: 6,
+    borderRadius: 3,
+  },
+  scrubberThumb: {
+    position: 'absolute',
+    top: -6,
+    marginLeft: -9,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: '#F59E0B',
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 2.5,
+    elevation: 4,
+  },
+  scrubberLabelsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 4,
+  },
+  scrubberLabelText: {
+    fontSize: 10,
+    color: '#9CA3AF',
+    fontWeight: '500',
+  },
+  scrubberTooltip: {
+    alignSelf: 'center',
+    backgroundColor: '#064E3B',
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 16,
+    marginTop: 4,
+    marginBottom: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 3,
+  },
+  scrubberTooltipText: {
+    color: '#FEF3C7',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  navBtnSmall: {
+    paddingHorizontal: 8,
+    paddingVertical: 8,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    minWidth: 36,
+  },
+  navBtnSmallText: {
+    fontSize: 12,
+    fontWeight: '700',
   },
   navBtn: {
     flexDirection: 'row',

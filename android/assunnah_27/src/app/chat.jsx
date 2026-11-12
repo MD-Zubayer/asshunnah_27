@@ -11,6 +11,7 @@ import { Colors } from '../constants/theme';
 import { useAuth } from '../context/AuthContext';
 import { API_ENDPOINTS } from '../constants/api';
 import { getCache, setCache } from '../services/cacheService';
+import { getImageUri } from '../utils/image';
 
 export default function ChatDashboardScreen() {
   const scheme = useColorScheme();
@@ -125,7 +126,7 @@ export default function ChatDashboardScreen() {
             roomId: room.id, 
             otherUserName: targetUser.name, 
             otherUserId: targetUser.id,
-            otherUserProfileImage: targetUser.profile_image || ''
+            otherUserProfileImage: getImageUri(targetUser.profile_image) || ''
           }
         });
       } else {
@@ -144,13 +145,21 @@ export default function ChatDashboardScreen() {
 
   // Render Horizontal Active Now avatar bubble
   const renderActiveUser = (item) => {
+    const avatarUri = getImageUri(item.profile_image);
     return (
       <TouchableOpacity key={item.id} onPress={() => handleStartChat(item)} style={styles.activeUserBubble}>
         <View style={styles.avatarWrapper}>
-          <Image
-            source={item.profile_image ? { uri: item.profile_image } : require('../../assets/expo.icon/Assets/images/icon.png')}
-            style={styles.activeAvatar}
-          />
+          {avatarUri ? (
+            <Image
+              source={{ uri: avatarUri }}
+              style={styles.activeAvatar}
+              contentFit="cover"
+            />
+          ) : (
+            <View style={[styles.activeAvatar, styles.fallbackAvatar, { backgroundColor: colors.inputBg }]}>
+              <Ionicons name="person" size={24} color={colors.textSecondary} />
+            </View>
+          )}
           {item.is_online && <View style={styles.activeDot} />}
         </View>
         <Text style={[styles.activeUserName, { color: colors.text }]} numberOfLines={1}>
@@ -213,23 +222,33 @@ export default function ChatDashboardScreen() {
               {searching ? (
                 <ActivityIndicator size="small" color={colors.primary} style={{ marginTop: 20 }} />
               ) : searchResults.length > 0 ? (
-                searchResults.map(item => (
-                  <TouchableOpacity
-                    key={item.id}
-                    onPress={() => handleStartChat(item)}
-                    style={styles.chatRow}
-                  >
-                    <Image
-                      source={item.profile_image ? { uri: item.profile_image } : require('../../assets/expo.icon/Assets/images/icon.png')}
-                      style={styles.avatar}
-                    />
-                    <View style={{ flex: 1, marginLeft: 14 }}>
-                      <Text style={[styles.userName, { color: colors.text }]}>{item.name}</Text>
-                      <Text style={{ fontSize: 11, color: colors.textSecondary }}>{item.profile_type === 'takmil_student' ? 'তাকমিল ছাত্র' : 'মুসল্লি'}</Text>
-                    </View>
-                    <Ionicons name="chatbubble-outline" size={20} color={colors.textMuted} />
-                  </TouchableOpacity>
-                ))
+                searchResults.map(item => {
+                  const itemAvatar = getImageUri(item.profile_image);
+                  return (
+                    <TouchableOpacity
+                      key={item.id}
+                      onPress={() => handleStartChat(item)}
+                      style={styles.chatRow}
+                    >
+                      {itemAvatar ? (
+                        <Image
+                          source={{ uri: itemAvatar }}
+                          style={styles.avatar}
+                          contentFit="cover"
+                        />
+                      ) : (
+                        <View style={[styles.avatar, styles.fallbackAvatar, { backgroundColor: colors.inputBg }]}>
+                          <Ionicons name="person" size={22} color={colors.textSecondary} />
+                        </View>
+                      )}
+                      <View style={{ flex: 1, marginLeft: 14 }}>
+                        <Text style={[styles.userName, { color: colors.text }]}>{item.name}</Text>
+                        <Text style={{ fontSize: 11, color: colors.textSecondary }}>{item.profile_type === 'takmil_student' ? 'তাকমিল ছাত্র' : 'মুসল্লি'}</Text>
+                      </View>
+                      <Ionicons name="chatbubble-outline" size={20} color={colors.textMuted} />
+                    </TouchableOpacity>
+                  );
+                })
               ) : (
                 <Text style={[styles.emptyText, { color: colors.textMuted }]}>কোনো ব্যবহারকারী পাওয়া যায়নি</Text>
               )}
@@ -243,6 +262,7 @@ export default function ChatDashboardScreen() {
                   chatRooms.map(item => {
                     const otherUser = getOtherParticipant(item);
                     const lastMsg = item.last_message;
+                    const otherAvatar = getImageUri(otherUser.profile_image);
                     return (
                       <TouchableOpacity
                         key={item.id}
@@ -252,16 +272,23 @@ export default function ChatDashboardScreen() {
                             roomId: item.id, 
                             otherUserName: otherUser.name, 
                             otherUserId: otherUser.id,
-                            otherUserProfileImage: otherUser.profile_image || ''
+                            otherUserProfileImage: otherAvatar || ''
                           }
                         })}
                         style={styles.chatRow}
                       >
                         <View style={styles.avatarWrapper}>
-                          <Image
-                            source={otherUser.profile_image ? { uri: otherUser.profile_image } : require('../../assets/expo.icon/Assets/images/icon.png')}
-                            style={styles.avatar}
-                          />
+                          {otherAvatar ? (
+                            <Image
+                              source={{ uri: otherAvatar }}
+                              style={styles.avatar}
+                              contentFit="cover"
+                            />
+                          ) : (
+                            <View style={[styles.avatar, styles.fallbackAvatar, { backgroundColor: colors.inputBg }]}>
+                              <Ionicons name="person" size={22} color={colors.textSecondary} />
+                            </View>
+                          )}
                           {otherUser.is_online && <View style={styles.activeDot} />}
                         </View>
                         <View style={{ flex: 1, marginLeft: 14 }}>
@@ -296,23 +323,33 @@ export default function ChatDashboardScreen() {
               {suggestedUsers.length > 0 && (
                 <View style={styles.listSection}>
                   <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>পরামর্শকৃত ইউজার</Text>
-                  {suggestedUsers.map(item => (
-                    <TouchableOpacity
-                      key={item.id}
-                      onPress={() => handleStartChat(item)}
-                      style={styles.chatRow}
-                    >
-                      <Image
-                        source={item.profile_image ? { uri: item.profile_image } : require('../../assets/expo.icon/Assets/images/icon.png')}
-                        style={styles.avatar}
-                      />
-                      <View style={{ flex: 1, marginLeft: 14 }}>
-                        <Text style={[styles.userName, { color: colors.text }]}>{item.name}</Text>
-                        <Text style={{ fontSize: 11, color: colors.textSecondary }}>{item.profile_type === 'takmil_student' ? 'তাকমিল ছাত্র' : 'মুসল্লি'}</Text>
-                      </View>
-                      <Ionicons name="chatbubble-outline" size={20} color={colors.primary} />
-                    </TouchableOpacity>
-                  ))}
+                  {suggestedUsers.map(item => {
+                    const itemAvatar = getImageUri(item.profile_image);
+                    return (
+                      <TouchableOpacity
+                        key={item.id}
+                        onPress={() => handleStartChat(item)}
+                        style={styles.chatRow}
+                      >
+                        {itemAvatar ? (
+                          <Image
+                            source={{ uri: itemAvatar }}
+                            style={styles.avatar}
+                            contentFit="cover"
+                          />
+                        ) : (
+                          <View style={[styles.avatar, styles.fallbackAvatar, { backgroundColor: colors.inputBg }]}>
+                            <Ionicons name="person" size={22} color={colors.textSecondary} />
+                          </View>
+                        )}
+                        <View style={{ flex: 1, marginLeft: 14 }}>
+                          <Text style={[styles.userName, { color: colors.text }]}>{item.name}</Text>
+                          <Text style={{ fontSize: 11, color: colors.textSecondary }}>{item.profile_type === 'takmil_student' ? 'তাকমিল ছাত্র' : 'মুসল্লি'}</Text>
+                        </View>
+                        <Ionicons name="chatbubble-outline" size={20} color={colors.primary} />
+                      </TouchableOpacity>
+                    );
+                  })}
                 </View>
               )}
             </>
@@ -420,6 +457,10 @@ const styles = StyleSheet.create({
     width: 52,
     height: 52,
     borderRadius: 26,
+  },
+  fallbackAvatar: {
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   userName: {
     fontSize: 14,

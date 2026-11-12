@@ -248,12 +248,8 @@ class ChatConsumer(AsyncWebsocketConsumer):
         try:
             u = User.objects.get(id=user_id)
             if u.profile_image:
-                img_path = u.profile_image
-                if not img_path.startswith('/media/') and not img_path.startswith('media/'):
-                    img_path = f"media/{img_path}"
-                if not img_path.startswith('/'):
-                    img_path = f"/{img_path}"
-                return img_path
+                from accounts.serializers import _build_minio_url
+                return _build_minio_url(u.profile_image) or ""
             return ""
         except Exception:
             return ""
