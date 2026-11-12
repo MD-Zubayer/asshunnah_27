@@ -58,6 +58,7 @@ urlpatterns = [
     path('api/', include('mosques.urls')),
     path('api/articles/', include('articles.urls')),
     path('api/chat/', include('chat.urls')),
+    path('api/quran/', include('quran.urls')),
     path('article/<int:pk>/', article_detail_view, name='article_detail'),
     path('media/<path:object_name>', MinIOMediaView.as_view(), name='minio_media'),
     path('', home, name='home'),

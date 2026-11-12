@@ -27,6 +27,7 @@ INSTALLED_APPS = [
     'articles',
     'mosques',
     'chat',
+    'quran',
 ]
 
 MIDDLEWARE = [

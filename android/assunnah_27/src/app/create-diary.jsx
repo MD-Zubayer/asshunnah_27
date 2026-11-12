@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   StyleSheet,
   Text,
@@ -12,6 +12,16 @@ import {
   ActivityIndicator,
   Modal,
 } from 'react-native';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withTiming,
+  withSequence,
+  runOnJS,
+  Easing,
+  interpolate,
+  Extrapolation,
+} from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -20,6 +30,7 @@ import { Colors } from '../constants/theme';
 import diaryService from '../services/diary-service';
 import { useAuth } from '../context/AuthContext';
 import PhysicalDiaryPage from '../components/PhysicalDiaryPage';
+import PhysicalDiarySpread from '../components/PhysicalDiarySpread';
 import {
   DIARY_FONTS,
   PAPER_THEMES,
@@ -40,8 +51,21 @@ export default function CreateDiaryScreen() {
 
   const isEditMode = Boolean(params?.id);
 
+  // Parse reflection and body content if formatted with reflection header
+  const parsedInitial = useMemo(() => {
+    const raw = params?.content ? String(params.content) : '';
+    const regex = /^\*\*আজকের ভাবনা ও নিয়ত:\*\*\n([\s\S]*?)\n\n---\n\n([\s\S]*)$/;
+    const match = raw.match(regex);
+    if (match) {
+      return { reflection: match[1].trim(), content: match[2].trim() };
+    }
+    return { reflection: params?.reflection ? String(params.reflection) : '', content: raw };
+  }, [params?.content, params?.reflection]);
+
   const [title, setTitle] = useState(params?.title ? String(params.title) : '');
-  const [content, setContent] = useState(params?.content ? String(params.content) : '');
+  const [content, setContent] = useState(parsedInitial.content);
+  const [reflection, setReflection] = useState(parsedInitial.reflection);
+  const [viewMode, setViewMode] = useState('spread'); // 'spread' (2 parts side-by-side) | 'focus-right' | 'focus-left'
   const [selectedTag, setSelectedTag] = useState(() => {
     if (params?.tag) {
       return TAG_OPTIONS.find((t) => t.label === params.tag) || TAG_OPTIONS[0];
@@ -73,7 +97,55 @@ export default function CreateDiaryScreen() {
   const [showFontModal, setShowFontModal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [selection, setSelection] = useState({ start: 0, end: 0 });
+  const [isFlipping, setIsFlipping] = useState(false);
   const contentInputRef = useRef(null);
+
+  // 3D Physical Page Turn Curl Animation
+  const flipAngle = useSharedValue(0);
+
+  const flipPageCurl = () => {
+    if (isFlipping) return;
+    setIsFlipping(true);
+    flipAngle.value = withSequence(
+      withTiming(-135, { duration: 500, easing: Easing.bezier(0.25, 1, 0.45, 1) }),
+      withTiming(0, { duration: 420, easing: Easing.out(Easing.quad) }, (finished) => {
+        if (finished) {
+          runOnJS(setIsFlipping)(false);
+        }
+      })
+    );
+  };
+
+  const flipAnimatedStyle = useAnimatedStyle(() => {
+    const angle = flipAngle.value;
+    const curlSkew = interpolate(
+      angle,
+      [-135, -75, -30, 0],
+      [0, -7.5, -4, 0],
+      Extrapolation.CLAMP
+    );
+    const curlScale = interpolate(
+      Math.abs(angle),
+      [0, 50, 90, 135],
+      [1, 0.985, 0.965, 0.94],
+      Extrapolation.CLAMP
+    );
+    const archLift = interpolate(
+      Math.abs(angle),
+      [0, 65, 135],
+      [0, -18, 0],
+      Extrapolation.CLAMP
+    );
+    return {
+      transform: [
+        { perspective: 1200 },
+        { rotateY: `${angle}deg` },
+        { translateY: archLift },
+        { skewY: `${curlSkew}deg` },
+        { scale: curlScale },
+      ],
+    };
+  });
 
   const hasPrefillParams = Boolean(params?.title || params?.content);
 
@@ -90,9 +162,10 @@ export default function CreateDiaryScreen() {
       if (prefs?.fontFamily) setFontFamily(prefs.fontFamily);
       if (prefs?.paperTheme) setPaperTheme(prefs.paperTheme);
 
-      if (!hasPrefillParams && draft && (draft.title || draft.content)) {
+      if (!hasPrefillParams && draft && (draft.title || draft.content || draft.reflection)) {
         setTitle(draft.title || '');
         setContent(draft.content || '');
+        if (draft.reflection) setReflection(draft.reflection);
         if (draft.tag) {
           const found = TAG_OPTIONS.find((t) => t.label === draft.tag);
           if (found) setSelectedTag(found);
@@ -110,10 +183,11 @@ export default function CreateDiaryScreen() {
   useEffect(() => {
     if (isEditMode) return;
     const timer = setTimeout(() => {
-      if (title.trim() || content.trim()) {
+      if (title.trim() || content.trim() || reflection.trim()) {
         diaryService.saveDraft({
           title,
           content,
+          reflection,
           tag: selectedTag.label,
           mood,
           weather,
@@ -121,7 +195,7 @@ export default function CreateDiaryScreen() {
       }
     }, 600);
     return () => clearTimeout(timer);
-  }, [title, content, selectedTag, mood, weather, isEditMode]);
+  }, [title, content, reflection, selectedTag, mood, weather, isEditMode]);
 
   const insertSnippet = (snippet) => {
     const pos = selection?.start ?? content.length;
@@ -148,14 +222,18 @@ export default function CreateDiaryScreen() {
       Alert.alert('ত্রুটি', 'ডায়েরির শিরোনাম লিখুন।');
       return;
     }
-    if (!content.trim()) {
+    if (!content.trim() && !reflection.trim()) {
       Alert.alert('ত্রুটি', 'ডায়েরির বিষয়বস্তু লিখুন।');
       return;
     }
 
+    const finalContent = reflection.trim()
+      ? `**আজকের ভাবনা ও নিয়ত:**\n${reflection.trim()}\n\n---\n\n${content.trim()}`
+      : content.trim();
+
     const payload = {
       title: title.trim(),
-      content: content.trim(),
+      content: finalContent,
       tag: selectedTag.label,
       emoji: selectedTag.emoji,
       entry_date: toISODateString(entryDate),
@@ -195,18 +273,20 @@ export default function CreateDiaryScreen() {
         onPress: async () => {
           setTitle('');
           setContent('');
+          setReflection('');
           await diaryService.clearDraft();
         },
       },
     ]);
   };
 
-  const canSave = title.trim() && content.trim() && !submitting;
+  const canSave = (title.trim() && (content.trim() || reflection.trim())) && !submitting;
   const activeFontObj = DIARY_FONTS.find((f) => f.id === fontFamily) || DIARY_FONTS[0];
 
   const draftEntry = {
     title,
     content,
+    reflection,
     tag: selectedTag.label,
     emoji: selectedTag.emoji,
     entry_date: toISODateString(entryDate),
@@ -272,6 +352,42 @@ export default function CreateDiaryScreen() {
       {/* Quick Paper & Font Toolbar */}
       <View style={[styles.toolbarStrip, { backgroundColor: colors.card, borderBottomColor: colors.cardBorder }]}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.toolbarScroll}>
+          {/* 2-Part Spread vs Focus Mode Toggle */}
+          <TouchableOpacity
+            onPress={() => setViewMode((v) => (v === 'spread' ? 'focus-right' : 'spread'))}
+            style={[
+              styles.toolChip,
+              {
+                backgroundColor: viewMode === 'spread' ? '#D9770618' : '#2563EB18',
+                borderColor: viewMode === 'spread' ? '#D9770640' : '#2563EB40',
+              },
+            ]}
+          >
+            <Ionicons
+              name={viewMode === 'spread' ? 'albums-outline' : 'scan-outline'}
+              size={14}
+              color={viewMode === 'spread' ? '#D97706' : '#2563EB'}
+            />
+            <Text
+              style={[
+                styles.toolChipText,
+                { color: viewMode === 'spread' ? '#D97706' : '#2563EB' },
+              ]}
+            >
+              {viewMode === 'spread' ? '২ পার্ট খোলা খাতা' : 'ফোকাস পাতা'}
+            </Text>
+          </TouchableOpacity>
+
+          {/* 3D Page Turn Button */}
+          <TouchableOpacity
+            onPress={flipPageCurl}
+            disabled={isFlipping}
+            style={[styles.toolChip, { backgroundColor: `${colors.primary}15`, borderColor: `${colors.primary}35` }]}
+          >
+            <Ionicons name="sparkles" size={13} color={colors.primary} />
+            <Text style={[styles.toolChipText, { color: colors.primary }]}>পাতা উল্টান</Text>
+          </TouchableOpacity>
+
           {/* Font Selector Button */}
           <TouchableOpacity
             onPress={() => setShowFontModal(true)}
@@ -337,7 +453,7 @@ export default function CreateDiaryScreen() {
             <Text style={[styles.sizeBtnText, { color: colors.text }]}>A+</Text>
           </TouchableOpacity>
 
-          {!isEditMode && (title.length > 0 || content.length > 0) && (
+          {!isEditMode && (title.length > 0 || content.length > 0 || reflection.length > 0) && (
             <TouchableOpacity
               onPress={handleClearDraft}
               style={[styles.toolIconBtn, { backgroundColor: '#EF444415', borderColor: '#EF444440' }]}
@@ -348,7 +464,7 @@ export default function CreateDiaryScreen() {
         </ScrollView>
       </View>
 
-      {/* Main Physical Paper Canvas */}
+      {/* Main Physical Paper Canvas (Authentic 2-Part Open Diary Spread) */}
       <ScrollView
         style={styles.editorScroll}
         contentContainerStyle={[
@@ -358,19 +474,26 @@ export default function CreateDiaryScreen() {
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
-        <PhysicalDiaryPage
-          entry={draftEntry}
-          pageNumber={params?.page_number ? Number(params.page_number) : 1}
-          mode="edit"
-          fontSize={fontSize}
-          onChangeTitle={setTitle}
-          onChangeContent={setContent}
-          onTogglePin={() => setIsPinned((p) => !p)}
-          onPressDate={() => setShowDatePicker(true)}
-          contentInputRef={contentInputRef}
-          onSelectionChange={(e) => setSelection(e.nativeEvent.selection)}
-          scrollEnabled={false}
-        />
+        <Animated.View style={flipAnimatedStyle}>
+          <PhysicalDiarySpread
+            entry={draftEntry}
+            pageNumber={params?.page_number ? Number(params.page_number) : 1}
+            mode="edit"
+            viewMode={viewMode}
+            fontSize={fontSize}
+            onChangeTitle={setTitle}
+            onChangeContent={setContent}
+            onChangeReflection={setReflection}
+            onTogglePin={() => setIsPinned((p) => !p)}
+            onPressDate={() => setShowDatePicker(true)}
+            contentInputRef={contentInputRef}
+            onSelectionChange={(e) => setSelection(e.nativeEvent.selection)}
+            onToggleViewMode={() => setViewMode((v) => (v === 'spread' ? 'focus-right' : 'spread'))}
+            onFlipNext={flipPageCurl}
+            onFlipPrev={flipPageCurl}
+            hasNextSpread={true}
+          />
+        </Animated.View>
 
         {/* Word & Line count hint */}
         <Text style={[styles.wordCountHint, { color: colors.textMuted }]}>

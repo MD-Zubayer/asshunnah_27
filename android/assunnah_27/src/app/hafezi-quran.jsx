@@ -29,11 +29,18 @@ import {
   QURAN_SIJDAHS,
   getQuranPageInfo,
 } from '../data/quranIndex';
+import QuranStudyHubSheet from '../components/QuranStudyHubSheet';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 const STORAGE_KEY_LAST_READ = '@hafezi_quran_last_read';
 const STORAGE_KEY_BOOKMARKS = '@hafezi_quran_bookmarks';
+const STORAGE_KEY_GESTURES = '@hafezi_quran_gestures';
+
+const DEFAULT_GESTURES = {
+  doubleTapAction: 'study', // 'study' | 'translation' | 'tafsir' | 'tahqeeq' | 'fullscreen' | 'bookmark' | 'theme'
+  longPressAction: 'menu',  // 'menu' | 'study' | 'translation' | 'tafsir' | 'tahqeeq' | 'bookmark'
+};
 
 // Convert English numbers to Bengali numerals
 const toBn = (num) => {
@@ -81,7 +88,13 @@ export default function HafeziQuranScreen() {
   const scrubberWidthRef = useRef(SCREEN_WIDTH - 32);
   const autoFlipIntervalRef = useRef(null);
 
-  // Modals
+  // Modals & Sheets
+  const [showStudySheet, setShowStudySheet] = useState(false);
+  const [studyInitialTab, setStudyInitialTab] = useState('translation'); // 'translation' | 'tafsir' | 'tahqeeq'
+  const [showQuickActionMenu, setShowQuickActionMenu] = useState(false);
+  const [showGestureSettingsModal, setShowGestureSettingsModal] = useState(false);
+  const [gestureSettings, setGestureSettings] = useState(DEFAULT_GESTURES);
+
   const [showIndexModal, setShowIndexModal] = useState(false);
   const [indexTab, setIndexTab] = useState('surah'); // 'surah' | 'para' | 'sijdah' | 'bookmarks'
   const [searchQuery, setSearchQuery] = useState('');
@@ -101,13 +114,69 @@ export default function HafeziQuranScreen() {
   // Page Info (Para, Surah, Sijdah)
   const pageInfo = useMemo(() => getQuranPageInfo(currentPage), [currentPage]);
 
-  // Load Bookmarks and Last Read on mount
+  // Load Bookmarks, Gestures and Last Read on mount
   useEffect(() => {
     loadBookmarks();
+    loadGestureSettings();
     if (!params.page) {
       loadLastRead();
     }
   }, []);
+
+  const loadGestureSettings = async () => {
+    try {
+      const saved = await AsyncStorage.getItem(STORAGE_KEY_GESTURES);
+      if (saved) {
+        setGestureSettings({ ...DEFAULT_GESTURES, ...JSON.parse(saved) });
+      }
+    } catch (e) {
+      console.log('Error loading gesture settings:', e);
+    }
+  };
+
+  const updateGestureSetting = async (key, value) => {
+    try {
+      const updated = { ...gestureSettings, [key]: value };
+      setGestureSettings(updated);
+      await AsyncStorage.setItem(STORAGE_KEY_GESTURES, JSON.stringify(updated));
+    } catch (e) {
+      console.log('Error saving gesture settings:', e);
+    }
+  };
+
+  const executeQuranAction = (action) => {
+    switch (action) {
+      case 'menu':
+        setShowQuickActionMenu(true);
+        break;
+      case 'study':
+      case 'translation':
+        setStudyInitialTab('translation');
+        setShowStudySheet(true);
+        break;
+      case 'tafsir':
+        setStudyInitialTab('tafsir');
+        setShowStudySheet(true);
+        break;
+      case 'tahqeeq':
+        setStudyInitialTab('tahqeeq');
+        setShowStudySheet(true);
+        break;
+      case 'fullscreen':
+        setFullscreen((prev) => !prev);
+        break;
+      case 'bookmark':
+        toggleBookmarkCurrentPage();
+        break;
+      case 'theme':
+        handleThemeChange(readingTheme === 'night' ? 'day' : 'night');
+        break;
+      default:
+        setStudyInitialTab('translation');
+        setShowStudySheet(true);
+        break;
+    }
+  };
 
   // Save Last Read whenever currentPage changes
   useEffect(() => {
@@ -320,6 +389,10 @@ export default function HafeziQuranScreen() {
         setCurrentPage(data.page);
       } else if (data.type === 'TOGGLE_FULLSCREEN') {
         setFullscreen((prev) => !prev);
+      } else if (data.type === 'ON_DOUBLE_TAP') {
+        executeQuranAction(gestureSettings.doubleTapAction);
+      } else if (data.type === 'ON_LONG_PRESS') {
+        executeQuranAction(gestureSettings.longPressAction);
       } else if (data.type === 'LOG') {
         console.log('[QuranViewer]', data.message);
       }
@@ -543,28 +616,75 @@ export default function HafeziQuranScreen() {
       document.body.className = 'theme-' + theme;
     };
 
-    // Tap on screen to toggle full-screen header/footer
+    // Tap & Gesture detection (Tap, Double Tap, Long Press, Swipe)
     let touchStartX = 0;
     let touchStartY = 0;
     let touchStartTime = 0;
+    let longPressTimer = null;
+    let lastTapTime = 0;
+    let singleTapTimeout = null;
 
     document.addEventListener('touchstart', function(e) {
       if (e.touches.length === 1) {
         touchStartX = e.touches[0].clientX;
         touchStartY = e.touches[0].clientY;
         touchStartTime = Date.now();
+
+        if (longPressTimer) {
+          clearTimeout(longPressTimer);
+        }
+        longPressTimer = setTimeout(function() {
+          sendToApp('ON_LONG_PRESS', { x: touchStartX, y: touchStartY });
+          longPressTimer = null;
+        }, 500);
+      }
+    }, { passive: true });
+
+    document.addEventListener('touchmove', function(e) {
+      if (e.touches.length === 1 && longPressTimer) {
+        const moveX = e.touches[0].clientX - touchStartX;
+        const moveY = e.touches[0].clientY - touchStartY;
+        if (Math.abs(moveX) > 12 || Math.abs(moveY) > 12) {
+          clearTimeout(longPressTimer);
+          longPressTimer = null;
+        }
       }
     }, { passive: true });
 
     document.addEventListener('touchend', function(e) {
+      const hadLongPress = !longPressTimer && (Date.now() - touchStartTime >= 500);
+      if (longPressTimer) {
+        clearTimeout(longPressTimer);
+        longPressTimer = null;
+      }
+
+      if (hadLongPress) {
+        return; // Long press already triggered
+      }
+
       if (e.changedTouches.length === 1) {
         const deltaX = e.changedTouches[0].clientX - touchStartX;
         const deltaY = e.changedTouches[0].clientY - touchStartY;
         const deltaTime = Date.now() - touchStartTime;
 
-        // Check for Tap (not swipe or pinch)
-        if (Math.abs(deltaX) < 15 && Math.abs(deltaY) < 15 && deltaTime < 300) {
-          sendToApp('TOGGLE_FULLSCREEN', {});
+        // Check for Tap
+        if (Math.abs(deltaX) < 15 && Math.abs(deltaY) < 15 && deltaTime < 450) {
+          const now = Date.now();
+          if (now - lastTapTime < 320) {
+            // Double tap detected!
+            if (singleTapTimeout) {
+              clearTimeout(singleTapTimeout);
+              singleTapTimeout = null;
+            }
+            lastTapTime = 0;
+            sendToApp('ON_DOUBLE_TAP', {});
+          } else {
+            lastTapTime = now;
+            singleTapTimeout = setTimeout(function() {
+              sendToApp('TOGGLE_FULLSCREEN', {});
+              singleTapTimeout = null;
+            }, 320);
+          }
         } 
         // Horizontal Swipe (RTL: swipe right-to-left -> Next Page, swipe left-to-right -> Prev Page)
         else if (Math.abs(deltaX) > 50 && Math.abs(deltaY) < 60 && deltaTime < 500) {
@@ -693,6 +813,24 @@ export default function HafeziQuranScreen() {
                 />
               </TouchableOpacity>
 
+              {/* Ayah Study & Lughat Drawer */}
+              <TouchableOpacity
+                style={[
+                  styles.iconBtn,
+                  {
+                    backgroundColor: readingTheme === 'night' ? '#064E3B' : '#ECFDF5',
+                    borderRadius: 8,
+                    paddingHorizontal: 8,
+                  },
+                ]}
+                onPress={() => {
+                  setStudyInitialTab('translation');
+                  setShowStudySheet(true);
+                }}
+              >
+                <Ionicons name="book-outline" size={18} color="#059669" />
+              </TouchableOpacity>
+
               {/* Index & Menu */}
               <TouchableOpacity style={styles.iconBtn} onPress={() => setShowIndexModal(true)}>
                 <Ionicons
@@ -741,7 +879,7 @@ export default function HafeziQuranScreen() {
       {/* Khatam-e-Quran Dua Notification */}
       {pageInfo.isDuaKhatmulQuran && !fullscreen && (
         <View style={[styles.sijdahBanner, { backgroundColor: '#ECFDF5', borderColor: '#A7F3D0' }]}>
-          <Ionicons name="sparkles" size={16} color="#059669" />
+          <Ionicons name="book" size={16} color="#059669" />
           <Text style={[styles.sijdahBannerText, { color: '#065F46' }]}>
             খতমে কুরআন শরীফের মোবারক দু‘আ ও মুনাজাত
           </Text>
@@ -774,6 +912,55 @@ export default function HafeziQuranScreen() {
             },
           ]}
         >
+          {/* Study Ayah & Tahqeeq Trigger Row */}
+          <View style={styles.studyTriggerRow}>
+            <TouchableOpacity
+              style={[
+                styles.studyTriggerBar,
+                {
+                  backgroundColor: readingTheme === 'night' ? '#064E3B' : '#ECFDF5',
+                  borderColor: readingTheme === 'night' ? '#047857' : '#A7F3D0',
+                },
+              ]}
+              onPress={() => {
+                setStudyInitialTab('translation');
+                setShowStudySheet(true);
+              }}
+              activeOpacity={0.8}
+            >
+              <View style={styles.studyTriggerInner}>
+                <Ionicons name="book-outline" size={15} color="#059669" />
+                <Text
+                  style={[
+                    styles.studyTriggerText,
+                    { color: readingTheme === 'night' ? '#A7F3D0' : '#065F46' },
+                  ]}
+                >
+                  তরজমা • তাফসীর • তাহকীক
+                </Text>
+              </View>
+              <Ionicons name="chevron-up" size={16} color="#059669" />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[
+                styles.gestureSettingsBtn,
+                {
+                  backgroundColor: readingTheme === 'night' ? '#1E293B' : '#F1F5F9',
+                  borderColor: readingTheme === 'night' ? '#334155' : '#E2E8F0',
+                },
+              ]}
+              onPress={() => setShowGestureSettingsModal(true)}
+              activeOpacity={0.7}
+            >
+              <Ionicons
+                name="hand-right-outline"
+                size={16}
+                color={readingTheme === 'night' ? '#9CA3AF' : '#4B5563'}
+              />
+            </TouchableOpacity>
+          </View>
+
           {/* 1. Para Horizontal Fast Selector */}
           <View style={styles.paraScrollViewWrapper}>
             <ScrollView
@@ -1290,7 +1477,7 @@ export default function HafeziQuranScreen() {
                 setShowIndexModal(false);
               }}
             >
-              <Ionicons name="sparkles" size={18} color="#FFFFFF" />
+              <Ionicons name="book-outline" size={18} color="#FFFFFF" />
               <Text style={styles.khatamDuaBtnText}>খতমে কুরআনের দু‘আ ও মুনাজাত (পৃষ্ঠা ৬১২)</Text>
             </TouchableOpacity>
           </View>
@@ -1405,6 +1592,521 @@ export default function HafeziQuranScreen() {
           </View>
         </View>
       </Modal>
+      {/* ============================================================
+          QUICK ACTION MENU MODAL (LONG PRESS)
+          ============================================================ */}
+      <Modal
+        visible={showQuickActionMenu}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowQuickActionMenu(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalBackdropCenter}
+          activeOpacity={1}
+          onPress={() => setShowQuickActionMenu(false)}
+        >
+          <View
+            style={[
+              styles.quickActionCard,
+              { backgroundColor: readingTheme === 'night' ? '#1E1E1E' : '#FFFFFF' },
+            ]}
+          >
+            {/* Header */}
+            <View style={styles.quickActionHeader}>
+              <View style={styles.quickActionHeaderLeft}>
+                <Text
+                  style={[
+                    styles.quickActionTitle,
+                    { color: readingTheme === 'night' ? '#F9FAFB' : '#111827' },
+                  ]}
+                >
+                  পৃষ্ঠা {toBn(currentPage)} — কুইক একশন
+                </Text>
+                <Text
+                  style={[
+                    styles.quickActionSubtitle,
+                    { color: readingTheme === 'night' ? '#9CA3AF' : '#6B7280' },
+                  ]}
+                >
+                  পারা {toBn(pageInfo.para.id)} • {pageInfo.surah.nameBangla}
+                </Text>
+              </View>
+              <TouchableOpacity
+                onPress={() => setShowQuickActionMenu(false)}
+                style={styles.quickActionCloseBtn}
+              >
+                <Ionicons
+                  name="close"
+                  size={20}
+                  color={readingTheme === 'night' ? '#9CA3AF' : '#6B7280'}
+                />
+              </TouchableOpacity>
+            </View>
+
+            {/* Actions List */}
+            <View style={styles.quickActionsList}>
+              {/* 1. Bengali Translation */}
+              <TouchableOpacity
+                style={[
+                  styles.quickActionItem,
+                  { borderBottomColor: readingTheme === 'night' ? '#27272A' : '#F3F4F6' },
+                ]}
+                onPress={() => {
+                  setShowQuickActionMenu(false);
+                  setStudyInitialTab('translation');
+                  setShowStudySheet(true);
+                }}
+              >
+                <View style={[styles.quickActionIconWrap, { backgroundColor: '#ECFDF5' }]}>
+                  <Ionicons name="document-text-outline" size={20} color="#059669" />
+                </View>
+                <View style={styles.quickActionTextWrap}>
+                  <Text
+                    style={[
+                      styles.quickActionItemTitle,
+                      { color: readingTheme === 'night' ? '#F9FAFB' : '#111827' },
+                    ]}
+                  >
+                    বাংলা তরজমা
+                  </Text>
+                  <Text style={styles.quickActionItemDesc}>
+                    মুহিউদ্দীন খান, মুজিবুর রহমান ও তাইসীরুল কুরআন
+                  </Text>
+                </View>
+                <Ionicons name="chevron-forward" size={16} color="#9CA3AF" />
+              </TouchableOpacity>
+
+              {/* 2. Authentic Tafsir */}
+              <TouchableOpacity
+                style={[
+                  styles.quickActionItem,
+                  { borderBottomColor: readingTheme === 'night' ? '#27272A' : '#F3F4F6' },
+                ]}
+                onPress={() => {
+                  setShowQuickActionMenu(false);
+                  setStudyInitialTab('tafsir');
+                  setShowStudySheet(true);
+                }}
+              >
+                <View style={[styles.quickActionIconWrap, { backgroundColor: '#EFF6FF' }]}>
+                  <Ionicons name="library-outline" size={20} color="#2563EB" />
+                </View>
+                <View style={styles.quickActionTextWrap}>
+                  <Text
+                    style={[
+                      styles.quickActionItemTitle,
+                      { color: readingTheme === 'night' ? '#F9FAFB' : '#111827' },
+                    ]}
+                  >
+                    প্রামাণ্য তাফসীর
+                  </Text>
+                  <Text style={styles.quickActionItemDesc}>
+                    তাফসীরে ইবনে কাসীর ও তাফসীরে জালালাইন
+                  </Text>
+                </View>
+                <Ionicons name="chevron-forward" size={16} color="#9CA3AF" />
+              </TouchableOpacity>
+
+              {/* 3. Tahqeeq & Lughat */}
+              <TouchableOpacity
+                style={[
+                  styles.quickActionItem,
+                  { borderBottomColor: readingTheme === 'night' ? '#27272A' : '#F3F4F6' },
+                ]}
+                onPress={() => {
+                  setShowQuickActionMenu(false);
+                  setStudyInitialTab('tahqeeq');
+                  setShowStudySheet(true);
+                }}
+              >
+                <View style={[styles.quickActionIconWrap, { backgroundColor: '#FEF3C7' }]}>
+                  <Ionicons name="search-outline" size={20} color="#D97706" />
+                </View>
+                <View style={styles.quickActionTextWrap}>
+                  <Text
+                    style={[
+                      styles.quickActionItemTitle,
+                      { color: readingTheme === 'night' ? '#F9FAFB' : '#111827' },
+                    ]}
+                  >
+                    তাহকীক ও লোগাত
+                  </Text>
+                  <Text style={styles.quickActionItemDesc}>
+                    শব্দমূল, ব্যাকরণ ও المعجم الوسيط অভিধান
+                  </Text>
+                </View>
+                <Ionicons name="chevron-forward" size={16} color="#9CA3AF" />
+              </TouchableOpacity>
+
+              {/* 4. Bookmark */}
+              <TouchableOpacity
+                style={[
+                  styles.quickActionItem,
+                  { borderBottomColor: readingTheme === 'night' ? '#27272A' : '#F3F4F6' },
+                ]}
+                onPress={() => {
+                  setShowQuickActionMenu(false);
+                  toggleBookmarkCurrentPage();
+                }}
+              >
+                <View style={[styles.quickActionIconWrap, { backgroundColor: '#FDF2F8' }]}>
+                  <Ionicons
+                    name={isCurrentPageBookmarked ? 'bookmark' : 'bookmark-outline'}
+                    size={20}
+                    color="#DB2777"
+                  />
+                </View>
+                <View style={styles.quickActionTextWrap}>
+                  <Text
+                    style={[
+                      styles.quickActionItemTitle,
+                      { color: readingTheme === 'night' ? '#F9FAFB' : '#111827' },
+                    ]}
+                  >
+                    {isCurrentPageBookmarked ? 'বুকমার্ক থেকে মুছুন' : 'পৃষ্ঠা বুকমার্ক করুন'}
+                  </Text>
+                  <Text style={styles.quickActionItemDesc}>
+                    {isCurrentPageBookmarked
+                      ? 'পৃষ্ঠাটি সংরক্ষিত তালিকা থেকে মুছুন'
+                      : 'পরবর্তীতে সহজে পড়ার জন্য সংরক্ষণ করুন'}
+                  </Text>
+                </View>
+                <Ionicons name="chevron-forward" size={16} color="#9CA3AF" />
+              </TouchableOpacity>
+
+              {/* 5. Theme Toggle */}
+              <TouchableOpacity
+                style={[
+                  styles.quickActionItem,
+                  { borderBottomColor: readingTheme === 'night' ? '#27272A' : '#F3F4F6' },
+                ]}
+                onPress={() => {
+                  setShowQuickActionMenu(false);
+                  handleThemeChange(readingTheme === 'night' ? 'day' : 'night');
+                }}
+              >
+                <View style={[styles.quickActionIconWrap, { backgroundColor: '#F3E8FF' }]}>
+                  <Ionicons
+                    name={readingTheme === 'night' ? 'sunny-outline' : 'moon-outline'}
+                    size={20}
+                    color="#7C3AED"
+                  />
+                </View>
+                <View style={styles.quickActionTextWrap}>
+                  <Text
+                    style={[
+                      styles.quickActionItemTitle,
+                      { color: readingTheme === 'night' ? '#F9FAFB' : '#111827' },
+                    ]}
+                  >
+                    {readingTheme === 'night' ? 'ডে মোড চালু করুন' : 'নাইট মোড চালু করুন'}
+                  </Text>
+                  <Text style={styles.quickActionItemDesc}>
+                    {readingTheme === 'night'
+                      ? 'স্বাভাবিক উজ্জ্বল মোড'
+                      : 'চোখের সুরক্ষায় ডার্ক ব্যাকগ্রাউন্ড'}
+                  </Text>
+                </View>
+                <Ionicons name="chevron-forward" size={16} color="#9CA3AF" />
+              </TouchableOpacity>
+
+              {/* 6. Gesture Customization */}
+              <TouchableOpacity
+                style={[styles.quickActionItem, { borderBottomWidth: 0 }]}
+                onPress={() => {
+                  setShowQuickActionMenu(false);
+                  setShowGestureSettingsModal(true);
+                }}
+              >
+                <View style={[styles.quickActionIconWrap, { backgroundColor: '#F1F5F9' }]}>
+                  <Ionicons name="settings-outline" size={20} color="#475569" />
+                </View>
+                <View style={styles.quickActionTextWrap}>
+                  <Text
+                    style={[
+                      styles.quickActionItemTitle,
+                      { color: readingTheme === 'night' ? '#F9FAFB' : '#111827' },
+                    ]}
+                  >
+                    জেসচার ও একশন কাস্টমাইজেশন
+                  </Text>
+                  <Text style={styles.quickActionItemDesc}>
+                    ডাবল ক্লিক বা লং প্রেসের পছন্দের একশন নির্ধারণ করুন
+                  </Text>
+                </View>
+                <Ionicons name="chevron-forward" size={16} color="#9CA3AF" />
+              </TouchableOpacity>
+            </View>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* ============================================================
+          GESTURE CUSTOMIZATION MODAL
+          ============================================================ */}
+      <Modal
+        visible={showGestureSettingsModal}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setShowGestureSettingsModal(false)}
+      >
+        <View style={styles.modalBackdropCenter}>
+          <View
+            style={[
+              styles.gestureModalCard,
+              { backgroundColor: readingTheme === 'night' ? '#1E1E1E' : '#FFFFFF' },
+            ]}
+          >
+            {/* Header */}
+            <View style={styles.gestureModalHeader}>
+              <View style={{ flex: 1 }}>
+                <Text
+                  style={[
+                    styles.gestureModalTitle,
+                    { color: readingTheme === 'night' ? '#F9FAFB' : '#111827' },
+                  ]}
+                >
+                  জেসচার একশন কাস্টমাইজেশন
+                </Text>
+                <Text
+                  style={[
+                    styles.gestureModalSubtitle,
+                    { color: readingTheme === 'night' ? '#9CA3AF' : '#6B7280' },
+                  ]}
+                >
+                  পৃষ্ঠার উপর ডাবল ক্লিক ও ধরে রাখার একশন নির্ধারণ করুন
+                </Text>
+              </View>
+              <TouchableOpacity
+                onPress={() => setShowGestureSettingsModal(false)}
+                style={styles.quickActionCloseBtn}
+              >
+                <Ionicons
+                  name="close"
+                  size={20}
+                  color={readingTheme === 'night' ? '#9CA3AF' : '#6B7280'}
+                />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={styles.gestureModalScroll} showsVerticalScrollIndicator={false}>
+              {/* Section 1: Double Tap */}
+              <View style={styles.gestureSection}>
+                <View style={styles.gestureSectionTitleRow}>
+                  <Ionicons name="finger-print-outline" size={16} color="#059669" />
+                  <Text
+                    style={[
+                      styles.gestureSectionTitle,
+                      { color: readingTheme === 'night' ? '#10B981' : '#047857' },
+                    ]}
+                  >
+                    ডাবল ক্লিক (Double Tap) একশন
+                  </Text>
+                </View>
+                <Text style={styles.gestureSectionHint}>
+                  কুরআন পৃষ্ঠার যেকোনো অংশে পরপর দুইবার দ্রুত ট্যাপ করলে:
+                </Text>
+
+                {[
+                  {
+                    id: 'study',
+                    title: 'তরজমা ও তাফসীর হাব',
+                    desc: 'বাংলা তরজমা, তাফসীর ও তাহকীক শিট খুলবে (সুপারিশকৃত)',
+                  },
+                  {
+                    id: 'translation',
+                    title: 'সরাসরি বাংলা তরজমা',
+                    desc: '৩টি প্রামাণ্য অনুবাদ সরাসরি দেখাবে',
+                  },
+                  {
+                    id: 'tafsir',
+                    title: 'সরাসরি প্রামাণ্য তাফসীর',
+                    desc: 'ইবনে কাসীর ও জালালাইন তাফসীর খুলবে',
+                  },
+                  {
+                    id: 'tahqeeq',
+                    title: 'তাহকীক ও লোগাত',
+                    desc: 'আরবী শব্দমূল ও المعجم الوسيط অভিধান',
+                  },
+                  {
+                    id: 'fullscreen',
+                    title: 'ফুলস্ক্রিন মোড টগল',
+                    desc: 'হেডার ও ফুটার লুকানো বা দেখানো',
+                  },
+                  {
+                    id: 'bookmark',
+                    title: 'পৃষ্ঠা বুকমার্ক করুন',
+                    desc: 'দ্রুত বুকমার্ক যোগ বা বাদ দেবে',
+                  },
+                  {
+                    id: 'theme',
+                    title: 'নাইট মোড / ডে মোড পরিবর্তন',
+                    desc: 'ডার্ক ও লাইট থিমের মধ্যে টগল',
+                  },
+                ].map((item) => {
+                  const isSelected = gestureSettings.doubleTapAction === item.id;
+                  return (
+                    <TouchableOpacity
+                      key={item.id}
+                      style={[
+                        styles.gestureOptionRow,
+                        isSelected && {
+                          backgroundColor:
+                            readingTheme === 'night' ? '#064E3B25' : '#ECFDF5',
+                          borderColor: '#10B981',
+                        },
+                      ]}
+                      onPress={() => updateGestureSetting('doubleTapAction', item.id)}
+                    >
+                      <View style={styles.radioOuter}>
+                        {isSelected && <View style={styles.radioInner} />}
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text
+                          style={[
+                            styles.gestureOptionTitle,
+                            { color: readingTheme === 'night' ? '#F9FAFB' : '#111827' },
+                            isSelected && { color: '#059669', fontWeight: '700' },
+                          ]}
+                        >
+                          {item.title}
+                        </Text>
+                        <Text style={styles.gestureOptionDesc}>{item.desc}</Text>
+                      </View>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+
+              {/* Section 2: Long Press */}
+              <View style={[styles.gestureSection, { marginTop: 16 }]}>
+                <View style={styles.gestureSectionTitleRow}>
+                  <Ionicons name="hand-right-outline" size={16} color="#D97706" />
+                  <Text
+                    style={[
+                      styles.gestureSectionTitle,
+                      { color: readingTheme === 'night' ? '#FBBF24' : '#B45309' },
+                    ]}
+                  >
+                    ধরে রাখলে (Long Press) একশন
+                  </Text>
+                </View>
+                <Text style={styles.gestureSectionHint}>
+                  কুরআন পৃষ্ঠার যেকোনো অংশে আঙুল ধরে রাখলে:
+                </Text>
+
+                {[
+                  {
+                    id: 'menu',
+                    title: 'কুইক একশন মেন্যু',
+                    desc: 'তরজমা, তাফসীর, বুকমার্ক ও সেটিং মেন্যু দেখাবে (সুপারিশকৃত)',
+                  },
+                  {
+                    id: 'study',
+                    title: 'সরাসরি তরজমা ও তাফসীর হাব',
+                    desc: 'সরাসরি স্টাডি শিট খুলে দেবে',
+                  },
+                  {
+                    id: 'translation',
+                    title: 'সরাসরি বাংলা তরজমা',
+                    desc: '৩টি প্রামাণ্য অনুবাদ সরাসরি দেখাবে',
+                  },
+                  {
+                    id: 'tafsir',
+                    title: 'সরাসরি প্রামাণ্য তাফসীর',
+                    desc: 'ইবনে কাসীর ও জালালাইন তাফসীর খুলবে',
+                  },
+                  {
+                    id: 'tahqeeq',
+                    title: 'তাহকীক ও লোগাত',
+                    desc: 'আরবী শব্দমূল ও المعجم الوسيط অভিধান',
+                  },
+                  {
+                    id: 'bookmark',
+                    title: 'পৃষ্ঠা বুকমার্ক করুন',
+                    desc: 'বুকমার্ক যোগ বা অপসারণ',
+                  },
+                ].map((item) => {
+                  const isSelected = gestureSettings.longPressAction === item.id;
+                  return (
+                    <TouchableOpacity
+                      key={item.id}
+                      style={[
+                        styles.gestureOptionRow,
+                        isSelected && {
+                          backgroundColor:
+                            readingTheme === 'night' ? '#78350F25' : '#FEF3C7',
+                          borderColor: '#F59E0B',
+                        },
+                      ]}
+                      onPress={() => updateGestureSetting('longPressAction', item.id)}
+                    >
+                      <View
+                        style={[
+                          styles.radioOuter,
+                          isSelected && { borderColor: '#D97706' },
+                        ]}
+                      >
+                        {isSelected && (
+                          <View
+                            style={[
+                              styles.radioInner,
+                              { backgroundColor: '#D97706' },
+                            ]}
+                          />
+                        )}
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text
+                          style={[
+                            styles.gestureOptionTitle,
+                            { color: readingTheme === 'night' ? '#F9FAFB' : '#111827' },
+                            isSelected && { color: '#D97706', fontWeight: '700' },
+                          ]}
+                        >
+                          {item.title}
+                        </Text>
+                        <Text style={styles.gestureOptionDesc}>{item.desc}</Text>
+                      </View>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </ScrollView>
+
+            {/* Footer Buttons */}
+            <View style={styles.gestureModalFooter}>
+              <TouchableOpacity
+                style={styles.gestureResetBtn}
+                onPress={() => {
+                  setGestureSettings(DEFAULT_GESTURES);
+                  AsyncStorage.setItem(
+                    STORAGE_KEY_GESTURES,
+                    JSON.stringify(DEFAULT_GESTURES)
+                  );
+                }}
+              >
+                <Text style={styles.gestureResetBtnText}>রিসেট (ডিফল্ট)</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.gestureDoneBtn}
+                onPress={() => setShowGestureSettingsModal(false)}
+              >
+                <Text style={styles.gestureDoneBtnText}>সম্পন্ন</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Unified Quran Study Hub Sheet (Translation, Tafsir, Tahqeeq) */}
+      <QuranStudyHubSheet
+        visible={showStudySheet}
+        onClose={() => setShowStudySheet(false)}
+        currentPage={currentPage}
+        initialTab={studyInitialTab}
+      />
     </View>
   );
 }
@@ -1901,5 +2603,219 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontWeight: '700',
     fontSize: 14,
+  },
+  studyTriggerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 8,
+  },
+  studyTriggerBar: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 10,
+    borderWidth: 1,
+  },
+  gestureSettingsBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  studyTriggerInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flex: 1,
+  },
+  studyTriggerText: {
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  quickActionCard: {
+    width: SCREEN_WIDTH - 40,
+    maxWidth: 420,
+    borderRadius: 20,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.25,
+    shadowRadius: 16,
+    elevation: 8,
+  },
+  quickActionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB25',
+  },
+  quickActionHeaderLeft: {
+    flex: 1,
+  },
+  quickActionTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  quickActionSubtitle: {
+    fontSize: 12,
+    marginTop: 2,
+  },
+  quickActionCloseBtn: {
+    padding: 6,
+  },
+  quickActionsList: {
+    marginTop: 6,
+  },
+  quickActionItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    gap: 12,
+  },
+  quickActionIconWrap: {
+    width: 38,
+    height: 38,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  quickActionTextWrap: {
+    flex: 1,
+  },
+  quickActionItemTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  quickActionItemDesc: {
+    fontSize: 11,
+    color: '#6B7280',
+    marginTop: 2,
+  },
+  gestureModalCard: {
+    width: SCREEN_WIDTH - 32,
+    maxWidth: 440,
+    maxHeight: SCREEN_HEIGHT * 0.85,
+    borderRadius: 20,
+    padding: 18,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  gestureModalHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB30',
+  },
+  gestureModalTitle: {
+    fontSize: 17,
+    fontWeight: '700',
+  },
+  gestureModalSubtitle: {
+    fontSize: 12,
+    marginTop: 2,
+  },
+  gestureModalScroll: {
+    marginTop: 10,
+  },
+  gestureSection: {
+    paddingBottom: 6,
+  },
+  gestureSectionTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 4,
+  },
+  gestureSectionTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  gestureSectionHint: {
+    fontSize: 11,
+    color: '#6B7280',
+    marginBottom: 8,
+  },
+  gestureOptionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#E5E7EB50',
+    marginBottom: 6,
+  },
+  radioOuter: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    borderWidth: 2,
+    borderColor: '#10B981',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  radioInner: {
+    width: 9,
+    height: 9,
+    borderRadius: 4.5,
+    backgroundColor: '#10B981',
+  },
+  gestureOptionTitle: {
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  gestureOptionDesc: {
+    fontSize: 11,
+    color: '#6B7280',
+    marginTop: 1,
+  },
+  gestureModalFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB30',
+    marginTop: 8,
+    gap: 12,
+  },
+  gestureResetBtn: {
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+  },
+  gestureResetBtnText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#6B7280',
+  },
+  gestureDoneBtn: {
+    flex: 1,
+    backgroundColor: '#059669',
+    paddingVertical: 10,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  gestureDoneBtnText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
 });

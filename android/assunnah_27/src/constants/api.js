@@ -55,9 +55,12 @@ export const API_ENDPOINTS = {
   userArticles: (userId) => `${API_BASE_URL}/api/articles/user_articles/?user_id=${userId}`,
 
   // ============================================
-  // Hafezi Quran Sharif Endpoint
+  // Hafezi Quran Sharif & Study Endpoints
   // ============================================
   QURAN_PDF: `${API_BASE_URL}/media/quran/Imdadia-Hafezi-Quran.pdf`,
+  QURAN_KITABS: `${API_BASE_URL}/api/quran/kitabs/`,
+  QURAN_WORD_LUGHAT: `${API_BASE_URL}/api/quran/word-lughat/`,
+  QURAN_AYAH_STUDY: `${API_BASE_URL}/api/quran/ayah-study/`,
 
   // ============================================
   // Follow Endpoints
