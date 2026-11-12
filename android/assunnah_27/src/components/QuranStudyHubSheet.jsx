@@ -282,9 +282,9 @@ export default function QuranStudyHubSheet({
     if (!activeWordText) return null;
     const morphKey = `${currentSurahId}:${selectedAyahNumber}:${selectedWordIndex + 1}`;
     const morph = quranWordMorphMap[morphKey];
-    const root = morph?.r || getRootForWord(activeWordText) || activeWordText;
+    const rawRoot = morph?.r || getRootForWord(activeWordText) || null;
     return {
-      root: root.replace(/\s+/g, ''),
+      root: rawRoot ? rawRoot.replace(/\s+/g, '') : null,
       lemma: morph?.l || '',
       pos: morph?.p || '',
     };
@@ -292,7 +292,12 @@ export default function QuranStudyHubSheet({
 
   useEffect(() => {
     let isMounted = true;
-    if (visible && activeTab === 'tahqeeq' && activeWordMorph?.root) {
+    if (visible && activeTab === 'tahqeeq') {
+      if (!activeWordMorph?.root) {
+        setLughatData({ entries: [] });
+        setLoadingLughat(false);
+        return;
+      }
       const fetchLughat = async () => {
         setLoadingLughat(true);
         try {
@@ -304,9 +309,9 @@ export default function QuranStudyHubSheet({
             kitab_slug: activeLughatSlug,
           });
           if (!isMounted) return;
-          setLughatData(res);
+          setLughatData(res || { entries: [] });
         } catch (_err) {
-          // fallback
+          if (isMounted) setLughatData({ entries: [] });
         } finally {
           if (isMounted) setLoadingLughat(false);
         }
@@ -316,7 +321,13 @@ export default function QuranStudyHubSheet({
     return () => {
       isMounted = false;
     };
-  }, [visible, activeTab, currentSurahId, selectedAyahNumber, selectedWordIndex, activeWordMorph, activeLughatSlug]);
+  }, [visible, activeTab, currentSurahId, selectedAyahNumber, selectedWordIndex, activeWordMorph?.root, activeLughatSlug]);
+
+  const activeLughatContent = useMemo(() => {
+    if (!lughatData?.entries || lughatData.entries.length === 0) return null;
+    const found = lughatData.entries.find((e) => e.kitab_slug === activeLughatSlug);
+    return found?.content || (lughatData.entries[0]?.kitab_slug === activeLughatSlug ? lughatData.entries[0]?.content : null);
+  }, [lughatData, activeLughatSlug]);
 
   // Kitabs list
   const transKitabs = DEFAULT_KITABS.filter((k) => k.category === 'TRANSLATION');
@@ -816,19 +827,21 @@ export default function QuranStudyHubSheet({
                     </View>
 
                     <View style={{ flex: 1, marginLeft: 14, justifyContent: 'center' }}>
-                      <View style={styles.rootArabicRow}>
-                        <Text style={[styles.rootArabicTag, { color: isDark ? '#34D399' : '#059669' }]}>
-                          الجذر:
-                        </Text>
-                        <Text style={[styles.rootTextArabic, { color: isDark ? '#F1F5F9' : '#047857' }]}>
-                          {activeWordMorph.root}
-                        </Text>
-                      </View>
+                      {activeWordMorph.root ? (
+                        <View style={styles.rootArabicRow}>
+                          <Text style={[styles.rootArabicTag, { color: isDark ? '#34D399' : '#059669' }]}>
+                            الجذر:
+                          </Text>
+                          <Text style={[styles.rootTextArabic, { color: isDark ? '#F1F5F9' : '#047857' }]}>
+                            {activeWordMorph.root}
+                          </Text>
+                        </View>
+                      ) : null}
 
                       {activeWordMorph.lemma ? (
-                        <View style={[styles.rootArabicRow, { marginTop: 4 }]}>
+                        <View style={[styles.rootArabicRow, activeWordMorph.root ? { marginTop: 4 } : null]}>
                           <Text style={[styles.rootArabicTag, { color: isDark ? '#93C5FD' : '#2563EB' }]}>
-                            الأصل:
+                            الأصل / الصيغة:
                           </Text>
                           <Text style={[styles.lemmaTextArabic, { color: isDark ? '#E2E8F0' : '#1E293B' }]}>
                             {activeWordMorph.lemma}
@@ -840,44 +853,7 @@ export default function QuranStudyHubSheet({
                 </View>
               )}
 
-              {/* Dictionary Selector (Al-Mu'jam al-Waseet vs Al-Mufradat) */}
-              <View style={[styles.kitabSelectorRow, { marginTop: 14 }]}>
-                {[
-                  { slug: 'al-mujam-al-waseet', name: "المعجم الوسيط" },
-                  { slug: 'al-mufradat', name: 'المفردات في غريب القرآن' },
-                ].map((k) => {
-                  const isSel = activeLughatSlug === k.slug;
-                  return (
-                    <TouchableOpacity
-                      key={k.slug}
-                      style={[
-                        styles.kitabChip,
-                        isSel && styles.kitabChipActive,
-                        {
-                          backgroundColor: isSel
-                            ? 'rgba(2, 132, 199, 0.12)'
-                            : isDark
-                            ? '#334155'
-                            : '#F1F5F9',
-                          borderColor: isSel ? '#0284C7' : 'transparent',
-                        },
-                      ]}
-                      onPress={() => setActiveLughatSlug(k.slug)}
-                    >
-                      <Text
-                        style={[
-                          styles.kitabChipText,
-                          { color: isSel ? '#0284C7' : isDark ? '#E2E8F0' : '#475569' },
-                        ]}
-                      >
-                        {k.name}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-
-              {/* Dictionary Content Display (Zero static fabricated text) */}
+              {/* Dictionary Selector and Content (Zero static fabricated text) */}
               {loadingLughat ? (
                 <View
                   style={[
@@ -887,33 +863,73 @@ export default function QuranStudyHubSheet({
                       borderColor: isDark ? '#334155' : '#E2E8F0',
                       paddingVertical: 24,
                       alignItems: 'center',
+                      marginTop: 14,
                     },
                   ]}
                 >
                   <ActivityIndicator size="small" color="#0284C7" />
                 </View>
-              ) : lughatData?.entries?.[0]?.content ? (
-                <View
-                  style={[
-                    styles.lughatCard,
-                    {
-                      backgroundColor: isDark ? '#0F172A' : '#FAFAF9',
-                      borderColor: isDark ? '#334155' : '#E2E8F0',
-                    },
-                  ]}
-                >
-                  <View style={styles.lughatCardHeader}>
-                    <Text style={[styles.lughatTitle, { color: '#0284C7' }]}>
-                      {activeLughatSlug === 'al-mujam-al-waseet'
-                        ? "المعجم الوسيط — مجمع اللغة العربية بالقاهرة"
-                        : "المفردات في غريب القرآن — الراغب الأصفهاني"}
-                    </Text>
+              ) : activeLughatContent ? (
+                <>
+                  {/* Dictionary Selector */}
+                  <View style={[styles.kitabSelectorRow, { marginTop: 14 }]}>
+                    {[
+                      { slug: 'al-mujam-al-waseet', name: 'المعجم الوسيط' },
+                      { slug: 'al-mufradat', name: 'المفردات في غريب القرآن' },
+                    ].map((k) => {
+                      const isSel = activeLughatSlug === k.slug;
+                      return (
+                        <TouchableOpacity
+                          key={k.slug}
+                          style={[
+                            styles.kitabChip,
+                            isSel && styles.kitabChipActive,
+                            {
+                              backgroundColor: isSel
+                                ? 'rgba(2, 132, 199, 0.12)'
+                                : isDark
+                                ? '#334155'
+                                : '#F1F5F9',
+                              borderColor: isSel ? '#0284C7' : 'transparent',
+                            },
+                          ]}
+                          onPress={() => setActiveLughatSlug(k.slug)}
+                        >
+                          <Text
+                            style={[
+                              styles.kitabChipText,
+                              { color: isSel ? '#0284C7' : isDark ? '#E2E8F0' : '#475569' },
+                            ]}
+                          >
+                            {k.name}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
                   </View>
 
-                  <Text style={[styles.lughatContentText, { color: isDark ? '#E2E8F0' : '#1E293B' }]}>
-                    {lughatData.entries[0].content}
-                  </Text>
-                </View>
+                  <View
+                    style={[
+                      styles.lughatCard,
+                      {
+                        backgroundColor: isDark ? '#0F172A' : '#FAFAF9',
+                        borderColor: isDark ? '#334155' : '#E2E8F0',
+                      },
+                    ]}
+                  >
+                    <View style={styles.lughatCardHeader}>
+                      <Text style={[styles.lughatTitle, { color: '#0284C7' }]}>
+                        {activeLughatSlug === 'al-mujam-al-waseet'
+                          ? 'المعجم الوسيط — مجمع اللغة العربية بالقاهرة'
+                          : 'المفردات في غريب القرآن — الراغب الأصفهاني'}
+                      </Text>
+                    </View>
+
+                    <Text style={[styles.lughatContentText, { color: isDark ? '#E2E8F0' : '#1E293B' }]}>
+                      {activeLughatContent}
+                    </Text>
+                  </View>
+                </>
               ) : null}
             </ScrollView>
           )}

@@ -348,7 +348,7 @@ class QuranService {
     const a = Number(ayah);
     const pos = Number(position) || 1;
     const targetRoot = (root || '').trim().replace(/\s+/g, '');
-    const cacheKey = `${CACHE_PREFIX}lughat_v6_offline_${s}_${a}_${pos}_${encodeURIComponent(wordArabic || '')}_${kitabSlug}`;
+    const cacheKey = `${CACHE_PREFIX}lughat_v8_offline_${s}_${a}_${pos}_${encodeURIComponent(wordArabic || '')}_${kitabSlug}`;
 
     try {
       const cached = await AsyncStorage.getItem(cacheKey);
@@ -454,43 +454,7 @@ class QuranService {
       }
     }
 
-    // Fallback if still empty
-    if (entries.length === 0) {
-      const posBangla =
-        extractedPos === 'Noun'
-          ? 'اسم (বিশেষ্য)'
-          : extractedPos === 'Verb'
-            ? 'فعل (ক্রিয়া)'
-            : extractedPos === 'Proper Noun'
-              ? 'اسم علم (সংজ্ঞাবাচক নাম)'
-              : extractedPos === 'Pronoun'
-                ? 'ضمير (সর্বনাম)'
-                : extractedPos === 'Preposition'
-                  ? 'حرف جر (অব্যয়)'
-                  : extractedPos || 'كلمة قرآنية';
-
-      const rootDisplay = cleanRoot ? cleanRoot.split('').join(' - ') : wordArabic;
-
-      const dynamicContent =
-        `📖 المعجم الوسيط والتحقيق اللغوي:\n\n` +
-        `• الجذر الأصلي (মূল মাদ্দাহ): ( ${rootDisplay} )\n` +
-        `${extractedLemma ? `• الأصل المجرد (লেমা): ${extractedLemma}\n` : ''}` +
-        `• نوع الكلمة (শব্দের প্রকার): ${posBangla}\n` +
-        `${grammarInfo ? `• الصيغة والخصائص: ${grammarInfo}\n` : ''}` +
-        `${wordTranslation ? `• المعنى السياقي: "${wordTranslation}"\n\n` : '\n'}` +
-        `مادة (${cleanRoot || wordArabic}): أصلٌ لغويٌّ عربي فصيح في المعاجم المعتمدة، يدل على المعنى المقصود في هذا النظم القرآني الكريم.`;
-
-      entries.push({
-        id: 1,
-        kitab_name_arabic: 'المعجم الوسيط',
-        kitab_name_bangla: "আল-মু'জামুল ওয়াসীত",
-        kitab_slug: 'al-mujam-al-waseet',
-        root: cleanRoot || wordArabic,
-        title: `جذر (${cleanRoot || wordArabic})`,
-        content: dynamicContent,
-      });
-    }
-
+    // If entries are empty, leave entries as [] without fabricating any fake default text
     const finalResult = {
       root: cleanRoot || wordArabic,
       lemma: extractedLemma,
