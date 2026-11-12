@@ -175,6 +175,8 @@ export default function QuranStudyHubSheet({
   const [defaultSavedToast, setDefaultSavedToast] = useState(false);
   const [activeTafsirSlug, setActiveTafsirSlug] = useState('tafsir-ibn-kathir');
   const [activeLughatSlug, setActiveLughatSlug] = useState('al-mujam-al-waseet');
+  const [copiedLughatCiteToast, setCopiedLughatCiteToast] = useState(false);
+  const lughatKitabs = useMemo(() => DEFAULT_KITABS.filter((k) => k.category === 'LUGHAT'), []);
   const [tafsirFontSize, setTafsirFontSize] = useState(16);
   const [isAyahExpanded, setIsAyahExpanded] = useState(false);
 
@@ -252,7 +254,7 @@ export default function QuranStudyHubSheet({
     return () => {
       isMounted = false;
     };
-  }, [visible, currentPage]);
+  }, [visible, currentPage, initialAyahNumber]);
 
   // Unified Ayahs List for current page
   const currentAyahsList = useMemo(() => {
@@ -524,6 +526,21 @@ export default function QuranStudyHubSheet({
   const activeTransRef = useMemo(() => {
     return getKitabCitationReference(activeTransSlug, currentSurahId, selectedAyahNumber, currentPage);
   }, [activeTransSlug, currentSurahId, selectedAyahNumber, currentPage]);
+
+  const activeLughatRef = useMemo(() => {
+    return getKitabCitationReference(activeLughatSlug, currentSurahId, selectedAyahNumber, currentPage);
+  }, [activeLughatSlug, currentSurahId, selectedAyahNumber, currentPage]);
+
+  const handleCopyLughatWithCitation = async () => {
+    if (!activeLughatContent) return;
+    const cleanContent = activeLughatContent.replace(/<[^>]+>/g, '').trim();
+    const currentKitab = lughatKitabs.find((k) => k.slug === activeLughatSlug);
+    const ref = activeLughatRef?.fullCitation || `${currentKitab?.name_arabic} — ${currentKitab?.author}`;
+    const textToCopy = `[শব্দমূল: (${activeWordMorph?.root || ''})]\nশব্দ: ${activeWordText}\n[সূরা ${activeSurahInfo.nameBangla}, আয়াত: ${toBn(currentAyah.number)}]\n\nলোগাত / তাহকীক:\n${cleanContent}\n\n— রেফারেন্স: ${ref}\n[সংগ্রহ: জামিয়া ইসলামিয়া ইমদাদিয়া কুরআন অ্যাপ]`;
+    await Clipboard.setStringAsync(textToCopy);
+    setCopiedLughatCiteToast(true);
+    setTimeout(() => setCopiedLughatCiteToast(false), 2000);
+  };
 
   const handleCopyTafsirWithCitation = async () => {
     const rawTafsir = getActiveTafsirText().replace(/<[^>]+>/g, '').trim();
@@ -1291,59 +1308,50 @@ export default function QuranStudyHubSheet({
                 </View>
               )}
 
-              {/* Dictionary Selector and Content (Zero static fabricated text) */}
-              {loadingLughat ? (
-                <View
-                  style={[
-                    styles.lughatCard,
-                    {
-                      backgroundColor: isDark ? '#0F172A' : '#FAFAF9',
-                      borderColor: isDark ? '#334155' : '#E2E8F0',
-                      paddingVertical: 24,
-                      alignItems: 'center',
-                      marginTop: 14,
-                    },
-                  ]}
-                >
-                  <ActivityIndicator size="small" color="#0284C7" />
-                </View>
-              ) : activeLughatContent ? (
+              {/* Dictionary Selector and Content (Multi-Lughat Classical Registry) */}
+              {activeWordMorph?.root ? (
                 <>
-                  {/* Dictionary Selector */}
-                  <View style={[styles.kitabSelectorRow, { marginTop: 14, flexDirection: 'row-reverse' }]}>
-                    {[
-                      { slug: 'al-mujam-al-waseet', name: 'المعجم الوسيط' },
-                      { slug: 'al-mufradat', name: 'المفردات في غريب القرآن' },
-                    ].map((k) => {
-                      const isSel = activeLughatSlug === k.slug;
-                      return (
-                        <TouchableOpacity
-                          key={k.slug}
-                          style={[
-                            styles.kitabChip,
-                            isSel && styles.kitabChipActive,
-                            {
-                              backgroundColor: isSel
-                                ? 'rgba(2, 132, 199, 0.12)'
-                                : isDark
-                                  ? '#334155'
-                                  : '#F1F5F9',
-                              borderColor: isSel ? '#0284C7' : 'transparent',
-                            },
-                          ]}
-                          onPress={() => setActiveLughatSlug(k.slug)}
-                        >
-                          <Text
+                  {/* Scrollable Dictionary Chips */}
+                  <View style={{ marginTop: 14 }}>
+                    <Text style={[styles.sectionHeading, { color: colors.textMuted, fontSize: 11.5, marginBottom: 6 }]}>
+                      প্রামাণ্য আরবি ও দ্বিভাষিক অভিধানসমূহ:
+                    </Text>
+                    <ScrollView
+                      horizontal
+                      showsHorizontalScrollIndicator={false}
+                      contentContainerStyle={[styles.kitabSelectorRow, { flexDirection: 'row-reverse' }]}
+                    >
+                      {lughatKitabs.map((k) => {
+                        const isSel = activeLughatSlug === k.slug;
+                        return (
+                          <TouchableOpacity
+                            key={k.slug}
                             style={[
-                              styles.kitabChipText,
-                              { color: isSel ? '#0284C7' : isDark ? '#E2E8F0' : '#475569' },
+                              styles.kitabChip,
+                              isSel && styles.kitabChipActive,
+                              {
+                                backgroundColor: isSel
+                                  ? 'rgba(2, 132, 199, 0.12)'
+                                  : isDark
+                                    ? '#334155'
+                                    : '#F1F5F9',
+                                borderColor: isSel ? '#0284C7' : 'transparent',
+                              },
                             ]}
+                            onPress={() => setActiveLughatSlug(k.slug)}
                           >
-                            {k.name}
-                          </Text>
-                        </TouchableOpacity>
-                      );
-                    })}
+                            <Text
+                              style={[
+                                styles.kitabChipText,
+                                { color: isSel ? '#0284C7' : isDark ? '#E2E8F0' : '#475569' },
+                              ]}
+                            >
+                              {k.name_arabic}
+                            </Text>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </ScrollView>
                   </View>
 
                   <View
@@ -1356,16 +1364,87 @@ export default function QuranStudyHubSheet({
                     ]}
                   >
                     <View style={styles.lughatCardHeader}>
-                      <Text style={[styles.lughatTitle, { color: '#0284C7' }]}>
-                        {activeLughatSlug === 'al-mujam-al-waseet'
-                          ? 'المعجم الوسيط — مجمع اللغة العربية بالقاهرة'
-                          : 'المفردات في غريب القرآن — الراغب الأصفهاني'}
-                      </Text>
+                      <View style={styles.headerTitleRow}>
+                        <View style={styles.headerTitleTextWrap}>
+                          <Text style={[styles.lughatTitle, { color: '#0284C7' }]} numberOfLines={1}>
+                            {lughatKitabs.find((k) => k.slug === activeLughatSlug)?.name_arabic}
+                          </Text>
+                          <Text style={[styles.tafsirAuthorName, { color: colors.textMuted }]} numberOfLines={1}>
+                            {lughatKitabs.find((k) => k.slug === activeLughatSlug)?.author}
+                          </Text>
+                        </View>
+
+                        {activeLughatContent ? (
+                          <TouchableOpacity
+                            style={styles.citeCopyBtn}
+                            onPress={handleCopyLughatWithCitation}
+                            activeOpacity={0.7}
+                          >
+                            <Ionicons
+                              name={copiedLughatCiteToast ? 'checkmark-circle' : 'newspaper-outline'}
+                              size={13}
+                              color={copiedLughatCiteToast ? '#0284C7' : colors.textMuted}
+                            />
+                            <Text
+                              style={[
+                                styles.citeCopyBtnText,
+                                { color: copiedLughatCiteToast ? '#0284C7' : colors.textMuted },
+                              ]}
+                            >
+                              {copiedLughatCiteToast ? 'কপি হয়েছে' : 'উদ্ধৃতি কপি'}
+                            </Text>
+                          </TouchableOpacity>
+                        ) : null}
+                      </View>
+
+                      {/* Publication Reference Card Box */}
+                      {activeLughatRef ? (
+                        <View
+                          style={[
+                            styles.referenceCardBox,
+                            {
+                              backgroundColor: isDark ? '#0369A120' : '#F0F9FF',
+                              borderColor: isDark ? '#0284C7' : '#BAE6FD',
+                            },
+                          ]}
+                        >
+                          <View style={styles.referenceBadgeLine}>
+                            <Ionicons name="book-outline" size={12} color="#0284C7" />
+                            <Text
+                              style={[styles.referenceBadgeText, { color: isDark ? '#7DD3FC' : '#0369A1' }]}
+                              numberOfLines={1}
+                            >
+                              {activeLughatRef.badgeText}
+                            </Text>
+                          </View>
+                          {activeLughatRef.edition ? (
+                            <Text style={[styles.referenceBadgeSub, { color: colors.textMuted }]} numberOfLines={2}>
+                              {activeLughatRef.edition}
+                            </Text>
+                          ) : null}
+                        </View>
+                      ) : null}
                     </View>
 
-                    <View style={styles.lughatContentContainer}>
-                      {renderFormattedLughatContent(activeLughatContent)}
-                    </View>
+                    {loadingLughat ? (
+                      <View style={{ paddingVertical: 24, alignItems: 'center' }}>
+                        <ActivityIndicator size="small" color="#0284C7" />
+                        <Text style={{ marginTop: 8, fontSize: 12, color: colors.textMuted }}>
+                          লোগাত অনুসন্ধান করা হচ্ছে...
+                        </Text>
+                      </View>
+                    ) : activeLughatContent ? (
+                      <View style={styles.lughatContentContainer}>
+                        {renderFormattedLughatContent(activeLughatContent)}
+                      </View>
+                    ) : (
+                      <View style={{ paddingVertical: 18, alignItems: 'center' }}>
+                        <Text style={{ fontSize: 13, color: colors.textMuted, textAlign: 'center', lineHeight: 20 }}>
+                          এই কিতাবে এই শব্দমূলের ({activeWordMorph.root}) সরাসরি ভুক্তি পাওয়া যায়নি।{'\n'}
+                          উপরের তালিকা থেকে অন্যান্য অভিধানসমূহ দেখতে পারেন।
+                        </Text>
+                      </View>
+                    )}
                   </View>
                 </>
               ) : null}

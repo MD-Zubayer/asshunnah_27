@@ -200,7 +200,7 @@ export default function HafeziQuranScreen() {
   // Sync scrubPage with currentPage when not actively dragging
   useEffect(() => {
     if (!isScrubbing) {
-      setScrubPage(currentPage);
+      Promise.resolve().then(() => setScrubPage(currentPage));
     }
   }, [currentPage, isScrubbing]);
 
