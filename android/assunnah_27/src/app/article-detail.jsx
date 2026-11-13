@@ -42,7 +42,8 @@ export default function ArticleDetailScreen() {
   const colors = Colors[isDark ? 'dark' : 'light'];
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { id } = useLocalSearchParams();
+  const params = useLocalSearchParams();
+  const id = params.id || params.articleId;
   const { token, user, isGuest } = useAuth();
 
   const [article, setArticle] = useState(null);
@@ -117,23 +118,23 @@ export default function ArticleDetailScreen() {
   }, [id, token]);
 
   const loadArticle = async () => {
-    if (!token) {
-      setLoading(false);
-      return;
-    }
     try {
       setLoading(true);
       const data = await articleService.getArticleDetail(token, parseInt(id));
       setArticle(data);
 
       // Load follow status for article author
-      if (data?.user?.id && data.user.id !== user?.id) {
+      if (token && data?.user?.id && data.user.id !== user?.id) {
         loadFollowStatus(data.user.id);
       }
 
       // Load comments
-      const commentsData = await articleService.getComments(token, parseInt(id));
-      setComments(commentsData);
+      try {
+        const commentsData = await articleService.getComments(token, parseInt(id));
+        setComments(commentsData || []);
+      } catch (commentError) {
+        console.warn('Failed to load comments:', commentError);
+      }
     } catch (error) {
       console.error('Failed to load article:', error);
       Alert.alert('Error', 'প্রবন্ধ লোড করতে সমস্যা হয়েছে');
