@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View, ScrollView, useColorScheme, ActivityIndicator, TouchableOpacity, Alert, Appearance, TextInput, Modal } from 'react-native';
+import { StyleSheet, Text, View, ScrollView, useColorScheme, ActivityIndicator, TouchableOpacity, Alert, Appearance, TextInput, Modal, Linking } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useEffect, useState } from 'react';
@@ -14,11 +14,139 @@ export default function SettingsScreen() {
     const insets = useSafeAreaInsets();
     const isDark = scheme === 'dark';
     const router = useRouter();
-    const { isSignedIn, isLoading, user, logout, isGuest, token } = useAuth();
+    const {
+        isSignedIn,
+        isLoading,
+        user,
+        logout,
+        isGuest,
+        token,
+        sendEmailVerification,
+        confirmEmailVerification,
+        changePassword,
+    } = useAuth();
     const [darkModeEnabled, setDarkModeEnabled] = useState(isDark);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [deletePassword, setDeletePassword] = useState('');
     const [deleteLoading, setDeleteLoading] = useState(false);
+
+    // Email verification state
+    const [showEmailModal, setShowEmailModal] = useState(false);
+    const [emailOtp, setEmailOtp] = useState('');
+    const [emailVerifyLoading, setEmailVerifyLoading] = useState(false);
+    const [emailCooldown, setEmailCooldown] = useState(0);
+    const [emailModalError, setEmailModalError] = useState('');
+    const [emailModalMessage, setEmailModalMessage] = useState('');
+
+    // Change password state
+    const [showChangePwModal, setShowChangePwModal] = useState(false);
+    const [oldPassword, setOldPassword] = useState('');
+    const [newPassword, setNewPassword] = useState('');
+    const [newPasswordConfirm, setNewPasswordConfirm] = useState('');
+    const [changePwLoading, setChangePwLoading] = useState(false);
+    const [changePwError, setChangePwError] = useState('');
+
+    useEffect(() => {
+        let timer;
+        if (emailCooldown > 0) {
+            timer = setInterval(() => {
+                setEmailCooldown((prev) => (prev > 0 ? prev - 1 : 0));
+            }, 1000);
+        }
+        return () => {
+            if (timer) clearInterval(timer);
+        };
+    }, [emailCooldown]);
+
+    const handleSendEmailVerification = async () => {
+        if (emailCooldown > 0) return;
+        setEmailVerifyLoading(true);
+        setEmailModalError('');
+        setEmailModalMessage('');
+        try {
+            const res = await sendEmailVerification();
+            if (res.success) {
+                if (res.already_verified) {
+                    Alert.alert('তথ্য', 'আপনার ইমেইল ইতিমধ্যে ভেরিফাই করা আছে।');
+                    setShowEmailModal(false);
+                } else {
+                    setEmailModalMessage(res.message || 'আপনার ইমেইলে ৬ ডিজিটের ওটিপি কোড পাঠানো হয়েছে।');
+                    setEmailCooldown(60);
+                    setShowEmailModal(true);
+                }
+            } else {
+                const errMsg = typeof res.message === 'object' ? JSON.stringify(res.message) : (res.message || 'ওটিপি পাঠানো যায়নি।');
+                Alert.alert('ত্রুটি', errMsg);
+            }
+        } catch (e) {
+            Alert.alert('ত্রুটি', 'নেটওয়ার্ক সংযোগ সমস্যা।');
+        } finally {
+            setEmailVerifyLoading(false);
+        }
+    };
+
+    const handleConfirmEmailOtp = async () => {
+        if (!emailOtp.trim() || emailOtp.trim().length !== 6) {
+            setEmailModalError('৬ ডিজিটের সঠিক OTP কোড প্রবেশ করান।');
+            return;
+        }
+        setEmailVerifyLoading(true);
+        setEmailModalError('');
+        try {
+            const res = await confirmEmailVerification(emailOtp.trim());
+            if (res.success) {
+                setShowEmailModal(false);
+                setEmailOtp('');
+                Alert.alert('সফল', 'আপনার ইমেইল সফলভাবে ভেরিফাই করা হয়েছে!');
+            } else {
+                const errMsg = typeof res.message === 'object'
+                    ? (res.message?.otp?.[0] || res.message?.email?.[0] || res.message?.detail || JSON.stringify(res.message))
+                    : (res.message || 'ওটিপি সঠিক নয়।');
+                setEmailModalError(errMsg);
+            }
+        } catch (e) {
+            setEmailModalError('নেটওয়ার্ক ত্রুটি। আবার চেষ্টা করুন।');
+        } finally {
+            setEmailVerifyLoading(false);
+        }
+    };
+
+    const handleChangePasswordSubmit = async () => {
+        setChangePwError('');
+        if (!oldPassword) {
+            setChangePwError('বর্তমান পাসওয়ার্ড প্রদান করুন।');
+            return;
+        }
+        if (!newPassword || newPassword.length < 8) {
+            setChangePwError('নতুন পাসওয়ার্ড কমপক্ষে ৮ অক্ষরের হতে হবে।');
+            return;
+        }
+        if (newPassword !== newPasswordConfirm) {
+            setChangePwError('নতুন পাসওয়ার্ড দুটি মিলছে না।');
+            return;
+        }
+
+        setChangePwLoading(true);
+        try {
+            const res = await changePassword(oldPassword, newPassword, newPasswordConfirm);
+            if (res.success) {
+                setShowChangePwModal(false);
+                setOldPassword('');
+                setNewPassword('');
+                setNewPasswordConfirm('');
+                Alert.alert('সফল', 'পাসওয়ার্ড সফলভাবে পরিবর্তন করা হয়েছে।');
+            } else {
+                const errMsg = typeof res.message === 'object'
+                    ? (res.message?.old_password?.[0] || res.message?.new_password?.[0] || res.message?.detail || JSON.stringify(res.message))
+                    : (res.message || 'পাসওয়ার্ড পরিবর্তন করা যায়নি।');
+                setChangePwError(errMsg);
+            }
+        } catch (e) {
+            setChangePwError('নেটওয়ার্ক সংযোগ সমস্যা।');
+        } finally {
+            setChangePwLoading(false);
+        }
+    };
 
     useEffect(() => {
         if (!isLoading && !isSignedIn) {
@@ -37,22 +165,32 @@ export default function SettingsScreen() {
         }
     }, [isGuest, router]);
 
-    useEffect(() => {
-        setDarkModeEnabled(scheme === 'dark');
-    }, [scheme]);
-
-    useEffect(() => {
-        Appearance.setColorScheme(darkModeEnabled ? 'dark' : 'light');
-    }, [darkModeEnabled]);
-
     const handleMenuItemPress = (item) => {
+        if (item.id === 'verify_email') {
+            if (user?.is_email_verified) {
+                Alert.alert('ইমেইল ভেরিফাইড', 'আপনার ইমেইল ঠিকানাটি ইতোমধ্যে সফলভাবে ভেরিফাই করা হয়েছে।');
+            } else {
+                handleSendEmailVerification();
+            }
+            return;
+        }
+        if (item.id === 'change_password') {
+            setChangePwError('');
+            setShowChangePwModal(true);
+            return;
+        }
         if (item.id === 'switch_account') {
             router.push('/switch-account-type');
+            return;
+        }
+        if (item.id === 'privacy_policy') {
+            Linking.openURL('https://api-assunnah-27.newsmartagent.com/privacy-policy/');
             return;
         }
         if (item.id === 3) {
             const nextValue = !darkModeEnabled;
             setDarkModeEnabled(nextValue);
+            Appearance.setColorScheme(nextValue ? 'dark' : 'light');
             Alert.alert(
                 'ডার্ক মোড',
                 nextValue ? 'ডার্ক মোড চালু হয়েছে' : 'লাইট মোড চালু হয়েছে',
@@ -99,6 +237,19 @@ export default function SettingsScreen() {
             section: 'অ্যাকাউন্ট',
             items: [
                 {
+                    id: 'verify_email',
+                    icon: user?.is_email_verified ? 'shield-checkmark-outline' : 'shield-outline',
+                    label: 'ইমেইল ভেরিফিকেশন',
+                    color: user?.is_email_verified ? '#10B981' : '#F59E0B',
+                    value: user?.is_email_verified ? 'ভেরিফাইড' : 'যাচাই করুন',
+                },
+                {
+                    id: 'change_password',
+                    icon: 'key-outline',
+                    label: 'পাসওয়ার্ড পরিবর্তন',
+                    color: '#6366F1',
+                },
+                {
                     id: 'switch_account',
                     icon: 'swap-horizontal-outline',
                     label: 'অ্যাকাউন্টের ধরন পরিবর্তন',
@@ -126,6 +277,7 @@ export default function SettingsScreen() {
         {
             section: 'অন্যান্য',
             items: [
+                { id: 'privacy_policy', icon: 'shield-half-outline', label: 'গোপনীয়তা নীতি (Privacy Policy)', color: '#059669' },
                 { id: 7, icon: 'help-circle-outline', label: 'সাহায্য', color: '#8E8E93' },
                 { id: 8, icon: 'information-circle-outline', label: 'অ্যাপ সম্পর্কে', color: '#8E8E93' },
             ],
@@ -162,14 +314,58 @@ export default function SettingsScreen() {
                         <Text style={[styles.userName, { color: colors.text }]}>
                             {user?.first_name || 'ব্যবহারকারী'}
                         </Text>
-                        <Text style={[styles.userEmail, { color: colors.textSecondary }]}>
-                            {user?.email || ''}
-                        </Text>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 3, flexWrap: 'wrap', gap: 6 }}>
+                            <Text style={[styles.userEmail, { color: colors.textSecondary }]}>
+                                {user?.email || ''}
+                            </Text>
+                            {user?.is_email_verified ? (
+                                <View style={[styles.verifiedBadge, { backgroundColor: '#ECFDF5', borderColor: '#A7F3D0' }]}>
+                                    <Ionicons name="checkmark-circle" size={11} color="#059669" />
+                                    <Text style={[styles.verifiedBadgeText, { color: '#059669' }]}>ভেরিফাইড</Text>
+                                </View>
+                            ) : (
+                                <TouchableOpacity
+                                    style={[styles.verifiedBadge, { backgroundColor: '#FEF3C7', borderColor: '#FDE68A' }]}
+                                    onPress={handleSendEmailVerification}
+                                >
+                                    <Ionicons name="alert-circle" size={11} color="#D97706" />
+                                    <Text style={[styles.verifiedBadgeText, { color: '#D97706' }]}>যাচাই করুন</Text>
+                                </TouchableOpacity>
+                            )}
+                        </View>
                     </View>
                     <TouchableOpacity onPress={handleBack}>
                         <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
                     </TouchableOpacity>
                 </View>
+
+                {/* Unverified Email Warning Banner */}
+                {!user?.is_email_verified ? (
+                    <View style={[styles.unverifiedBanner, { backgroundColor: isDark ? '#451A03' : '#FFFBEB', borderColor: '#F59E0B' }]}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+                            <Ionicons name="shield-outline" size={24} color="#D97706" style={{ marginRight: 10 }} />
+                            <View style={{ flex: 1 }}>
+                                <Text style={[styles.bannerTitle, { color: isDark ? '#FEF3C7' : '#92400E' }]}>
+                                    ইমেইল ভেরিফাই করা হয়নি
+                                </Text>
+                                <Text style={[styles.bannerDesc, { color: isDark ? '#FDE68A' : '#B45309' }]}>
+                                    অ্যাকাউন্টের নিরাপত্তা নিশ্চিত করতে কোড পাঠিয়ে ইমেইল যাচাই করুন।
+                                </Text>
+                            </View>
+                        </View>
+                        <TouchableOpacity
+                            style={[styles.verifyNowBtn, { backgroundColor: '#D97706' }]}
+                            onPress={handleSendEmailVerification}
+                            disabled={emailVerifyLoading}
+                        >
+                            {emailVerifyLoading ? (
+                                <ActivityIndicator size="small" color="#FFFFFF" />
+                            ) : (
+                                <Text style={styles.verifyNowBtnText}>ভেরিফাই</Text>
+                            )}
+                        </TouchableOpacity>
+                    </View>
+                ) : null}
 
                 {/* Menu Sections */}
                 {menuItems.map((section) => (
@@ -330,6 +526,200 @@ export default function SettingsScreen() {
                     </View>
                 </View>
             </Modal>
+
+            {/* Email Verification Modal */}
+            <Modal
+                visible={showEmailModal}
+                transparent={true}
+                animationType="fade"
+                onRequestClose={() => setShowEmailModal(false)}
+            >
+                <View style={styles.modalOverlay}>
+                    <View style={[styles.modalContent, { backgroundColor: colors.card, borderColor: colors.cardBorder, borderWidth: 1 }]}>
+                        <View style={[styles.modalIconContainer, { backgroundColor: '#ECFDF5' }]}>
+                            <Ionicons name="mail-open-outline" size={32} color="#059669" />
+                        </View>
+                        <Text style={[styles.modalTitle, { color: colors.text }]}>ইমেইল ভেরিফিকেশন</Text>
+                        <Text style={[styles.modalMessage, { color: colors.textSecondary }]}>
+                            {emailModalMessage || `${user?.email} ঠিকানায় প্রেরিত ৬ ডিজিটের OTP কোডটি দিন।`}
+                        </Text>
+
+                        <TextInput
+                            style={[
+                                styles.passwordInput,
+                                {
+                                    backgroundColor: colors.inputBg,
+                                    borderColor: colors.inputBorder,
+                                    color: colors.text,
+                                    textAlign: 'center',
+                                    fontSize: 20,
+                                    letterSpacing: 8,
+                                    fontWeight: 'bold',
+                                },
+                            ]}
+                            placeholder="123456"
+                            placeholderTextColor={colors.textMuted}
+                            keyboardType="number-pad"
+                            maxLength={6}
+                            value={emailOtp}
+                            onChangeText={setEmailOtp}
+                        />
+
+                        {emailModalError ? (
+                            <Text style={{ color: '#EF4444', fontSize: 13, marginBottom: 14, textAlign: 'center' }}>
+                                {emailModalError}
+                            </Text>
+                        ) : null}
+
+                        {/* Resend Cooldown Row */}
+                        <TouchableOpacity
+                            style={{ marginBottom: 18 }}
+                            onPress={emailCooldown === 0 ? handleSendEmailVerification : null}
+                            disabled={emailCooldown > 0 || emailVerifyLoading}
+                        >
+                            <Text style={{ fontSize: 13, color: colors.textSecondary }}>
+                                কোড পাননি?{' '}
+                                {emailCooldown > 0 ? (
+                                    <Text style={{ color: colors.textMuted }}>
+                                        পুনরায় পাঠান ({emailCooldown} সে.)
+                                    </Text>
+                                ) : (
+                                    <Text style={{ color: colors.primary, fontWeight: '700' }}>
+                                        পুনরায় OTP পাঠান
+                                    </Text>
+                                )}
+                            </Text>
+                        </TouchableOpacity>
+
+                        <View style={styles.modalButtons}>
+                            <TouchableOpacity
+                                style={[styles.modalButton, { borderColor: colors.cardBorder, borderWidth: 1 }]}
+                                onPress={() => {
+                                    setShowEmailModal(false);
+                                    setEmailOtp('');
+                                    setEmailModalError('');
+                                }}
+                            >
+                                <Text style={[styles.modalButtonText, { color: colors.text }]}>বাতিল</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={[styles.modalButton, { backgroundColor: colors.primary }]}
+                                onPress={handleConfirmEmailOtp}
+                                disabled={emailVerifyLoading}
+                            >
+                                {emailVerifyLoading ? (
+                                    <ActivityIndicator size="small" color="#fff" />
+                                ) : (
+                                    <Text style={[styles.modalButtonText, { color: '#fff' }]}>যাচাই করুন</Text>
+                                )}
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </View>
+            </Modal>
+
+            {/* Change Password Modal */}
+            <Modal
+                visible={showChangePwModal}
+                transparent={true}
+                animationType="fade"
+                onRequestClose={() => setShowChangePwModal(false)}
+            >
+                <View style={styles.modalOverlay}>
+                    <View style={[styles.modalContent, { backgroundColor: colors.card, borderColor: colors.cardBorder, borderWidth: 1 }]}>
+                        <View style={[styles.modalIconContainer, { backgroundColor: colors.primaryBg }]}>
+                            <Ionicons name="key-outline" size={32} color={colors.primary} />
+                        </View>
+                        <Text style={[styles.modalTitle, { color: colors.text }]}>পাসওয়ার্ড পরিবর্তন</Text>
+                        <Text style={[styles.modalMessage, { color: colors.textSecondary }]}>
+                            আপনার বর্তমান পাসওয়ার্ড দিন এবং কমপক্ষে ৮ অক্ষরের নতুন পাসওয়ার্ড সেট করুন।
+                        </Text>
+
+                        <TextInput
+                            style={[
+                                styles.passwordInput,
+                                {
+                                    backgroundColor: colors.inputBg,
+                                    borderColor: colors.inputBorder,
+                                    color: colors.text,
+                                    marginBottom: 12,
+                                },
+                            ]}
+                            placeholder="বর্তমান পাসওয়ার্ড"
+                            placeholderTextColor={colors.textMuted}
+                            secureTextEntry
+                            value={oldPassword}
+                            onChangeText={setOldPassword}
+                        />
+
+                        <TextInput
+                            style={[
+                                styles.passwordInput,
+                                {
+                                    backgroundColor: colors.inputBg,
+                                    borderColor: colors.inputBorder,
+                                    color: colors.text,
+                                    marginBottom: 12,
+                                },
+                            ]}
+                            placeholder="নতুন পাসওয়ার্ড (কমপক্ষে ৮ অক্ষর)"
+                            placeholderTextColor={colors.textMuted}
+                            secureTextEntry
+                            value={newPassword}
+                            onChangeText={setNewPassword}
+                        />
+
+                        <TextInput
+                            style={[
+                                styles.passwordInput,
+                                {
+                                    backgroundColor: colors.inputBg,
+                                    borderColor: colors.inputBorder,
+                                    color: colors.text,
+                                    marginBottom: 14,
+                                },
+                            ]}
+                            placeholder="নতুন পাসওয়ার্ড নিশ্চিত করুন"
+                            placeholderTextColor={colors.textMuted}
+                            secureTextEntry
+                            value={newPasswordConfirm}
+                            onChangeText={setNewPasswordConfirm}
+                        />
+
+                        {changePwError ? (
+                            <Text style={{ color: '#EF4444', fontSize: 13, marginBottom: 14, textAlign: 'center' }}>
+                                {changePwError}
+                            </Text>
+                        ) : null}
+
+                        <View style={styles.modalButtons}>
+                            <TouchableOpacity
+                                style={[styles.modalButton, { borderColor: colors.cardBorder, borderWidth: 1 }]}
+                                onPress={() => {
+                                    setShowChangePwModal(false);
+                                    setOldPassword('');
+                                    setNewPassword('');
+                                    setNewPasswordConfirm('');
+                                    setChangePwError('');
+                                }}
+                            >
+                                <Text style={[styles.modalButtonText, { color: colors.text }]}>বাতিল</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={[styles.modalButton, { backgroundColor: colors.primary }]}
+                                onPress={handleChangePasswordSubmit}
+                                disabled={changePwLoading}
+                            >
+                                {changePwLoading ? (
+                                    <ActivityIndicator size="small" color="#fff" />
+                                ) : (
+                                    <Text style={[styles.modalButtonText, { color: '#fff' }]}>সংরক্ষণ করুন</Text>
+                                )}
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </View>
+            </Modal>
         </View>
     );
 }
@@ -394,7 +784,47 @@ const styles = StyleSheet.create({
     },
     userEmail: {
         fontSize: 13,
+    },
+    verifiedBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 7,
+        paddingVertical: 2,
+        borderRadius: 10,
+        borderWidth: 1,
+        gap: 3,
+    },
+    verifiedBadgeText: {
+        fontSize: 10,
+        fontWeight: '700',
+    },
+    unverifiedBanner: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: 14,
+        borderRadius: 14,
+        borderWidth: 1,
+        marginBottom: 20,
+        gap: 10,
+    },
+    bannerTitle: {
+        fontSize: 14,
+        fontWeight: '700',
+    },
+    bannerDesc: {
+        fontSize: 12,
         marginTop: 2,
+        lineHeight: 16,
+    },
+    verifyNowBtn: {
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        borderRadius: 8,
+    },
+    verifyNowBtnText: {
+        color: '#FFFFFF',
+        fontSize: 12,
+        fontWeight: '700',
     },
     // Menu
     menuSectionTitle: {

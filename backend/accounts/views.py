@@ -2,7 +2,11 @@ import os
 import uuid
 import json
 import io
+import secrets
+from datetime import timedelta
 from django.db import IntegrityError
+from django.conf import settings
+from django.core.mail import send_mail
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -19,6 +23,7 @@ from django.http import StreamingHttpResponse
 from minio import Minio
 
 from django.utils import timezone
+from django.shortcuts import render
 from .serializers import (
     TakmilStudentSignupSerializer,
     NonTakmilStudentSignupSerializer,
@@ -40,11 +45,18 @@ from .serializers import (
     FollowStatusSerializer,
     DiarySerializer,
     JamiaGraduateSerializer,
+    PasswordResetRequestSerializer,
+    PasswordResetVerifySerializer,
+    PasswordResetConfirmSerializer,
+    EmailVerifyRequestSerializer,
+    EmailVerifyConfirmSerializer,
+    ChangePasswordSerializer,
 )
 from .models import (
     Dua, AppSettings,
     GlobalPrayerAlertConfig, PrayerAlertSetting, PrayerAlertLog, DeviceToken, Follow,
     Diary, JamiaGraduate,
+    PasswordResetOTP, EmailVerificationOTP,
 )
 
 User = get_user_model()
@@ -1589,3 +1601,361 @@ class JamiaGraduateViewSet(viewsets.ModelViewSet):
                 user.takmil_year_type = 'other'
                 user.custom_graduation_year = graduate.graduation_year
                 user.save()
+
+
+# ============================================
+# Password Reset & Email Verification Views
+# ============================================
+
+def _send_otp_email(user, otp_code, purpose="password_reset"):
+    name = user.get_full_name() or "সম্মানিত ব্যবহারকারী"
+    if purpose == "password_reset":
+        subject = "আস-সুন্নাহ জামিয়া: পাসওয়ার্ড রিসেট ভেরিফিকেশন কোড"
+        desc = "আপনার অ্যাকাউন্টের পাসওয়ার্ড রিসেট করার জন্য ৬ ডিজিটের ওটিপি কোডটি নিচে দেওয়া হলো:"
+        note = "এই ওটিপি কোডটির মেয়াদ ১০ মিনিট। আপনি যদি এই পাসওয়ার্ড রিসেট অনুরোধ না করে থাকেন, তবে কারো সাথে এই কোড শেয়ার করবেন না।"
+    else:
+        subject = "আস-সুন্নাহ জামিয়া: ইমেইল ভেরিফিকেশন কোড"
+        desc = "আপনার ইমেইল ঠিকানাটি নিশ্চিত করতে ৬ ডিজিটের ওটিপি কোডটি নিচে দেওয়া হলো:"
+        note = "এই ওটিপি কোডটির মেয়াদ ১০ মিনিট। কোডটি অ্যাপে প্রবেশ করিয়ে আপনার ইমেইল ভেরিফাই সম্পন্ন করুন।"
+
+    plain_message = f"""আসসালামু আলাইকুম {name},
+
+{desc}
+
+    {otp_code}
+
+{note}
+
+ধন্যবাদ,
+আস-সুন্নাহ জামিয়া টিম
+"""
+    html_message = f"""
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 12px; background-color: #ffffff;">
+        <div style="text-align: center; margin-bottom: 20px;">
+            <h2 style="color: #059669; margin: 0; font-size: 24px;">আস-সুন্নাহ জামিয়া</h2>
+            <p style="color: #64748b; font-size: 14px; margin-top: 4px;">দ্বীনি শিক্ষার এক অনন্য প্রতিষ্ঠান</p>
+        </div>
+        <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 16px 0;" />
+        <p style="font-size: 15px; color: #334155;">আসসালামু আলাইকুম <strong>{name}</strong>,</p>
+        <p style="font-size: 15px; color: #334155;">{desc}</p>
+        <div style="text-align: center; margin: 28px 0;">
+            <span style="display: inline-block; font-size: 32px; font-weight: bold; letter-spacing: 10px; color: #059669; background: #ecfdf5; padding: 14px 28px; border-radius: 10px; border: 2px dashed #059669;">
+                {otp_code}
+            </span>
+        </div>
+        <p style="color: #64748b; font-size: 13px; line-height: 1.6;">{note}</p>
+        <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 24px 0;" />
+        <p style="font-size: 12px; color: #94a3b8; text-align: center; margin: 0;">© আস-সুন্নাহ জামিয়া। সর্বস্বত্ব সংরক্ষিত।</p>
+    </div>
+    """
+    try:
+        send_mail(
+            subject=subject,
+            message=plain_message,
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[user.email],
+            html_message=html_message,
+            fail_silently=False,
+        )
+        return True
+    except Exception as exc:
+        print(f"[OTP Email Error] Failed to send email to {user.email}: {exc}")
+        return False
+
+
+class PasswordResetRequestView(APIView):
+    """Generates and sends a 6-digit OTP code to the user's email."""
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        serializer = PasswordResetRequestSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        email = serializer.validated_data['email']
+        user = User.objects.filter(email__iexact=email).first()
+        if not user:
+            return Response({
+                'email': ['এই ইমেইল দিয়ে কোনো অ্যাকাউন্ট পাওয়া যায়নি।']
+            }, status=status.HTTP_404_NOT_FOUND)
+
+        # Rate-limiting: check if an OTP was created in the last 60 seconds
+        recent_otp = PasswordResetOTP.objects.filter(
+            user=user,
+            created_at__gte=timezone.now() - timedelta(seconds=60)
+        ).first()
+        if recent_otp:
+            return Response({
+                'detail': 'ইতিমধ্যে একটি ওটিপি পাঠানো হয়েছে। অনুগ্রহ করে নতুন কোড চাওয়ার পূর্বে ১ মিনিট অপেক্ষা করুন।'
+            }, status=status.HTTP_429_TOO_MANY_REQUESTS)
+
+        # Invalidate old unused OTPs
+        PasswordResetOTP.objects.filter(user=user, is_used=False).update(is_used=True)
+
+        otp_code = f"{secrets.randbelow(900000) + 100000}"
+        expires_at = timezone.now() + timedelta(minutes=10)
+        PasswordResetOTP.objects.create(
+            user=user,
+            email=user.email,
+            otp_code=otp_code,
+            expires_at=expires_at,
+        )
+
+        _send_otp_email(user, otp_code, purpose="password_reset")
+
+        resp_data = {
+            'success': True,
+            'message': 'আপনার ইমেইলে ৬ ডিজিটের ওটিপি ভেরিফিকেশন কোড পাঠানো হয়েছে।',
+        }
+        return Response(resp_data, status=status.HTTP_200_OK)
+
+
+class PasswordResetVerifyView(APIView):
+    """Verifies the 6-digit OTP code before setting new password."""
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        serializer = PasswordResetVerifySerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        email = serializer.validated_data['email']
+        otp = serializer.validated_data['otp']
+
+        user = User.objects.filter(email__iexact=email).first()
+        if not user:
+            return Response({
+                'email': ['এই ইমেইল দিয়ে কোনো অ্যাকাউন্ট পাওয়া যায়নি।']
+            }, status=status.HTTP_404_NOT_FOUND)
+
+        reset_otp = PasswordResetOTP.objects.filter(user=user, is_used=False).order_by('-created_at').first()
+        if not reset_otp or timezone.now() > reset_otp.expires_at:
+            return Response({
+                'otp': ['ওটিপির মেয়াদ শেষ হয়ে গেছে। অনুগ্রহ করে আবার নতুন ওটিপি পাঠান।']
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        if reset_otp.attempts >= 5:
+            return Response({
+                'otp': ['সর্বোচ্চ ভুল প্রচেষ্টার সীমা অতিক্রম করেছে। অনুগ্রহ করে নতুন ওটিপি চেয়ে নিন।']
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        if reset_otp.otp_code != otp:
+            reset_otp.attempts += 1
+            reset_otp.save(update_fields=['attempts'])
+            remaining = max(0, 5 - reset_otp.attempts)
+            return Response({
+                'otp': [f'ভুল ওটিপি প্রদান করেছেন। বাকি প্রচেষ্টা: {remaining} বার।']
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response({
+            'success': True,
+            'message': 'ওটিপি সফলভাবে যাচাই করা হয়েছে। এবার নতুন পাসওয়ার্ড নির্ধারণ করুন।'
+        }, status=status.HTTP_200_OK)
+
+
+class PasswordResetConfirmView(APIView):
+    """Sets a new password after verifying the OTP."""
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        serializer = PasswordResetConfirmSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        email = serializer.validated_data['email']
+        otp = serializer.validated_data['otp']
+        password = serializer.validated_data['password']
+
+        user = User.objects.filter(email__iexact=email).first()
+        if not user:
+            return Response({
+                'email': ['এই ইমেইল দিয়ে কোনো অ্যাকাউন্ট পাওয়া যায়নি।']
+            }, status=status.HTTP_404_NOT_FOUND)
+
+        reset_otp = PasswordResetOTP.objects.filter(user=user, is_used=False).order_by('-created_at').first()
+        if not reset_otp or timezone.now() > reset_otp.expires_at:
+            return Response({
+                'otp': ['ওটিপির মেয়াদ শেষ হয়ে গেছে বা এটি ব্যবহার করা হয়েছে।']
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        if reset_otp.otp_code != otp:
+            return Response({
+                'otp': ['ভুল ওটিপি কোড।']
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # Set new password
+        user.set_password(password)
+        user.save()
+
+        # Mark OTP as used
+        reset_otp.is_used = True
+        reset_otp.save(update_fields=['is_used'])
+
+        return Response({
+            'success': True,
+            'message': 'পাসওয়ার্ড সফলভাবে পরিবর্তন করা হয়েছে। এখন নতুন পাসওয়ার্ড দিয়ে লগইন করুন।'
+        }, status=status.HTTP_200_OK)
+
+
+class EmailVerificationSendView(APIView):
+    """Sends a 6-digit OTP code to verify the user's email."""
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        serializer = EmailVerifyRequestSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        email = serializer.validated_data.get('email')
+        if request.user.is_authenticated:
+            user = request.user
+        elif email:
+            user = User.objects.filter(email__iexact=email).first()
+        else:
+            return Response({
+                'email': ['ইমেইল এড্রেস প্রদান করুন।']
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        if not user:
+            return Response({
+                'email': ['ব্যবহারকারী পাওয়া যায়নি।']
+            }, status=status.HTTP_404_NOT_FOUND)
+
+        if user.is_email_verified:
+            return Response({
+                'success': True,
+                'already_verified': True,
+                'message': 'এই ইমেইলটি ইতোমধ্যে ভেরিফাইড।'
+            }, status=status.HTTP_200_OK)
+
+        # Rate-limiting: 60s
+        recent_otp = EmailVerificationOTP.objects.filter(
+            user=user,
+            created_at__gte=timezone.now() - timedelta(seconds=60)
+        ).first()
+        if recent_otp:
+            return Response({
+                'detail': 'ইতিমধ্যে একটি কোড পাঠানো হয়েছে। অনুগ্রহ করে নতুন কোড চাওয়ার পূর্বে ১ মিনিট অপেক্ষা করুন।'
+            }, status=status.HTTP_429_TOO_MANY_REQUESTS)
+
+        # Invalidate old unused OTPs
+        EmailVerificationOTP.objects.filter(user=user, is_used=False).update(is_used=True)
+
+        otp_code = f"{secrets.randbelow(900000) + 100000}"
+        expires_at = timezone.now() + timedelta(minutes=10)
+        EmailVerificationOTP.objects.create(
+            user=user,
+            email=user.email,
+            otp_code=otp_code,
+            expires_at=expires_at,
+        )
+
+        _send_otp_email(user, otp_code, purpose="email_verification")
+
+        resp_data = {
+            'success': True,
+            'message': 'আপনার ইমেইলে ভেরিফিকেশন কোড পাঠানো হয়েছে।',
+        }
+        return Response(resp_data, status=status.HTTP_200_OK)
+
+
+class EmailVerificationConfirmView(APIView):
+    """Verifies the email verification OTP and marks user as verified."""
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        serializer = EmailVerifyConfirmSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        email = serializer.validated_data.get('email')
+        otp = serializer.validated_data['otp']
+
+        if request.user.is_authenticated:
+            user = request.user
+        elif email:
+            user = User.objects.filter(email__iexact=email).first()
+        else:
+            return Response({
+                'email': ['ইমেইল এড্রেস প্রদান করুন।']
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        if not user:
+            return Response({
+                'email': ['ব্যবহারকারী পাওয়া যায়নি।']
+            }, status=status.HTTP_404_NOT_FOUND)
+
+        email_otp = EmailVerificationOTP.objects.filter(user=user, is_used=False).order_by('-created_at').first()
+        if not email_otp or timezone.now() > email_otp.expires_at:
+            return Response({
+                'otp': ['ওটিপির মেয়াদ শেষ হয়ে গেছে। অনুগ্রহ করে আবার নতুন কোড নিন।']
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        if email_otp.attempts >= 5:
+            return Response({
+                'otp': ['সর্বোচ্চ ভুল প্রচেষ্টার সীমা অতিক্রম করেছে। অনুগ্রহ করে নতুন ওটিপি চেয়ে নিন।']
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        if email_otp.otp_code != otp:
+            email_otp.attempts += 1
+            email_otp.save(update_fields=['attempts'])
+            remaining = max(0, 5 - email_otp.attempts)
+            return Response({
+                'otp': [f'ভুল ওটিপি কোড। বাকি প্রচেষ্টা: {remaining} বার।']
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        user.is_email_verified = True
+        user.save(update_fields=['is_email_verified'])
+
+        email_otp.is_used = True
+        email_otp.save(update_fields=['is_used'])
+
+        return Response({
+            'success': True,
+            'message': 'ইমেইল সফলভাবে ভেরিফাই করা হয়েছে!',
+            'user': UserSerializer(user, context={'request': request}).data
+        }, status=status.HTTP_200_OK)
+
+
+class ChangePasswordView(APIView):
+    """Allows an authenticated user to change their password."""
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        serializer = ChangePasswordSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        old_password = serializer.validated_data['old_password']
+        new_password = serializer.validated_data['new_password']
+
+        if not request.user.check_password(old_password):
+            return Response({
+                'old_password': ['বর্তমান পাসওয়ার্ডটি সঠিক নয়।']
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        request.user.set_password(new_password)
+        request.user.save()
+
+        return Response({
+            'success': True,
+            'message': 'পাসওয়ার্ড সফলভাবে পরিবর্তন করা হয়েছে।'
+        }, status=status.HTTP_200_OK)
+
+
+def privacy_policy_view(request):
+    """Public HTML Privacy Policy view for Google Play Store compliance."""
+    return render(request, 'accounts/privacy_policy.html')
+
+
+def delete_account_view(request):
+    """Public HTML Account Deletion Request view for Google Play Data Safety compliance."""
+    success = False
+    if request.method == 'POST':
+        email = request.POST.get('email', '').strip()
+        reason = request.POST.get('reason', '').strip()
+        if email:
+            success = True
+    return render(request, 'accounts/delete_account.html', {'success': success})
+
+

@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Account Deletion Request - As Sunnah 27 (আস সুন্নাহ ২৭)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Noto+Serif+Bengali:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #065F46;
+      --primary-dark: #064E3B;
+      --danger: #DC2626;
+      --danger-dark: #991B1B;
+      --danger-subtle: #FEF2F2;
+      --danger-border: #FECACA;
+      --bg: #F8FAFC;
+      --card-bg: #FFFFFF;
+      --text: #0F172A;
+      --text-muted: #64748B;
+      --border: #E2E8F0;
+    }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      font-family: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      line-height: 1.65;
+      padding: 24px 16px 80px;
+    }
+    .bn {
+      font-family: 'Noto Serif Bengali', serif;
+    }
+    .container {
+      max-width: 680px;
+      margin: 0 auto;
+    }
+    header {
+      text-align: center;
+      padding: 32px 20px;
+      background: linear-gradient(135deg, #7F1D1D 0%, #991B1B 100%);
+      color: #FFFFFF;
+      border-radius: 20px;
+      margin-bottom: 24px;
+      box-shadow: 0 10px 25px -5px rgba(220, 38, 38, 0.25);
+    }
+    .badge {
+      display: inline-block;
+      padding: 4px 14px;
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 9999px;
+      font-size: 11.5px;
+      font-weight: 700;
+      letter-spacing: 0.6px;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.25);
+    }
+    h1 {
+      font-size: 28px;
+      font-weight: 800;
+      margin-bottom: 6px;
+      letter-spacing: -0.5px;
+    }
+    .subtitle {
+      font-size: 15px;
+      opacity: 0.92;
+    }
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 26px 24px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.02);
+    }
+    h2 {
+      font-size: 19px;
+      font-weight: 700;
+      color: #1E293B;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .num-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 26px;
+      height: 26px;
+      background: #F1F5F9;
+      color: #334155;
+      border-radius: 50%;
+      font-size: 13px;
+      font-weight: 800;
+    }
+    p {
+      color: #334155;
+      font-size: 14.5px;
+      margin-bottom: 12px;
+    }
+    .steps-box {
+      background: #F8FAFC;
+      border: 1px solid #E2E8F0;
+      border-radius: 12px;
+      padding: 16px 18px;
+      margin: 14px 0;
+    }
+    ol {
+      margin-left: 20px;
+      color: #334155;
+      font-size: 14px;
+    }
+    li {
+      margin-bottom: 8px;
+    }
+    .warning-box {
+      background: var(--danger-subtle);
+      border-left: 4px solid var(--danger);
+      border-top: 1px solid var(--danger-border);
+      border-right: 1px solid var(--danger-border);
+      border-bottom: 1px solid var(--danger-border);
+      padding: 14px 16px;
+      border-radius: 10px;
+      margin: 16px 0;
+      color: #991B1B;
+      font-size: 13.5px;
+    }
+    .form-group {
+      margin-bottom: 16px;
+    }
+    label {
+      display: block;
+      font-size: 13.5px;
+      font-weight: 600;
+      color: #334155;
+      margin-bottom: 6px;
+    }
+    input, textarea {
+      width: 100%;
+      padding: 12px 14px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      font-size: 14.5px;
+      font-family: inherit;
+      background: #FAFAFA;
+      transition: border-color 0.15s ease;
+    }
+    input:focus, textarea:focus {
+      outline: none;
+      border-color: var(--danger);
+      background: #FFFFFF;
+    }
+    button {
+      width: 100%;
+      padding: 14px;
+      background: var(--danger);
+      color: #FFFFFF;
+      border: none;
+      border-radius: 10px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(220, 38, 38, 0.2);
+      transition: background-color 0.15s ease;
+    }
+    button:hover {
+      background: var(--danger-dark);
+    }
+    .footer-links {
+      text-align: center;
+      padding-top: 16px;
+      font-size: 13.5px;
+      color: var(--text-muted);
+    }
+    .footer-links a {
+      color: var(--primary);
+      text-decoration: none;
+      margin: 0 10px;
+      font-weight: 600;
+    }
+    .footer-links a:hover {
+      text-decoration: underline;
+    }
+    .success-message {
+      background: #ECFDF5;
+      border: 1px solid #A7F3D0;
+      color: #065F46;
+      padding: 16px;
+      border-radius: 10px;
+      margin-bottom: 18px;
+      font-weight: 600;
+      font-size: 14.5px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="badge">Google Play Data Safety &bull; Account Deletion</div>
+      <h1>Delete Account &amp; Personal Data</h1>
+      <p class="subtitle">As Sunnah 27 (আস সুন্নাহ ২৭) &bull; অ্যাকাউন্ট ও সমুদয় ডেটা অপসারণ</p>
+    </header>
+
+    <!-- Method 1: In App -->
+    <div class="card">
+      <h2><span class="num-badge">1</span> Instant In-App Deletion (Recommended)</h2>
+      <p>
+        If you have the <strong>As Sunnah 27</strong> app installed on your mobile device, you can permanently and instantly delete your account without waiting:
+      </p>
+      <div class="steps-box">
+        <ol>
+          <li>Open the <strong>As Sunnah 27</strong> app on your Android device.</li>
+          <li>Tap on <strong>Settings (সেটিংস)</strong> from the bottom navigation or user menu.</li>
+          <li>Scroll down to the <strong>Account Management (অ্যাকাউন্ট ব্যবস্থাপনা)</strong> section.</li>
+          <li>Tap <strong>Delete Account (অ্যাকাউন্ট মুছে ফেলুন)</strong>.</li>
+          <li>Enter your current password and tap confirm.</li>
+        </ol>
+      </div>
+      <p class="bn" style="font-size: 13.5px; color: #475569;">
+        <em>ফলাফল:</em> নিশ্চিত করার সাথে সাথে আপনার অ্যাকাউন্ট, প্রোফাইল তথ্য, সংরক্ষিত ডায়েরির পৃষ্ঠা, এবং যাকাতের খতিয়ান তাৎক্ষণিকভাবে ডাটাবেজ থেকে চিরতরে মুছে যাবে।
+      </p>
+    </div>
+
+    <!-- Method 2: Web Form -->
+    <div class="card">
+      <h2><span class="num-badge">2</span> Web Deletion Request Portal</h2>
+      <p>
+        If you have already uninstalled the application or cannot access your mobile device, please submit this verification request. Our support administration will process and purge your account data within 24 to 48 hours.
+      </p>
+
+      {% if success %}
+        <div class="success-message">
+          ✓ আপনার অনুরোধটি সফলভাবে গ্রহণ করা হয়েছে। আমাদের নিরাপত্তা টিম আগামী ২৪ থেকে ৪৮ ঘণ্টার মধ্যে উক্ত ইমেইলের সাথে যুক্ত সকল ডেটা সম্পূর্ণরূপে মুছে ফেলবে এবং নিশ্চিতকরণ ইমেইল পাঠাবে।
+        </div>
+      {% endif %}
+
+      <div class="warning-box">
+        <strong>সতর্কতা (Irreversible Action):</strong> অ্যাকাউন্ট ডিলিট করলে আপনার নাম, ইমেইল, মোবাইল নম্বর, সংরক্ষিত ডায়েরি, যাকাতের খতিয়ান এবং কুরআন পড়ার ইতিহাস স্থায়ীভাবে মুছে যাবে। এটি পুনরায় উদ্ধার করা সম্ভব নয়।
+      </div>
+
+      <form method="POST" action="/delete-account/">
+        {% csrf_token %}
+        <div class="form-group">
+          <label for="email">Registered Email Address (নিবন্ধিত ইমেইল) *</label>
+          <input type="email" id="email" name="email" required placeholder="your.email@example.com">
+        </div>
+        <div class="form-group">
+          <label for="reason">Reason for Deletion (অ্যাকাউন্ট মুছে ফেলার কারণ - ঐচ্ছিক)</label>
+          <textarea id="reason" name="reason" rows="3" placeholder="যেমন: আর ব্যবহার করতে চাই না বা অন্য কোনো পরামর্শ..."></textarea>
+        </div>
+        <button type="submit">Submit Permanent Deletion Request</button>
+      </form>
+    </div>
+
+    <!-- What data is deleted -->
+    <div class="card">
+      <h2 style="font-size: 16px;">What Data is Permanently Deleted?</h2>
+      <ul style="font-size: 13.5px; margin-left: 20px; color: #475569;">
+        <li>Personal authentication credentials (Email, Phone, Name, Hashed Password).</li>
+        <li>User profile avatar and role settings.</li>
+        <li>All private Islamic Diary journal entries.</li>
+        <li>Saved Zakat calculation ledgers and prayer tracking logs.</li>
+        <li>Push notification device tokens.</li>
+      </ul>
+    </div>
+
+    <div class="footer-links">
+      <a href="/privacy-policy/">Privacy Policy</a> &bull;
+      <a href="mailto:support@newsmartagent.com">Contact Support</a> &bull;
+      <span>&copy; 2026 As Sunnah 27</span>
+    </div>
+  </div>
+</body>
+</html>

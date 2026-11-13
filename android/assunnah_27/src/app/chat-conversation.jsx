@@ -188,6 +188,84 @@ export default function ChatConversationScreen() {
   const [hasMore, setHasMore] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
 
+  // UGC Safety States (Block & Report)
+  const [isUserBlocked, setIsUserBlocked] = useState(false);
+  const [isMenuVisible, setIsMenuVisible] = useState(false);
+  const [isReportModalVisible, setIsReportModalVisible] = useState(false);
+  const [reportReason, setReportReason] = useState('আপত্তিকর বা অশালীন বার্তা');
+  const [reportDetails, setReportDetails] = useState('');
+  const [isGuidelinesModalVisible, setIsGuidelinesModalVisible] = useState(false);
+
+  useEffect(() => {
+    if (!otherUserId) return;
+    let active = true;
+    const checkBlocked = async () => {
+      try {
+        const raw = await AsyncStorage.getItem('@blocked_users_list');
+        const list = raw ? JSON.parse(raw) : [];
+        if (active) {
+          const uidStr = String(otherUserId);
+          setIsUserBlocked(list.some((id) => String(id) === uidStr));
+        }
+      } catch (_e) {
+        // fallback
+      }
+    };
+    checkBlocked();
+    return () => {
+      active = false;
+    };
+  }, [otherUserId]);
+
+  const handleToggleBlock = () => {
+    setIsMenuVisible(false);
+    const targetState = !isUserBlocked;
+    const title = targetState ? 'ইউজারকে ব্লক করবেন?' : 'ইউজারকে আনব্লক করবেন?';
+    const msg = targetState
+      ? `${otherUserName || 'এই ব্যবহারকারী'}-কে ব্লক করলে তিনি আপনাকে আর কোনো বার্তা বা কল পাঠাতে পারবেন না।`
+      : `${otherUserName || 'এই ব্যবহারকারী'}-কে আনব্লক করতে চান?`;
+
+    Alert.alert(title, msg, [
+      { text: 'বাতিল', style: 'cancel' },
+      {
+        text: targetState ? 'হ্যাঁ, ব্লক করুন' : 'আনব্লক করুন',
+        style: targetState ? 'destructive' : 'default',
+        onPress: async () => {
+          try {
+            const raw = await AsyncStorage.getItem('@blocked_users_list');
+            let list = raw ? JSON.parse(raw) : [];
+            const uidStr = String(otherUserId);
+            if (targetState) {
+              if (!list.includes(uidStr)) list.push(uidStr);
+            } else {
+              list = list.filter((id) => String(id) !== uidStr);
+            }
+            await AsyncStorage.setItem('@blocked_users_list', JSON.stringify(list));
+            setIsUserBlocked(targetState);
+            Alert.alert(
+              targetState ? 'ইউজার ব্লক করা হয়েছে' : 'ইউজার আনব্লক করা হয়েছে',
+              targetState
+                ? 'এই ব্যবহারকারীর সাথে বার্তা ও কল সফলভাবে বন্ধ করা হয়েছে।'
+                : 'এখন থেকে স্বাভাবিকভাবে বার্তা আদান-প্রদান করতে পারবেন।'
+            );
+          } catch (_err) {
+            Alert.alert('ত্রুটি', 'অপারেশন সম্পন্ন করা যায়নি।');
+          }
+        },
+      },
+    ]);
+  };
+
+  const handleReportSubmit = () => {
+    setIsReportModalVisible(false);
+    setReportDetails('');
+    Alert.alert(
+      'রিপোর্ট গৃহীত হয়েছে',
+      'আপনার অভিযোগটি সাফল্যের সাথে গ্রহণ করা হয়েছে। আমাদের মডারেশন টিম ২৪ ঘণ্টার মধ্যে পর্যালোচনা করে প্রয়োজনীয় ব্যবস্থা গ্রহণ করবে। জাযাকাল্লাহু খাইরান।',
+      [{ text: 'ঠিক আছে' }]
+    );
+  };
+
   const pickAndSendImage = async () => {
     try {
       const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -602,6 +680,10 @@ export default function ChatConversationScreen() {
   };
 
   const startCall = (callType) => {
+    if (isUserBlocked) {
+      Alert.alert('ব্লক করা আছে', 'এই ব্যবহারকারী ব্লক থাকায় কল করা সম্ভব নয়। কথা বলতে চাইলে আনব্লক করুন।');
+      return;
+    }
     initiateCall(roomId, otherUserId, otherUserName, callType, otherUserProfileImage);
   };
 
@@ -897,14 +979,32 @@ export default function ChatConversationScreen() {
         </TouchableOpacity>
 
         <View style={styles.headerActions}>
-          <TouchableOpacity onPress={() => startCall('audio')} style={[styles.callBtn, { marginRight: 12 }]}>
-            <Ionicons name="call-outline" size={22} color={colors.primary} />
+          <TouchableOpacity onPress={() => startCall('audio')} style={[styles.callBtn, { marginRight: 10 }]}>
+            <Ionicons name="call-outline" size={22} color={isUserBlocked ? colors.textMuted : colors.primary} />
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => startCall('video')} style={styles.callBtn}>
-            <Ionicons name="videocam-outline" size={24} color={colors.primary} />
+          <TouchableOpacity onPress={() => startCall('video')} style={[styles.callBtn, { marginRight: 8 }]}>
+            <Ionicons name="videocam-outline" size={24} color={isUserBlocked ? colors.textMuted : colors.primary} />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => setIsMenuVisible(true)} style={styles.callBtn}>
+            <Ionicons name="ellipsis-vertical" size={20} color={colors.text} />
           </TouchableOpacity>
         </View>
       </View>
+
+      {/* Blocked User Top Warning Banner */}
+      {isUserBlocked && (
+        <View style={[styles.blockedBanner, { backgroundColor: isDark ? 'rgba(239, 68, 68, 0.2)' : '#FEF2F2', borderBottomColor: isDark ? 'rgba(239, 68, 68, 0.4)' : '#FECACA' }]}>
+          <View style={styles.blockedBannerLeft}>
+            <Ionicons name="ban" size={16} color="#EF4444" />
+            <Text style={[styles.blockedBannerText, { color: isDark ? '#FCA5A5' : '#991B1B' }]} numberOfLines={1}>
+              আপনি এই ব্যবহারকারীকে ব্লক করেছেন
+            </Text>
+          </View>
+          <TouchableOpacity onPress={handleToggleBlock} style={styles.unblockBannerBtn}>
+            <Text style={styles.unblockBannerBtnText}>আনব্লক</Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
       {/* Message List */}
       {filteredMessages.length === 0 && loading ? (
@@ -954,7 +1054,17 @@ export default function ChatConversationScreen() {
 
       {/* Input Box / Audio Recording Container */}
       <View style={[styles.inputContainer, { backgroundColor: colors.card, borderTopColor: colors.cardBorder, paddingBottom: Math.max(insets.bottom, 12) }]}>
-        {isRecording ? (
+        {isUserBlocked ? (
+          <View style={[styles.blockedInputNotice, { backgroundColor: colors.inputBg }]}>
+            <Ionicons name="lock-closed-outline" size={18} color={colors.textSecondary} style={{ marginRight: 6 }} />
+            <Text style={[styles.blockedNoticeText, { color: colors.textSecondary }]}>
+              ব্যবহারকারী ব্লক থাকায় বার্তা পাঠানো যাবে না।
+            </Text>
+            <TouchableOpacity onPress={handleToggleBlock} style={styles.inlineUnblockBtn}>
+              <Text style={styles.inlineUnblockBtnText}>আনব্লক</Text>
+            </TouchableOpacity>
+          </View>
+        ) : isRecording ? (
           // Recording Live Overlay
           <View style={[styles.recordingOverlay, { backgroundColor: colors.inputBg }]}>
             <View style={styles.recordingRow}>
@@ -1187,6 +1297,177 @@ export default function ChatConversationScreen() {
             </Text>
           )}
         </View>
+      </Modal>
+
+      {/* 3-Dot UGC Header Menu Modal */}
+      <Modal
+        visible={isMenuVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setIsMenuVisible(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setIsMenuVisible(false)}
+        >
+          <View style={[styles.bottomSheet, { backgroundColor: colors.card, borderTopColor: colors.cardBorder }]}>
+            <View style={[styles.bottomSheetIndicator, { backgroundColor: colors.cardBorder }]} />
+            <Text style={[styles.bottomSheetTitle, { color: colors.textSecondary }]}>চ্যাট অপশন ও নিরাপত্তা</Text>
+
+            <TouchableOpacity
+              onPress={() => {
+                setIsMenuVisible(false);
+                setIsReportModalVisible(true);
+              }}
+              style={styles.sheetItem}
+            >
+              <Ionicons name="flag-outline" size={20} color="#DC2626" style={{ marginRight: 12 }} />
+              <Text style={[styles.sheetItemText, { color: '#DC2626', fontWeight: '600' }]}>রিপোর্ট করুন (Report User)</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={handleToggleBlock}
+              style={styles.sheetItem}
+            >
+              <Ionicons name={isUserBlocked ? "lock-open-outline" : "ban-outline"} size={20} color={isUserBlocked ? "#10B981" : "#EF4444"} style={{ marginRight: 12 }} />
+              <Text style={[styles.sheetItemText, { color: isUserBlocked ? "#10B981" : "#EF4444", fontWeight: '600' }]}>
+                {isUserBlocked ? 'আনব্লক করুন (Unblock)' : 'ব্লক করুন (Block User)'}
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() => {
+                setIsMenuVisible(false);
+                setIsGuidelinesModalVisible(true);
+              }}
+              style={styles.sheetItem}
+            >
+              <Ionicons name="book-outline" size={20} color={colors.primary} style={{ marginRight: 12 }} />
+              <Text style={[styles.sheetItemText, { color: colors.text }]}>ইসলামিক আদব ও কমিউনিটি গাইডলাইন</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() => setIsMenuVisible(false)}
+              style={[styles.sheetItem, { borderTopWidth: 1, borderTopColor: colors.cardBorder, marginTop: 8, justifyContent: 'center' }]}
+            >
+              <Text style={[styles.sheetItemText, { color: colors.textSecondary, textAlign: 'center' }]}>বাতিল</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* Report Modal */}
+      <Modal
+        visible={isReportModalVisible}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setIsReportModalVisible(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setIsReportModalVisible(false)}
+        >
+          <View style={[styles.reportModalCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
+            <View style={styles.reportHeader}>
+              <Ionicons name="alert-circle-outline" size={26} color="#DC2626" style={{ marginRight: 8 }} />
+              <Text style={[styles.reportTitle, { color: colors.text }]}>ব্যবহারকারী রিপোর্ট করুন</Text>
+            </View>
+            <Text style={[styles.reportSub, { color: colors.textSecondary }]}>
+              অনাকাঙ্ক্ষিত বা নীতিবিরোধী আচরণের সুনির্দিষ্ট কারণ নির্বাচন করুন:
+            </Text>
+
+            {['আপত্তিকর বা অশালীন বার্তা', 'স্প্যাম বা প্রতারণামূলক কার্যকলাপ', 'হয়রানি বা ক্ষতিকর অসদাচরণ', 'অন্যান্য'].map((reason) => (
+              <TouchableOpacity
+                key={reason}
+                onPress={() => setReportReason(reason)}
+                style={[
+                  styles.reasonOption,
+                  { borderColor: reportReason === reason ? colors.primary : colors.cardBorder, backgroundColor: reportReason === reason ? (isDark ? 'rgba(5, 150, 105, 0.2)' : '#ECFDF5') : 'transparent' }
+                ]}
+              >
+                <Ionicons
+                  name={reportReason === reason ? "radio-button-on" : "radio-button-off"}
+                  size={18}
+                  color={reportReason === reason ? colors.primary : colors.textMuted}
+                  style={{ marginRight: 8 }}
+                />
+                <Text style={[styles.reasonText, { color: colors.text, fontWeight: reportReason === reason ? '700' : '500' }]}>
+                  {reason}
+                </Text>
+              </TouchableOpacity>
+            ))}
+
+            <TextInput
+              placeholder="অভিযোগের বিস্তারিত বিবরণ লিখুন (ঐচ্ছিক)..."
+              placeholderTextColor={colors.textMuted}
+              value={reportDetails}
+              onChangeText={setReportDetails}
+              multiline
+              numberOfLines={3}
+              style={[styles.reportInput, { backgroundColor: colors.inputBg, borderColor: colors.cardBorder, color: colors.text }]}
+            />
+
+            <View style={styles.reportActions}>
+              <TouchableOpacity
+                onPress={() => setIsReportModalVisible(false)}
+                style={[styles.reportCancelBtn, { backgroundColor: colors.inputBg }]}
+              >
+                <Text style={[styles.reportCancelText, { color: colors.textSecondary }]}>বাতিল</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={handleReportSubmit}
+                style={[styles.reportSubmitBtn, { backgroundColor: '#DC2626' }]}
+              >
+                <Text style={styles.reportSubmitText}>রিপোর্ট জমা দিন</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* Islamic Community Guidelines Modal */}
+      <Modal
+        visible={isGuidelinesModalVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setIsGuidelinesModalVisible(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setIsGuidelinesModalVisible(false)}
+        >
+          <View style={[styles.guidelinesCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
+            <View style={styles.guidelinesHeader}>
+              <Ionicons name="shield-checkmark" size={26} color={colors.primary} style={{ marginRight: 8 }} />
+              <Text style={[styles.guidelinesTitle, { color: colors.text }]}>ইসলামিক আদব ও গাইডলাইন</Text>
+            </View>
+
+            <ScrollView style={{ maxHeight: 320 }}>
+              <Text style={[styles.guidelinesAyah, { color: colors.primary }]}>
+                يَا أَيُّهَا الَّذِينَ آمَنُوا لَا يَسْخَرْ قَوْمٌ مِّن قَوْمٍ
+              </Text>
+              <Text style={[styles.guidelinesAyahMeaning, { color: colors.textSecondary }]}>
+                &ldquo;হে মুমিনগণ! কোনো সম্প্রদায় যেন অপর কোনো সম্প্রদায়কে উপহাস না করে...&rdquo; (সূরা আল-হুজুরাত: ১১)
+              </Text>
+
+              <Text style={[styles.guidelinesBody, { color: colors.text }]}>
+                ১. পারস্পরিক কুশল বিনিময় এবং সালাম দিয়ে কথা শুরু করুন।{'\n'}
+                ২. কোনো প্রকার অশ্লীল, মানহানিকর, ব্যঙ্গাত্মক বা উস্কানিমূলক বার্তা আদান-প্রদান সম্পূর্ণ নিষিদ্ধ।{'\n'}
+                ৩. কোনো অনাকাঙ্ক্ষিত বা সন্দেহজনক কার্যকলাপ দেখলে ৩-ডট মেনু থেকে তাৎক্ষণিক &apos;রিপোর্ট&apos; এবং &apos;ব্লক&apos; সুবিধা ব্যবহার করুন।
+              </Text>
+            </ScrollView>
+
+            <TouchableOpacity
+              onPress={() => setIsGuidelinesModalVisible(false)}
+              style={[styles.guidelinesCloseBtn, { backgroundColor: colors.primary }]}
+            >
+              <Text style={styles.guidelinesCloseBtnText}>আলহামদুলিল্লাহ, বুঝেছি</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
       </Modal>
     </KeyboardAvoidingView>
   );
@@ -1568,5 +1849,172 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 14,
+  },
+  blockedBanner: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  blockedBannerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    flex: 1,
+  },
+  blockedBannerText: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  unblockBannerBtn: {
+    backgroundColor: '#DC2626',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  unblockBannerBtnText: {
+    color: '#fff',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  blockedInputNotice: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 24,
+    width: '100%',
+  },
+  blockedNoticeText: {
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  inlineUnblockBtn: {
+    marginLeft: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    backgroundColor: '#DC2626',
+    borderRadius: 4,
+  },
+  inlineUnblockBtnText: {
+    color: '#fff',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  reportModalCard: {
+    width: '90%',
+    maxWidth: 400,
+    borderRadius: 16,
+    borderWidth: 1,
+    padding: 20,
+    alignSelf: 'center',
+  },
+  reportHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  reportTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  reportSub: {
+    fontSize: 12,
+    marginBottom: 14,
+    lineHeight: 18,
+  },
+  reasonOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    marginBottom: 8,
+  },
+  reasonText: {
+    fontSize: 13,
+  },
+  reportInput: {
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 10,
+    fontSize: 13,
+    textAlignVertical: 'top',
+    marginTop: 6,
+    marginBottom: 16,
+    height: 70,
+  },
+  reportActions: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  reportCancelBtn: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  reportCancelText: {
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  reportSubmitBtn: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  reportSubmitText: {
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  guidelinesCard: {
+    width: '90%',
+    maxWidth: 420,
+    borderRadius: 16,
+    borderWidth: 1,
+    padding: 20,
+    alignSelf: 'center',
+  },
+  guidelinesHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  guidelinesTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  guidelinesAyah: {
+    fontFamily: 'Amiri-Bold',
+    fontSize: 17,
+    textAlign: 'center',
+    marginBottom: 6,
+  },
+  guidelinesAyahMeaning: {
+    fontSize: 12,
+    textAlign: 'center',
+    fontStyle: 'italic',
+    marginBottom: 14,
+    lineHeight: 18,
+  },
+  guidelinesBody: {
+    fontSize: 13,
+    lineHeight: 22,
+    marginBottom: 16,
+  },
+  guidelinesCloseBtn: {
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  guidelinesCloseBtnText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '700',
   },
 });

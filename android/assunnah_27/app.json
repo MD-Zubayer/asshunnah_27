@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "assunnah_27",
+    "name": "As sunnah 27",
     "slug": "assunnah_27",
     "version": "1.0.0",
     "jsEngine": "hermes",
@@ -18,11 +18,6 @@
       },
       "predictiveBackGestureEnabled": false,
       "package": "com.newsmartagent.assunnah_27",
-      "config": {
-        "googleMaps": {
-          "apiKey": "YOUR_GOOGLE_MAPS_API_KEY"
-        }
-      },
       "permissions": [
         "android.permission.RECORD_AUDIO",
         "android.permission.MODIFY_AUDIO_SETTINGS",

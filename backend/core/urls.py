@@ -7,7 +7,7 @@ from minio.error import S3Error
 from psycopg import connect
 from psycopg.rows import dict_row
 from articles.views import article_detail_view
-from accounts.views import MinIOMediaView
+from accounts.views import MinIOMediaView, privacy_policy_view, delete_account_view
 
 
 def home(request):
@@ -60,6 +60,8 @@ urlpatterns = [
     path('api/chat/', include('chat.urls')),
     path('api/quran/', include('quran.urls')),
     path('article/<int:pk>/', article_detail_view, name='article_detail'),
+    path('privacy-policy/', privacy_policy_view, name='privacy_policy'),
+    path('delete-account/', delete_account_view, name='delete_account'),
     path('media/<path:object_name>', MinIOMediaView.as_view(), name='minio_media'),
     path('', home, name='home'),
     path('health/', health, name='health'),
