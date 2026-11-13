@@ -634,7 +634,7 @@ export default function HomeScreen() {
             <TouchableOpacity
               key={article.id}
               activeOpacity={0.9}
-              onPress={() => router.push({ pathname: '/article-detail', params: { articleId: article.id } })}
+              onPress={() => router.push({ pathname: '/article-detail', params: { id: article.id } })}
               style={[styles.articleCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}
             >
               {/* User Profile Header */}
