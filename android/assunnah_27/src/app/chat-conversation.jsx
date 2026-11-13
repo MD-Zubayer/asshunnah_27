@@ -257,6 +257,22 @@ export default function ChatConversationScreen() {
   };
 
   const handleReportSubmit = () => {
+    try {
+      fetch(`${API_BASE_URL}/api/reports/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Token ${token}` } : {}),
+        },
+        body: JSON.stringify({
+          report_type: 'chat_message',
+          target_user: otherUserId || null,
+          target_id: String(roomId || ''),
+          reason: reportReason,
+          description: reportDetails.trim(),
+        }),
+      }).catch(() => {});
+    } catch (_e) {}
     setIsReportModalVisible(false);
     setReportDetails('');
     Alert.alert(

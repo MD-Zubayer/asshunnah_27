@@ -51,12 +51,13 @@ from .serializers import (
     EmailVerifyRequestSerializer,
     EmailVerifyConfirmSerializer,
     ChangePasswordSerializer,
+    ContentReportSerializer,
 )
 from .models import (
     Dua, AppSettings,
     GlobalPrayerAlertConfig, PrayerAlertSetting, PrayerAlertLog, DeviceToken, Follow,
     Diary, JamiaGraduate,
-    PasswordResetOTP, EmailVerificationOTP,
+    PasswordResetOTP, EmailVerificationOTP, ContentReport,
 )
 
 User = get_user_model()
@@ -1957,5 +1958,24 @@ def delete_account_view(request):
         if email:
             success = True
     return render(request, 'accounts/delete_account.html', {'success': success})
+
+
+class ReportCreateView(APIView):
+    """Allows users to submit abuse, harassment, or objectionable content reports."""
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        serializer = ContentReportSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        reporter = request.user if request.user and request.user.is_authenticated else None
+        report = serializer.save(reporter=reporter)
+        return Response({
+            'success': True,
+            'message': 'আপনার রিপোর্টটি সফলভাবে গ্রহণ করা হয়েছে। মডারেশন টিম ২৪ ঘণ্টার মধ্যে পর্যালোচনা করে প্রয়োজনীয় ব্যবস্থা গ্রহণ করবে।',
+            'report_id': report.id
+        }, status=status.HTTP_201_CREATED)
+
 
 

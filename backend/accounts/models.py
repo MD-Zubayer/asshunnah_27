@@ -580,3 +580,39 @@ class EmailVerificationOTP(models.Model):
     def __str__(self):
         return f"EmailVerificationOTP for {self.email} ({self.otp_code})"
 
+
+class ContentReport(models.Model):
+    """Stores user-submitted abuse or content moderation reports for UGC policy compliance."""
+    REPORT_TYPES = [
+        ('user', _('User Profile')),
+        ('chat_message', _('Chat Message')),
+        ('article', _('Article')),
+        ('comment', _('Comment')),
+        ('other', _('Other')),
+    ]
+    STATUS_CHOICES = [
+        ('pending', _('Pending Review')),
+        ('investigating', _('Investigating')),
+        ('resolved', _('Resolved / Action Taken')),
+        ('dismissed', _('Dismissed / False Report')),
+    ]
+
+    reporter = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='submitted_reports')
+    report_type = models.CharField(max_length=20, choices=REPORT_TYPES, default='user')
+    target_user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='reports_against')
+    target_id = models.CharField(max_length=100, blank=True, help_text="ID of article, message, or target content")
+    reason = models.CharField(max_length=255)
+    description = models.TextField(blank=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    admin_notes = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = _('User / Content Report')
+        verbose_name_plural = _('User / Content Reports')
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"Report #{self.id} [{self.report_type}]: {self.reason} ({self.status})"
+

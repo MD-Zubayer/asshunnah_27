@@ -7,6 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Image } from 'expo-image';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Colors } from '../constants/theme';
 import { useAuth } from '../context/AuthContext';
 import { API_ENDPOINTS } from '../constants/api';
@@ -27,6 +28,19 @@ export default function ChatDashboardScreen() {
   const [chatRooms, setChatRooms] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searching, setSearching] = useState(false);
+  const [blockedUsers, setBlockedUsers] = useState([]);
+
+  useEffect(() => {
+    let active = true;
+    const fetchBlocked = async () => {
+      try {
+        const raw = await AsyncStorage.getItem('@blocked_users_list');
+        if (active && raw) setBlockedUsers(JSON.parse(raw));
+      } catch (_e) {}
+    };
+    fetchBlocked();
+    return () => { active = false; };
+  }, []);
 
   useEffect(() => {
     if (token) {
@@ -292,9 +306,16 @@ export default function ChatDashboardScreen() {
                           {otherUser.is_online && <View style={styles.activeDot} />}
                         </View>
                         <View style={{ flex: 1, marginLeft: 14 }}>
-                          <Text style={[styles.userName, { color: colors.text, fontWeight: item.unread_count > 0 ? '700' : '500' }]}>
-                            {otherUser.name}
-                          </Text>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                            <Text style={[styles.userName, { color: colors.text, fontWeight: item.unread_count > 0 ? '700' : '500' }]}>
+                              {otherUser.name}
+                            </Text>
+                            {blockedUsers.some(id => String(id) === String(otherUser.id)) && (
+                              <View style={{ backgroundColor: '#EF444422', paddingHorizontal: 6, paddingVertical: 1, borderRadius: 4 }}>
+                                <Text style={{ color: '#EF4444', fontSize: 10, fontWeight: '700' }}>ব্লকড</Text>
+                              </View>
+                            )}
+                          </View>
                           <Text style={[styles.lastMessage, { color: item.unread_count > 0 ? colors.text : colors.textSecondary }]} numberOfLines={1}>
                             {lastMsg ? lastMsg.content : 'কোনো বার্তা নেই'}
                           </Text>

@@ -41,6 +41,7 @@ from .views import (
     EmailVerificationSendView,
     EmailVerificationConfirmView,
     ChangePasswordView,
+    ReportCreateView,
 )
 
 urlpatterns = [
@@ -80,6 +81,9 @@ urlpatterns = [
     
     # Account deletion
     path('auth/delete-account/', DeleteAccountView.as_view(), name='delete_account'),
+
+    # Content & User Reporting (UGC Policy)
+    path('reports/', ReportCreateView.as_view(), name='create_report'),
     
     # Fuzalaye Jamia endpoints
     path('fuzalaye-jamia/', FuzalayeJamiaListView.as_view(), name='fuzalaye_jamia_list'),

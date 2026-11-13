@@ -7,7 +7,7 @@ from django.utils.translation import gettext_lazy as _
 from .models import (
     User, TakmilStudentProfile, NonTakmilStudentProfile, Dua,
     GlobalPrayerAlertConfig, PrayerAlertSetting, PrayerAlertLog, DeviceToken,
-    AppSettings, PasswordResetOTP, EmailVerificationOTP
+    AppSettings, PasswordResetOTP, EmailVerificationOTP, ContentReport
 )
 
 
@@ -163,6 +163,35 @@ class EmailVerificationOTPAdmin(admin.ModelAdmin):
     raw_id_fields = ('user',)
 
 
+class ContentReportAdmin(admin.ModelAdmin):
+    list_display = ('id', 'report_type', 'reporter', 'target_user', 'target_id', 'reason', 'status', 'created_at')
+    list_filter = ('report_type', 'status', 'created_at')
+    search_fields = ('reporter__email', 'reporter__first_name', 'target_user__email', 'target_user__first_name', 'reason', 'description', 'target_id')
+    readonly_fields = ('created_at', 'updated_at')
+    actions = ['mark_resolved', 'ban_target_user', 'dismiss_report']
+
+    def mark_resolved(self, request, queryset):
+        queryset.update(status='resolved')
+        self.message_user(request, "রিপোর্টসমূহ 'Resolved' হিসেবে চিহ্নিত হয়েছে।")
+    mark_resolved.short_description = "Mark as Resolved (সমাধানকৃত)"
+
+    def ban_target_user(self, request, queryset):
+        count = 0
+        for report in queryset:
+            if report.target_user and report.target_user.is_active:
+                report.target_user.is_active = False
+                report.target_user.save(update_fields=['is_active'])
+                count += 1
+        queryset.update(status='resolved', admin_notes="User suspended due to UGC policy violation.")
+        self.message_user(request, f"{count} জন অভিযুক্ত ব্যবহারকারীকে ব্যান (deactivated) করা হয়েছে।")
+    ban_target_user.short_description = "Ban/Suspend reported users (ইউজার ব্যান করুন)"
+
+    def dismiss_report(self, request, queryset):
+        queryset.update(status='dismissed')
+        self.message_user(request, "রিপোর্টসমূহ 'Dismissed' করা হয়েছে।")
+    dismiss_report.short_description = "Dismiss report (বাতিল করুন)"
+
+
 admin.site.register(User, UserAdmin)
 admin.site.register(TakmilStudentProfile, TakmilStudentProfileAdmin)
 admin.site.register(NonTakmilStudentProfile, NonTakmilStudentProfileAdmin)
@@ -173,4 +202,5 @@ admin.site.register(PrayerAlertLog, PrayerAlertLogAdmin)
 admin.site.register(DeviceToken, DeviceTokenAdmin)
 admin.site.register(PasswordResetOTP, PasswordResetOTPAdmin)
 admin.site.register(EmailVerificationOTP, EmailVerificationOTPAdmin)
+admin.site.register(ContentReport, ContentReportAdmin)
 

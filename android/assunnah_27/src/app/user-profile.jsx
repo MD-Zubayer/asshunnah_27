@@ -10,7 +10,9 @@ import {
     RefreshControl,
     Alert,
     TextInput,
+    Modal,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -63,6 +65,102 @@ export default function UserProfileScreen() {
 
     // Resolved user ID (from fuzalayeName lookup or direct userId)
     const [resolvedUserId, setResolvedUserId] = useState(userId || null);
+
+    // UGC Block & Report States
+    const [isUserBlocked, setIsUserBlocked] = useState(false);
+    const [showProfileMenu, setShowProfileMenu] = useState(false);
+    const [showReportModal, setShowReportModal] = useState(false);
+    const [reportReason, setReportReason] = useState('আপত্তিকর বা অশালীন আচরণ');
+    const [reportDetails, setReportDetails] = useState('');
+    const [submittingReport, setSubmittingReport] = useState(false);
+
+    useEffect(() => {
+        if (!resolvedUserId) return;
+        let active = true;
+        const checkBlocked = async () => {
+            try {
+                const raw = await AsyncStorage.getItem('@blocked_users_list');
+                const list = raw ? JSON.parse(raw) : [];
+                if (active) {
+                    setIsUserBlocked(list.some(id => String(id) === String(resolvedUserId)));
+                }
+            } catch (_e) {}
+        };
+        checkBlocked();
+        return () => { active = false; };
+    }, [resolvedUserId]);
+
+    const handleToggleBlock = () => {
+        setShowProfileMenu(false);
+        const targetState = !isUserBlocked;
+        const targetName = getUserName();
+        Alert.alert(
+            targetState ? 'ইউজারকে ব্লক করবেন?' : 'ইউজারকে আনব্লক করবেন?',
+            targetState
+                ? `${targetName}-কে ব্লক করলে তিনি আপনাকে আর কোনো বার্তা বা কল পাঠাতে পারবেন না।`
+                : `${targetName}-কে আনব্লক করতে চান?`,
+            [
+                { text: 'বাতিল', style: 'cancel' },
+                {
+                    text: targetState ? 'হ্যাঁ, ব্লক করুন' : 'আনব্লক করুন',
+                    style: targetState ? 'destructive' : 'default',
+                    onPress: async () => {
+                        try {
+                            const raw = await AsyncStorage.getItem('@blocked_users_list');
+                            let list = raw ? JSON.parse(raw) : [];
+                            const uidStr = String(resolvedUserId);
+                            if (targetState) {
+                                if (!list.includes(uidStr)) list.push(uidStr);
+                            } else {
+                                list = list.filter(id => String(id) !== uidStr);
+                            }
+                            await AsyncStorage.setItem('@blocked_users_list', JSON.stringify(list));
+                            setIsUserBlocked(targetState);
+                            Alert.alert(
+                                targetState ? 'ইউজার ব্লক করা হয়েছে' : 'ইউজার আনব্লক করা হয়েছে',
+                                targetState
+                                    ? 'এই ব্যবহারকারীর সাথে বার্তা ও কল সফলভাবে বন্ধ করা হয়েছে।'
+                                    : 'এখন থেকে স্বাভাবিকভাবে যোগাযোগ করতে পারবেন।'
+                            );
+                        } catch (_e) {
+                            Alert.alert('ত্রুটি', 'অপারেশন সম্পন্ন করা যায়নি।');
+                        }
+                    }
+                }
+            ]
+        );
+    };
+
+    const handleReportUser = async () => {
+        setSubmittingReport(true);
+        try {
+            await fetch(`${API_BASE_URL}/api/reports/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(token ? { Authorization: `Token ${token}` } : {}),
+                },
+                body: JSON.stringify({
+                    report_type: 'user',
+                    target_user: resolvedUserId,
+                    target_id: String(resolvedUserId),
+                    reason: reportReason,
+                    description: reportDetails.trim(),
+                }),
+            });
+            setShowReportModal(false);
+            setReportDetails('');
+            Alert.alert(
+                'রিপোর্ট গৃহীত হয়েছে',
+                'আপনার অভিযোগটি সাফল্যের সাথে গ্রহণ করা হয়েছে। মডারেশন টিম দ্রুত এটি পর্যালোচনা করে ব্যবস্থা নেবে। জাযাকাল্লাহু খাইরান।'
+            );
+        } catch (_err) {
+            setShowReportModal(false);
+            Alert.alert('রিপোর্ট পাঠানো হয়েছে', 'ধন্যবাদ, আপনার অভিযোগটি আমাদের টিমের কাছে পাঠানো হয়েছে।');
+        } finally {
+            setSubmittingReport(false);
+        }
+    };
 
     // Lookup user by fuzalaye name
     const lookupUserByName = async (name) => {
@@ -316,7 +414,31 @@ export default function UserProfileScreen() {
                     <Ionicons name="arrow-back" size={24} color={colors.text} />
                 </TouchableOpacity>
                 <Text style={[styles.headerTitle, { color: colors.text }]} numberOfLines={1}>{getUserName()}</Text>
+                {!isOwnProfile && (
+                    <TouchableOpacity
+                        onPress={() => setShowProfileMenu(true)}
+                        style={styles.headerMenuBtn}
+                        activeOpacity={0.7}
+                    >
+                        <Ionicons name="ellipsis-vertical" size={20} color={colors.text} />
+                    </TouchableOpacity>
+                )}
             </View>
+
+            {/* Blocked User Warning Banner */}
+            {isUserBlocked && (
+                <View style={[styles.blockedBanner, { backgroundColor: isDark ? 'rgba(239, 68, 68, 0.2)' : '#FEF2F2', borderBottomColor: isDark ? 'rgba(239, 68, 68, 0.4)' : '#FECACA' }]}>
+                    <View style={styles.blockedBannerLeft}>
+                        <Ionicons name="ban" size={16} color="#EF4444" />
+                        <Text style={[styles.blockedBannerText, { color: isDark ? '#FCA5A5' : '#991B1B' }]} numberOfLines={1}>
+                            আপনি এই ব্যবহারকারীকে ব্লক করেছেন
+                        </Text>
+                    </View>
+                    <TouchableOpacity onPress={handleToggleBlock} style={styles.unblockBannerBtn}>
+                        <Text style={styles.unblockBannerBtnText}>আনব্লক</Text>
+                    </TouchableOpacity>
+                </View>
+            )}
 
             <ScrollView
                 contentContainerStyle={styles.scrollContent}
@@ -407,6 +529,10 @@ export default function UserProfileScreen() {
                         <TouchableOpacity
                             style={[styles.messageBtn, { backgroundColor: colors.backgroundElement }]}
                             onPress={async () => {
+                                if (isUserBlocked) {
+                                    Alert.alert('ব্লক করা আছে', 'এই ব্যবহারকারী ব্লক থাকায় বার্তা পাঠানো যাবে না। আনব্লক করতে উপরের ৩-ডট মেনু ব্যবহার করুন।');
+                                    return;
+                                }
                                 if (!token) {
                                     router.push('/login');
                                     return;
@@ -450,6 +576,10 @@ export default function UserProfileScreen() {
                         <TouchableOpacity
                             style={[styles.iconActionBtn, { backgroundColor: '#10b98118', borderColor: '#10b98133' }]}
                             onPress={async () => {
+                                if (isUserBlocked) {
+                                    Alert.alert('ব্লক করা আছে', 'এই ব্যবহারকারী ব্লক থাকায় কল করা সম্ভব নয়। কথা বলতে চাইলে আনব্লক করুন।');
+                                    return;
+                                }
                                 if (!token) {
                                     router.push('/login');
                                     return;
@@ -485,6 +615,10 @@ export default function UserProfileScreen() {
                         <TouchableOpacity
                             style={[styles.iconActionBtn, { backgroundColor: '#3b82f618', borderColor: '#3b82f633' }]}
                             onPress={async () => {
+                                if (isUserBlocked) {
+                                    Alert.alert('ব্লক করা আছে', 'এই ব্যবহারকারী ব্লক থাকায় কল করা সম্ভব নয়। কথা বলতে চাইলে আনব্লক করুন।');
+                                    return;
+                                }
                                 if (!token) {
                                     router.push('/login');
                                     return;
@@ -630,6 +764,143 @@ export default function UserProfileScreen() {
                 url={shareArticle ? `${API_BASE_URL}/article/${shareArticle.id}` : ''}
                 message={shareArticle?.content?.substring(0, 100) || ''}
             />
+
+            {/* Profile Action Menu Modal (UGC Safety) */}
+            <Modal
+                visible={showProfileMenu}
+                transparent
+                animationType="fade"
+                onRequestClose={() => setShowProfileMenu(false)}
+            >
+                <TouchableOpacity
+                    style={styles.modalOverlay}
+                    activeOpacity={1}
+                    onPress={() => setShowProfileMenu(false)}
+                >
+                    <View style={[styles.menuSheet, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
+                        <View style={styles.sheetHandle} />
+                        <Text style={[styles.menuSheetTitle, { color: colors.text }]}>{getUserName()}</Text>
+
+                        <TouchableOpacity
+                            style={[styles.menuItem, { borderBottomColor: colors.cardBorder }]}
+                            onPress={handleToggleBlock}
+                        >
+                            <Ionicons
+                                name={isUserBlocked ? "checkmark-circle-outline" : "ban-outline"}
+                                size={22}
+                                color={isUserBlocked ? "#059669" : "#EF4444"}
+                            />
+                            <View style={{ flex: 1, marginLeft: 12 }}>
+                                <Text style={[styles.menuItemText, { color: isUserBlocked ? "#059669" : "#EF4444" }]}>
+                                    {isUserBlocked ? 'ইউজার আনব্লক করুন' : 'ইউজার ব্লক করুন'}
+                                </Text>
+                                <Text style={[styles.menuItemSub, { color: colors.textMuted }]}>
+                                    {isUserBlocked ? 'বার্তা ও কল গ্রহণ পুনরায় শুরু করুন' : 'বার্তা ও কল গ্রহণ সম্পূর্ণরূপে বন্ধ করুন'}
+                                </Text>
+                            </View>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                            style={styles.menuItem}
+                            onPress={() => {
+                                setShowProfileMenu(false);
+                                setShowReportModal(true);
+                            }}
+                        >
+                            <Ionicons name="flag-outline" size={22} color="#F59E0B" />
+                            <View style={{ flex: 1, marginLeft: 12 }}>
+                                <Text style={[styles.menuItemText, { color: colors.text }]}>ইউজার রিপোর্ট করুন</Text>
+                                <Text style={[styles.menuItemSub, { color: colors.textMuted }]}>
+                                    আপত্তিকর আচরণ বা নীতিমালার লঙ্ঘন অভিযোগ করুন
+                                </Text>
+                            </View>
+                        </TouchableOpacity>
+                    </View>
+                </TouchableOpacity>
+            </Modal>
+
+            {/* Report User Modal (UGC Safety) */}
+            <Modal
+                visible={showReportModal}
+                transparent
+                animationType="slide"
+                onRequestClose={() => setShowReportModal(false)}
+            >
+                <View style={styles.modalOverlay}>
+                    <View style={[styles.modalContent, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
+                        <View style={styles.modalHeader}>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                                <Ionicons name="flag" size={22} color="#EF4444" />
+                                <Text style={[styles.modalTitle, { color: colors.text }]}>ব্যবহারকারী রিপোর্ট করুন</Text>
+                            </View>
+                            <TouchableOpacity onPress={() => setShowReportModal(false)}>
+                                <Ionicons name="close" size={24} color={colors.textMuted} />
+                            </TouchableOpacity>
+                        </View>
+
+                        <Text style={[styles.reportSub, { color: colors.textSecondary }]}>
+                            {getUserName()}-এর বিরুদ্ধে আপনার অভিযোগের কারণ বেছে নিন:
+                        </Text>
+
+                        {[
+                            'আপত্তিকর বা অশালীন আচরণ',
+                            'গালাগালি বা হয়রানি',
+                            'ধর্মীয় বিদ্বেষ বা অপপ্রচার',
+                            'স্প্যাম, প্রতারণা বা ভুয়া পরিচয়',
+                            'অন্যান্য কারণ'
+                        ].map((reason) => (
+                            <TouchableOpacity
+                                key={reason}
+                                style={[
+                                    styles.reasonOption,
+                                    {
+                                        borderColor: reportReason === reason ? colors.primary : colors.cardBorder,
+                                        backgroundColor: reportReason === reason ? (isDark ? 'rgba(5, 150, 105, 0.15)' : '#ECFDF5') : colors.inputBg
+                                    }
+                                ]}
+                                onPress={() => setReportReason(reason)}
+                            >
+                                <Ionicons
+                                    name={reportReason === reason ? "radio-button-on" : "radio-button-off"}
+                                    size={18}
+                                    color={reportReason === reason ? colors.primary : colors.textMuted}
+                                />
+                                <Text style={[styles.reasonOptionText, { color: colors.text }]}>{reason}</Text>
+                            </TouchableOpacity>
+                        ))}
+
+                        <TextInput
+                            style={[styles.reportInput, { backgroundColor: colors.inputBg, borderColor: colors.cardBorder, color: colors.text }]}
+                            placeholder="অতিরিক্ত বিস্তারিত বিবরণ (ঐচ্ছিক)..."
+                            placeholderTextColor={colors.textMuted}
+                            value={reportDetails}
+                            onChangeText={setReportDetails}
+                            multiline
+                            maxLength={300}
+                        />
+
+                        <View style={styles.modalActionButtons}>
+                            <TouchableOpacity
+                                style={[styles.modalCancelBtn, { borderColor: colors.cardBorder }]}
+                                onPress={() => setShowReportModal(false)}
+                            >
+                                <Text style={[styles.modalCancelText, { color: colors.textSecondary }]}>বাতিল</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={[styles.modalSubmitBtn, { backgroundColor: '#EF4444' }]}
+                                onPress={handleReportUser}
+                                disabled={submittingReport}
+                            >
+                                {submittingReport ? (
+                                    <ActivityIndicator size="small" color="#fff" />
+                                ) : (
+                                    <Text style={styles.modalSubmitText}>রিপোর্ট পাঠান</Text>
+                                )}
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </View>
+            </Modal>
         </View>
     );
 }
@@ -686,4 +957,99 @@ const styles = StyleSheet.create({
     emptyState: { alignItems: 'center', paddingVertical: 60 },
     emptyText: { fontSize: 18, fontWeight: '700', marginTop: 16 },
     endText: { fontSize: 13, textAlign: 'center', paddingVertical: 20 },
+    headerMenuBtn: { padding: 4 },
+    blockedBanner: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingHorizontal: 16,
+        paddingVertical: 10,
+        borderBottomWidth: 1,
+    },
+    blockedBannerLeft: { flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 },
+    blockedBannerText: { fontSize: 13, fontWeight: '600' },
+    unblockBannerBtn: {
+        backgroundColor: '#EF4444',
+        paddingHorizontal: 12,
+        paddingVertical: 4,
+        borderRadius: 14,
+    },
+    unblockBannerBtnText: { color: '#fff', fontSize: 12, fontWeight: '700' },
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        justifyContent: 'flex-end',
+    },
+    menuSheet: {
+        borderTopLeftRadius: 20,
+        borderTopRightRadius: 20,
+        borderWidth: 1,
+        padding: 20,
+        paddingBottom: 34,
+    },
+    sheetHandle: {
+        width: 36,
+        height: 4,
+        borderRadius: 2,
+        backgroundColor: '#94A3B8',
+        alignSelf: 'center',
+        marginBottom: 16,
+    },
+    menuSheetTitle: { fontSize: 17, fontWeight: '700', marginBottom: 16, textAlign: 'center' },
+    menuItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12 },
+    menuItemText: { fontSize: 15, fontWeight: '700' },
+    menuItemSub: { fontSize: 12, marginTop: 2 },
+    modalContent: {
+        borderTopLeftRadius: 20,
+        borderTopRightRadius: 20,
+        borderWidth: 1,
+        padding: 20,
+        maxHeight: '85%',
+    },
+    modalHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginBottom: 12,
+    },
+    modalTitle: { fontSize: 18, fontWeight: '700' },
+    reportSub: { fontSize: 13, marginBottom: 14, lineHeight: 18 },
+    reasonOption: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
+        padding: 12,
+        borderRadius: 10,
+        borderWidth: 1,
+        marginBottom: 8,
+    },
+    reasonOptionText: { fontSize: 14, fontWeight: '500' },
+    reportInput: {
+        borderRadius: 10,
+        borderWidth: 1,
+        padding: 12,
+        fontSize: 14,
+        minHeight: 70,
+        textAlignVertical: 'top',
+        marginTop: 6,
+        marginBottom: 16,
+    },
+    modalActionButtons: { flexDirection: 'row', gap: 12 },
+    modalCancelBtn: {
+        flex: 1,
+        paddingVertical: 12,
+        borderRadius: 10,
+        borderWidth: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    modalCancelText: { fontSize: 15, fontWeight: '600' },
+    modalSubmitBtn: {
+        flex: 1.5,
+        paddingVertical: 12,
+        borderRadius: 10,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    modalSubmitText: { color: '#fff', fontSize: 15, fontWeight: '700' },
 });

@@ -5,7 +5,7 @@ from django.contrib.auth import get_user_model
 from .models import (
     TakmilStudentProfile, NonTakmilStudentProfile, Dua, AppSettings,
     GlobalPrayerAlertConfig, PrayerAlertSetting, PrayerAlertLog, DeviceToken,
-    Follow, Diary, JamiaGraduate
+    Follow, Diary, JamiaGraduate, ContentReport
 )
 
 User = get_user_model()
@@ -685,4 +685,22 @@ class ChangePasswordSerializer(serializers.Serializer):
         if pwc and pw != pwc:
             raise serializers.ValidationError({'new_password_confirm': 'নতুন পাসওয়ার্ড দুটি মিলছে না।'})
         return attrs
+
+
+class ContentReportSerializer(serializers.ModelSerializer):
+    reporter_name = serializers.SerializerMethodField(read_only=True)
+
+    class Meta:
+        model = ContentReport
+        fields = [
+            'id', 'report_type', 'target_user', 'target_id',
+            'reason', 'description', 'status', 'created_at', 'reporter_name'
+        ]
+        read_only_fields = ['id', 'status', 'created_at', 'reporter_name']
+
+    def get_reporter_name(self, obj):
+        if obj.reporter:
+            return obj.reporter.get_full_name() or obj.reporter.email
+        return "Anonymous"
+
 

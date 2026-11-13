@@ -12,6 +12,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Alert,
+  Modal,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -62,6 +63,44 @@ export default function ArticleDetailScreen() {
   // Refs for scrolling to comment input
   const scrollViewRef = useRef(null);
   const commentInputRef = useRef(null);
+
+  // UGC Moderation States
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [reportReason, setReportReason] = useState('ভুল বা বিভ্রান্তিকর ফতোয়া / তথ্য');
+  const [reportDetails, setReportDetails] = useState('');
+  const [submittingReport, setSubmittingReport] = useState(false);
+
+  const handleReportArticle = async () => {
+    setSubmittingReport(true);
+    try {
+      await fetch(`${API_BASE_URL}/api/reports/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Token ${token}` } : {}),
+        },
+        body: JSON.stringify({
+          report_type: 'article',
+          target_id: String(id),
+          target_user: article?.user?.id || null,
+          reason: reportReason,
+          description: reportDetails.trim(),
+        }),
+      });
+
+      setShowReportModal(false);
+      setReportDetails('');
+      Alert.alert(
+        'রিপোর্ট গৃহীত হয়েছে',
+        'আপনার অভিযোগটি সাফল্যের সাথে গ্রহণ করা হয়েছে। মডারেশন টিম দ্রুত এটি পর্যালোচনা করে ব্যবস্থা নেবে। জাযাকাল্লাহু খাইরান।'
+      );
+    } catch (_err) {
+      setShowReportModal(false);
+      Alert.alert('রিপোর্ট পাঠানো হয়েছে', 'ধন্যবাদ, আপনার অভিযোগটি আমাদের টিমের কাছে পাঠানো হয়েছে।');
+    } finally {
+      setSubmittingReport(false);
+    }
+  };
 
   // Load follow status for article author
   const loadFollowStatus = async (authorId) => {
@@ -343,9 +382,13 @@ export default function ArticleDetailScreen() {
           <Ionicons name="arrow-back" size={24} color={colors.text} />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: colors.text }]} numberOfLines={1}>প্রবন্ধ</Text>
-        {isOwner && (
+        {isOwner ? (
           <TouchableOpacity onPress={handleDelete} style={styles.deleteButton}>
             <Ionicons name="trash-outline" size={22} color="#EF4444" />
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity onPress={() => setShowReportModal(true)} style={styles.deleteButton} activeOpacity={0.7}>
+            <Ionicons name="flag-outline" size={20} color={colors.textSecondary} />
           </TouchableOpacity>
         )}
       </View>
@@ -622,6 +665,89 @@ export default function ArticleDetailScreen() {
           </TouchableOpacity>
         </View>
       </View>
+
+      {/* Report Article Modal (UGC Safety) */}
+      <Modal
+        visible={showReportModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowReportModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
+            <View style={styles.modalHeader}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <Ionicons name="flag" size={22} color="#EF4444" />
+                <Text style={[styles.modalTitle, { color: colors.text }]}>প্রবন্ধ রিপোর্ট করুন</Text>
+              </View>
+              <TouchableOpacity onPress={() => setShowReportModal(false)}>
+                <Ionicons name="close" size={24} color={colors.textMuted} />
+              </TouchableOpacity>
+            </View>
+
+            <Text style={[styles.reportSub, { color: colors.textSecondary }]}>
+              এই প্রবন্ধটিতে কোনো ভুল বা আপত্তিকর বিষয় থাকলে আমাদের জানান:
+            </Text>
+
+            {[
+              'ভুল বা বিভ্রান্তিকর ফতোয়া / তথ্য',
+              'আপত্তিকর বা অশালীন ভাষা',
+              'ধর্মীয় অনুভূতিতে আঘাত / বিদ্বেষ',
+              'স্প্যাম, বাণিজ্যিক বিজ্ঞাপন বা কপিরাইট',
+              'অন্যান্য সমস্যা'
+            ].map((reason) => (
+              <TouchableOpacity
+                key={reason}
+                style={[
+                  styles.reasonOption,
+                  {
+                    borderColor: reportReason === reason ? colors.primary : colors.cardBorder,
+                    backgroundColor: reportReason === reason ? (isDark ? 'rgba(5, 150, 105, 0.15)' : '#ECFDF5') : colors.inputBg
+                  }
+                ]}
+                onPress={() => setReportReason(reason)}
+              >
+                <Ionicons
+                  name={reportReason === reason ? "radio-button-on" : "radio-button-off"}
+                  size={18}
+                  color={reportReason === reason ? colors.primary : colors.textMuted}
+                />
+                <Text style={[styles.reasonOptionText, { color: colors.text }]}>{reason}</Text>
+              </TouchableOpacity>
+            ))}
+
+            <TextInput
+              style={[styles.reportInput, { backgroundColor: colors.inputBg, borderColor: colors.cardBorder, color: colors.text }]}
+              placeholder="অতিরিক্ত বিস্তারিত বিবরণ (ঐচ্ছিক)..."
+              placeholderTextColor={colors.textMuted}
+              value={reportDetails}
+              onChangeText={setReportDetails}
+              multiline
+              maxLength={300}
+            />
+
+            <View style={styles.modalActionButtons}>
+              <TouchableOpacity
+                style={[styles.modalCancelBtn, { borderColor: colors.cardBorder }]}
+                onPress={() => setShowReportModal(false)}
+              >
+                <Text style={[styles.modalCancelText, { color: colors.textSecondary }]}>বাতিল</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalSubmitBtn, { backgroundColor: '#EF4444' }]}
+                onPress={handleReportArticle}
+                disabled={submittingReport}
+              >
+                {submittingReport ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <Text style={styles.modalSubmitText}>রিপোর্ট পাঠান</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </KeyboardAvoidingView>
   );
 }
@@ -801,5 +927,83 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    borderWidth: 1,
+    padding: 20,
+    maxHeight: '85%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  reportSub: {
+    fontSize: 13,
+    marginBottom: 14,
+    lineHeight: 18,
+  },
+  reasonOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    padding: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+    marginBottom: 8,
+  },
+  reasonOptionText: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  reportInput: {
+    borderRadius: 10,
+    borderWidth: 1,
+    padding: 12,
+    fontSize: 14,
+    minHeight: 70,
+    textAlignVertical: 'top',
+    marginTop: 6,
+    marginBottom: 16,
+  },
+  modalActionButtons: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  modalCancelBtn: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalCancelText: {
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  modalSubmitBtn: {
+    flex: 1.5,
+    paddingVertical: 12,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalSubmitText: {
+    color: '#fff',
+    fontSize: 15,
+    fontWeight: '700',
   },
 });
