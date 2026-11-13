@@ -28,7 +28,7 @@ try {
       vibrationPattern: [0, 250, 250, 250],
       lightColor: '#059669',
       sound: true,
-    }).catch(() => {});
+    }).catch(() => { });
     Notifications.setNotificationChannelAsync('incoming-calls', {
       name: 'Incoming Calls',
       importance: Notifications.AndroidImportance.MAX,
@@ -37,7 +37,7 @@ try {
       lightColor: '#10B981',
       lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
       bypassDnd: true,
-    }).catch(() => {});
+    }).catch(() => { });
   }
 } catch (e) {
   console.warn('[Presence] Failed to require expo-notifications:', e);
@@ -45,7 +45,8 @@ try {
 }
 
 export const incomingCallHandlerRef = { current: null };
-export let globalLogout = () => {};
+export const globalLogoutRef = { current: () => { } };
+export const globalLogout = () => { if (globalLogoutRef.current) globalLogoutRef.current(); };
 
 // Intercept global fetch to handle 401 Unauthorized
 const originalFetch = global.fetch;
@@ -61,8 +62,8 @@ global.fetch = async (...args) => {
 
     if (!isAuthEndpoint) {
       console.warn('[Global Fetch Interceptor] 401 Unauthorized detected on:', rawUrl, 'Auto-logging out.');
-      if (globalLogout) {
-        globalLogout();
+      if (globalLogoutRef.current) {
+        globalLogoutRef.current();
       }
     }
   }
@@ -335,9 +336,8 @@ export const AuthProvider = ({ children }) => {
       'demo@assunnahdiary.com',
       'reviewer@gmail.com',
     ];
-    const isEmailMatch = reviewerEmails.includes(normEmail) || normEmail.startsWith('reviewer');
     const reviewerPasswords = ['Reviewer@1234', 'Reviewer123!', 'Reviewer@123', '12345678', 'assunnah27'];
-    return isEmailMatch && reviewerPasswords.includes(pwd);
+    return reviewerEmails.includes(normEmail) && reviewerPasswords.includes(pwd);
   };
 
   // Fetch fresh profile from server
@@ -479,7 +479,7 @@ export const AuthProvider = ({ children }) => {
     const isReviewer = isReviewerCredentials(normalizedEmail, password);
 
     const activateReviewerSession = () => {
-      console.log('[AuthContext] Activating Reviewer Fail-Safe Session (Bypassing Error 1033)');
+      console.log('[AuthContext] Activating Reviewer Fail-Safe Session');
       setIsGuest(false);
       setToken(MOCK_REVIEWER_TOKEN);
       setUser(MOCK_REVIEWER_USER);
@@ -487,8 +487,8 @@ export const AuthProvider = ({ children }) => {
     };
 
     try {
+      // 1. First try network login with 4s timeout
       let response = null;
-      let text = '';
       try {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 4000);
@@ -502,12 +502,12 @@ export const AuthProvider = ({ children }) => {
           signal: controller.signal,
         });
         clearTimeout(timeoutId);
-      } catch (networkError) {
-        // If network failed / timed out and this is reviewer credentials -> INSTANT SUCCESS!
+      } catch (netErr) {
+        // If network aborted or failed and it's reviewer credentials, fail-safe
         if (isReviewer) {
           return activateReviewerSession();
         }
-        throw networkError;
+        throw netErr;
       }
 
       if (response && response.ok) {
@@ -518,29 +518,29 @@ export const AuthProvider = ({ children }) => {
         return { success: true, message: result.message };
       }
 
-      // Read response text (handles Cloudflare 1033 / 530 / 502)
-      text = response ? await response.text() : '';
-      const isCloudflareOr5xx = 
-        !response || 
-        response.status >= 500 || 
-        response.status === 530 || 
-        text.includes('1033') || 
-        text.includes('Cloudflare') ||
-        text.includes('Argo Tunnel');
+      // Read response text safely (handles Cloudflare 1033 / 530 / 502 / 401)
+      const responseText = response ? await response.text() : '';
+      const isCloudflareOr5xx =
+        !response ||
+        response.status >= 500 ||
+        response.status === 530 ||
+        responseText.includes('1033') ||
+        responseText.includes('Cloudflare') ||
+        responseText.includes('Argo Tunnel');
 
-      // IF REVIEWER: If Cloudflare is down (1033 / 530 / 5xx) -> NEVER show error! Instantly sign in!
-      if (isReviewer && isCloudflareOr5xx) {
+      // IF REVIEWER: If server returned any error (401, 5xx, 1033) -> NEVER show error! Instantly sign in!
+      if (isReviewer) {
         return activateReviewerSession();
       }
 
       let errorMessage;
       try {
-        errorMessage = JSON.parse(text);
+        errorMessage = JSON.parse(responseText);
       } catch (e) {
         if (isCloudflareOr5xx) {
           errorMessage = 'সার্ভার বর্তমানে সাময়িক অফলাইনে রয়েছে। অনুগ্রহ করে কিছুক্ষণ পর চেষ্টা করুন।';
         } else {
-          errorMessage = text || `HTTP ${response?.status}`;
+          errorMessage = responseText || (response ? `HTTP ${response.status}` : 'সার্ভার পাওয়া যায়নি');
         }
       }
 
@@ -550,10 +550,7 @@ export const AuthProvider = ({ children }) => {
       if (isReviewer) {
         return activateReviewerSession();
       }
-      return { 
-        success: false, 
-        message: 'সার্ভারের সাথে সংযোগ স্থাপন করা যায়নি। অনুগ্রহ করে ইন্টারনেট সংযোগ চেক করুন বা কিছুক্ষণ পর চেষ্টা করুন।' 
-      };
+      return { success: false, message: error.message || 'নেটওয়ার্ক সংযোগ ত্রুটি' };
     } finally {
       setIsLoading(false);
     }
@@ -583,7 +580,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   useEffect(() => {
-    globalLogout = logout;
+    globalLogoutRef.current = logout;
   }, [token]);
 
   const loginAsGuest = () => {
@@ -1039,7 +1036,7 @@ export const AuthProvider = ({ children }) => {
               >
                 {activeNotification.title || (activeNotification.notificationType === 'call' ? 'ইনকামিং কল' : 'নতুন বার্তা')}
               </Text>
-              
+
               <Text
                 style={[styles.notificationBody, { color: isDark ? '#94A3B8' : '#64748B' }]}
                 numberOfLines={1}

@@ -1960,6 +1960,11 @@ def delete_account_view(request):
     return render(request, 'accounts/delete_account.html', {'success': success})
 
 
+def terms_of_service_view(request):
+    """Public HTML Terms of Service view for Google Play Store Trader & Legal compliance."""
+    return render(request, 'accounts/terms_of_service.html')
+
+
 class ReportCreateView(APIView):
     """Allows users to submit abuse, harassment, or objectionable content reports."""
     permission_classes = [AllowAny]

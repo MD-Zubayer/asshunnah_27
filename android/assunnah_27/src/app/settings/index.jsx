@@ -187,6 +187,10 @@ export default function SettingsScreen() {
             Linking.openURL('https://api-assunnah-27.newsmartagent.com/privacy-policy/');
             return;
         }
+        if (item.id === 'terms_of_service') {
+            Linking.openURL('https://api-assunnah-27.newsmartagent.com/terms/');
+            return;
+        }
         if (item.id === 3) {
             const nextValue = !darkModeEnabled;
             setDarkModeEnabled(nextValue);
@@ -278,6 +282,7 @@ export default function SettingsScreen() {
             section: 'অন্যান্য',
             items: [
                 { id: 'privacy_policy', icon: 'shield-half-outline', label: 'গোপনীয়তা নীতি (Privacy Policy)', color: '#059669' },
+                { id: 'terms_of_service', icon: 'document-text-outline', label: 'ব্যবহারের শর্তাবলী (Terms of Service)', color: '#0284c7' },
                 { id: 7, icon: 'help-circle-outline', label: 'সাহায্য', color: '#8E8E93' },
                 { id: 8, icon: 'information-circle-outline', label: 'অ্যাপ সম্পর্কে', color: '#8E8E93' },
             ],
