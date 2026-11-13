@@ -1,16 +1,23 @@
-import { StyleSheet, Text, View, ScrollView, useColorScheme, TouchableOpacity, Share, Modal, Alert, TextInput, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
+import { StyleSheet, Text, View, ScrollView, useColorScheme, TouchableOpacity, Modal, Alert, TextInput, KeyboardAvoidingView, Platform, ActivityIndicator, ToastAndroid } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Colors } from '../constants/theme';
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useMemo } from 'react';
 import * as DocumentPicker from 'expo-document-picker';
 import { createAudioPlayer } from 'expo-audio';
 import * as FileSystem from 'expo-file-system/legacy';
+import * as Clipboard from 'expo-clipboard';
 import { API_ENDPOINTS } from '../constants/api';
 import { useAuth } from '../context/AuthContext';
 import ShareOptionsModal from '../components/ShareOptionsModal';
 import { getImageUri } from '../utils/image';
+
+const toBn = (num) => {
+  if (num === undefined || num === null) return '';
+  const bn = ['০', '১', '২', '৩', '৪', '৫', '৬', '৭', '৮', '৯'];
+  return String(num).replace(/[0-9]/g, (d) => bn[d]);
+};
 
 const duas = [
   { id: 1, title: 'ঘুম থেকে ওঠার দোয়া', icon: 'sunny-outline', arabic: 'اَلْحَمْدُ لِلَّهِ الَّذِي أَحْيَانَا بَعْدَ مَا أَمَاتَنَا وَإِلَيْهِ النُّشُورُ', pronunciation: 'আলহামদু লিল্লা-হিল্লাযী আহ্ইয়া-না- বা\'দা মা- আমা-তানা- ওয়া ইলাইহিন্ নুশূ-র।', meaning: 'সকল প্রশংসা সেই আল্লাহর জন্য, যিনি আমাদেরকে মৃত্যুর পর (ঘুমের পর) জীবন দান করেছেন এবং তাঁরই দিকে আমাদের পুনরুত্থান।', pronunciationAudio: null, recitationAudio: null },
@@ -33,7 +40,33 @@ function DoyaScreen() {
   const [uploadModalVisible, setUploadModalVisible] = useState(false);
   const [duaList, setDuaList] = useState(duas);
   const [playingAudioId, setPlayingAudioId] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [copiedDuaId, setCopiedDuaId] = useState(null);
   const playerRef = useRef(null);
+
+  const filteredDuaList = useMemo(() => {
+    if (!searchQuery.trim()) return duaList;
+    const q = searchQuery.toLowerCase().trim();
+    return duaList.filter((d) => {
+      const matchTitle = (d.title || '').toLowerCase().includes(q);
+      const matchPron = (d.pronunciation || '').toLowerCase().includes(q);
+      const matchMean = (d.meaning || '').toLowerCase().includes(q);
+      const matchArab = (d.arabic || '').includes(q);
+      return matchTitle || matchPron || matchMean || matchArab;
+    });
+  }, [duaList, searchQuery]);
+
+  const copyDuaText = async (dua) => {
+    const textToCopy = `${dua.title}\n\n${dua.arabic}\n\nউচ্চারণ: ${dua.pronunciation || ''}\n\nঅর্থ: ${dua.meaning || ''}\n\n[সংগৃহীত: জামিয়াতুস সুন্নাহ]`;
+    await Clipboard.setStringAsync(textToCopy);
+    setCopiedDuaId(dua.id);
+    if (Platform.OS === 'android') {
+      ToastAndroid.show('দোয়া কপি করা হয়েছে', ToastAndroid.SHORT);
+    }
+    setTimeout(() => {
+      setCopiedDuaId((cur) => (cur === dua.id ? null : cur));
+    }, 2000);
+  };
 
   // FileSystem & Offline Audio State
   const [downloadingIds, setDownloadingIds] = useState({});
@@ -48,26 +81,31 @@ function DoyaScreen() {
     return parts[parts.length - 1];
   };
 
-  const scanLocalAudios = async () => {
-    try {
-      const dir = getDuaDir();
-      const dirInfo = await FileSystem.getInfoAsync(dir);
-      if (!dirInfo.exists) {
-        await FileSystem.makeDirectoryAsync(dir, { intermediates: true });
-      }
-      const files = await FileSystem.readDirectoryAsync(dir);
-      const paths = {};
-      files.forEach((file) => {
-        paths[file] = dir + file;
-      });
-      setLocalAudioPaths(paths);
-    } catch (error) {
-      console.error('Error scanning local audios:', error);
-    }
-  };
-
   useEffect(() => {
-    scanLocalAudios();
+    let isMounted = true;
+    const scan = async () => {
+      try {
+        const dir = getDuaDir();
+        const dirInfo = await FileSystem.getInfoAsync(dir);
+        if (!dirInfo.exists) {
+          await FileSystem.makeDirectoryAsync(dir, { intermediates: true });
+        }
+        const files = await FileSystem.readDirectoryAsync(dir);
+        const paths = {};
+        files.forEach((file) => {
+          paths[file] = dir + file;
+        });
+        if (isMounted) {
+          setLocalAudioPaths(paths);
+        }
+      } catch (_err) {
+        // scan error
+      }
+    };
+    scan();
+    return () => {
+      isMounted = false;
+    };
   }, [duaList]);
 
   const getAudioPlayUri = (remoteUrl) => {
@@ -177,7 +215,7 @@ function DoyaScreen() {
           audio: audioFile,
         });
       }
-    } catch (error) {
+    } catch (_err) {
       Alert.alert('Error', 'Failed to pick audio file');
     }
   };
@@ -349,135 +387,294 @@ function DoyaScreen() {
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
       >
-        {/* Hero Section */}
-        <View style={[styles.heroOuter, { backgroundColor: colors.emeraldCardBg, borderColor: colors.emeraldCardBorder }]}>
-          <View style={[styles.heroInner, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
-            <View style={[styles.heroIconContainer, { backgroundColor: `${colors.accentEmerald}15`, borderColor: `${colors.accentEmerald}30` }]}>
-              <Ionicons name="hand-left" size={36} color={colors.accentEmerald} />
+        {/* Modern Hero Section */}
+        <View style={[styles.heroCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
+          <View style={styles.heroContentRow}>
+            <View style={[styles.heroIconBadge, { backgroundColor: `${colors.accentEmerald}18` }]}>
+              <Ionicons name="hand-left" size={26} color={colors.accentEmerald} />
             </View>
-            <Text style={[styles.heroTitle, { color: colors.text }]}>প্রয়োজনীয় দোয়া</Text>
-            <Text style={[styles.heroSubtitle, { color: colors.textSecondary }]}>দৈনন্দিন জীবনের দোয়া সমূহ</Text>
+            <View style={styles.heroTextCol}>
+              <Text style={[styles.heroMainTitle, { color: colors.text }]}>প্রয়োজনীয় দোয়া ও আমল</Text>
+              <Text style={[styles.heroSubLabel, { color: colors.textSecondary }]}>
+                দৈনন্দিন জীবনের সহীহ দোয়া সমূহ • {toBn(filteredDuaList.length)} টি দোয়া
+              </Text>
+            </View>
           </View>
+        </View>
+
+        {/* Live Search Bar */}
+        <View style={[styles.searchBox, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
+          <Ionicons name="search" size={18} color={colors.accentEmerald} style={{ marginRight: 8 }} />
+          <TextInput
+            style={[styles.searchInput, { color: colors.text }]}
+            placeholder="দোয়া খুঁজুন (নাম, উচ্চারণ বা অর্থ)..."
+            placeholderTextColor={colors.textMuted}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            returnKeyType="search"
+          />
+          {searchQuery.length > 0 && (
+            <TouchableOpacity onPress={() => setSearchQuery('')} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+              <Ionicons name="close-circle" size={18} color={colors.textMuted} />
+            </TouchableOpacity>
+          )}
         </View>
 
         {/* Full Daily Amol & Dua Book Banner */}
         <TouchableOpacity
-          activeOpacity={0.85}
+          activeOpacity={0.88}
           onPress={() => router.push('/doinondin-amol')}
-          style={{
-            backgroundColor: '#065F46',
-            borderRadius: 18,
-            padding: 14,
-            marginBottom: 16,
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: 12,
-            borderWidth: 1,
-            borderColor: 'rgba(253,230,138,0.45)',
-          }}
+          style={styles.bookBanner}
         >
-          <View
-            style={{
-              width: 44,
-              height: 44,
-              borderRadius: 12,
-              backgroundColor: 'rgba(253,230,138,0.18)',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
+          <View style={styles.bookBannerIcon}>
             <Ionicons name="book" size={22} color="#FDE68A" />
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={{ color: '#FFFBEB', fontSize: 15, fontWeight: '900' }}>
+            <Text style={styles.bookBannerTitle}>
               দৈনন্দিন আমল ও দু‘আসমূহ (সম্পূর্ণ কিতাব)
             </Text>
-            <Text style={{ color: 'rgba(254,243,199,0.85)', fontSize: 11.5, marginTop: 2 }}>
+            <Text style={styles.bookBannerSub}>
               সকাল-সন্ধ্যা, নামাযের পর, ইস্তিগফার, দুরূদ, সফর, বিশেষ আমল ও ৯৯ নাম
             </Text>
           </View>
-          <Ionicons name="chevron-forward" size={20} color="#FDE68A" />
+          <Ionicons name="chevron-forward" size={18} color="#FDE68A" />
         </TouchableOpacity>
 
-        {/* Duas List */}
-        {duaList.map((dua) => (
-          <TouchableOpacity
-            key={dua.id}
-            activeOpacity={0.7}
-            onPress={() => setSelectedDua(selectedDua === dua.id ? null : dua.id)}
-            style={styles.duaWrapper}
-          >
-            <View style={[styles.duaOuter, { backgroundColor: colors.blueCardBg, borderColor: colors.blueCardBorder }]}>
-              <View style={[styles.duaInner, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
-                {/* Header */}
-                <View style={styles.duaHeader}>
-                  <View style={[styles.duaIcon, { backgroundColor: `${colors.accentBlue}15`, borderColor: `${colors.accentBlue}30` }]}>
-                    <Ionicons name={dua.icon} size={18} color={colors.accentBlue} />
+        {/* Empty state for search */}
+        {filteredDuaList.length === 0 && (
+          <View style={[styles.emptyBox, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
+            <Ionicons name="search-outline" size={40} color={colors.textMuted} />
+            <Text style={[styles.emptyText, { color: colors.text }]}>কোনো দোয়া পাওয়া যায়নি</Text>
+            <Text style={[styles.emptySub, { color: colors.textSecondary }]}>
+              &quot;{searchQuery}&quot; এর সাথে মিলে এমন কোনো দোয়া নেই। অন্য কি-ওয়ার্ড দিয়ে খুঁজুন।
+            </Text>
+          </View>
+        )}
+
+        {/* Modern Duas List */}
+        {filteredDuaList.map((dua) => {
+          const isExpanded = selectedDua === dua.id;
+          const isCopied = copiedDuaId === dua.id;
+          const rawAudio = dua.audio ?? dua.recitation_audio ?? dua.pronunciation_audio;
+          const normalizedAudio = normalizeAudioUri(rawAudio);
+          const isDownloaded = isAudioDownloaded(normalizedAudio);
+          const isDownloading = downloadingIds[`${dua.id}-audio`];
+          const isPlaying = playingAudioId === `${dua.id}-audio`;
+
+          return (
+            <View
+              key={dua.id}
+              style={[
+                styles.modernCard,
+                {
+                  backgroundColor: colors.card,
+                  borderColor: isExpanded ? colors.accentEmerald : colors.cardBorder,
+                  shadowColor: isDark ? '#000' : '#059669',
+                },
+              ]}
+            >
+              {/* Header (Tap to expand/collapse) */}
+              <TouchableOpacity
+                activeOpacity={0.7}
+                onPress={() => setSelectedDua(isExpanded ? null : dua.id)}
+                style={styles.cardHeaderPress}
+              >
+                <View style={styles.headerLeftGroup}>
+                  <View
+                    style={[
+                      styles.duaNumberBadge,
+                      {
+                        backgroundColor: isExpanded ? `${colors.accentEmerald}20` : colors.inputBg,
+                        borderColor: isExpanded ? colors.accentEmerald : colors.cardBorder,
+                      },
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.duaNumberText,
+                        { color: isExpanded ? colors.accentEmerald : colors.textSecondary },
+                      ]}
+                    >
+                      {toBn(dua.id)}
+                    </Text>
                   </View>
-                  <Text style={[styles.duaTitle, { color: colors.text }]}>{dua.id}. {dua.title}</Text>
-                  <TouchableOpacity onPress={() => shareDua(dua)} style={styles.shareBtn}>
-                    <Ionicons name="share-outline" size={18} color={colors.textSecondary} />
-                  </TouchableOpacity>
-                </View>
-
-                {/* Details */}
-                {selectedDua === dua.id && (
-                  <View style={styles.duaDetails}>
-                    <Text style={styles.arabicText}>{dua.arabic}</Text>
-
-                    <View style={[styles.divider, { backgroundColor: colors.border }]} />
-
-                    <Text style={[styles.pronunciationLabel, { color: colors.textSecondary }]}>উচ্চারণ:</Text>
-                    <Text style={[styles.pronunciationText, { color: colors.text }]}>{dua.pronunciation}</Text>
-
-                    <View style={[styles.divider, { backgroundColor: colors.border }]} />
-
-                    <Text style={[styles.meaningLabel, { color: colors.textSecondary }]}>অর্থ:</Text>
-                    <Text style={[styles.meaningText, { color: colors.text }]}>{dua.meaning}</Text>
-
-                    {normalizeAudioUri(dua.audio ?? dua.recitation_audio ?? dua.pronunciation_audio) && (
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 14 }}>
-                        <TouchableOpacity
-                          style={[styles.audioButton, { flex: 1, backgroundColor: colors.accentEmerald + '20', marginTop: 0 }]}
-                          onPress={() => playAudio(normalizeAudioUri(dua.audio ?? dua.recitation_audio ?? dua.pronunciation_audio), `${dua.id}-audio`)}
-                        >
-                          <Ionicons
-                            name={playingAudioId === `${dua.id}-audio` ? 'pause-circle' : 'play-circle'}
-                            size={20}
-                            color={colors.accentEmerald}
-                          />
-                          <Text style={[styles.audioButtonText, { color: colors.accentEmerald }]}>
-                            {playingAudioId === `${dua.id}-audio` ? 'শোনা চলছে...' : 'দোয়া ও অর্থ শুনুন'}
-                          </Text>
-                        </TouchableOpacity>
-
-                        {/* Download / Delete Action */}
-                        {downloadingIds[`${dua.id}-audio`] ? (
-                          <ActivityIndicator size="small" color={colors.accentEmerald} style={{ padding: 10 }} />
-                        ) : isAudioDownloaded(normalizeAudioUri(dua.audio ?? dua.recitation_audio ?? dua.pronunciation_audio)) ? (
-                          <TouchableOpacity
-                            onPress={() => deleteLocalAudio(normalizeAudioUri(dua.audio ?? dua.recitation_audio ?? dua.pronunciation_audio))}
-                            style={{ padding: 10, borderRadius: 8, backgroundColor: 'rgba(239, 68, 68, 0.1)' }}
-                          >
-                            <Ionicons name="trash" size={20} color="#EF4444" />
-                          </TouchableOpacity>
-                        ) : (
-                          <TouchableOpacity
-                            onPress={() => downloadAudio(normalizeAudioUri(dua.audio ?? dua.recitation_audio ?? dua.pronunciation_audio), `${dua.id}-audio`)}
-                            style={{ padding: 10, borderRadius: 8, backgroundColor: colors.accentEmerald + '15' }}
-                          >
-                            <Ionicons name="download-outline" size={20} color={colors.accentEmerald} />
-                          </TouchableOpacity>
-                        )}
-                      </View>
+                  <View style={styles.duaTitleCol}>
+                    <Text style={[styles.modernDuaTitle, { color: colors.text }]}>
+                      {dua.title}
+                    </Text>
+                    {!isExpanded && (
+                      <Text
+                        style={[styles.collapsedArabicPreview, { color: colors.textMuted }]}
+                        numberOfLines={1}
+                      >
+                        {dua.arabic}
+                      </Text>
                     )}
                   </View>
-                )}
-              </View>
+                </View>
+
+                <View style={styles.headerRightActions}>
+                  <TouchableOpacity
+                    onPress={() => shareDua(dua)}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    style={[styles.smallIconBtn, { backgroundColor: colors.inputBg }]}
+                  >
+                    <Ionicons name="share-outline" size={16} color={colors.textSecondary} />
+                  </TouchableOpacity>
+                  <View
+                    style={[
+                      styles.chevronCircle,
+                      {
+                        backgroundColor: isExpanded ? `${colors.accentEmerald}15` : colors.inputBg,
+                        transform: [{ rotate: isExpanded ? '180deg' : '0deg' }],
+                      },
+                    ]}
+                  >
+                    <Ionicons
+                      name="chevron-down"
+                      size={16}
+                      color={isExpanded ? colors.accentEmerald : colors.textMuted}
+                    />
+                  </View>
+                </View>
+              </TouchableOpacity>
+
+              {/* Expanded Details */}
+              {isExpanded && (
+                <View style={[styles.modernCardBody, { borderTopColor: colors.cardBorder }]}>
+                  {/* Arabic Text Box with Calligraphy Styling */}
+                  <View
+                    style={[
+                      styles.arabicDisplayBox,
+                      {
+                        backgroundColor: isDark ? 'rgba(6, 78, 59, 0.15)' : 'rgba(236, 253, 245, 0.85)',
+                        borderColor: isDark ? 'rgba(52, 211, 153, 0.25)' : 'rgba(167, 243, 208, 0.8)',
+                      },
+                    ]}
+                  >
+                    <View style={styles.arabicActionStrip}>
+                      <TouchableOpacity
+                        onPress={() => copyDuaText(dua)}
+                        style={styles.inlineCopyPill}
+                        activeOpacity={0.7}
+                      >
+                        <Ionicons
+                          name={isCopied ? 'checkmark-circle' : 'copy-outline'}
+                          size={13}
+                          color={isCopied ? '#059669' : colors.textMuted}
+                        />
+                        <Text style={[styles.inlineCopyText, { color: isCopied ? '#059669' : colors.textMuted }]}>
+                          {isCopied ? 'কপি হয়েছে' : 'কপি করুন'}
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                    <Text style={[styles.modernArabicText, { color: isDark ? '#E2E8F0' : '#064E3B' }]}>
+                      {dua.arabic}
+                    </Text>
+                  </View>
+
+                  {/* Pronunciation */}
+                  {dua.pronunciation ? (
+                    <View style={styles.textSectionWrap}>
+                      <View style={styles.sectionBadgeRow}>
+                        <View style={[styles.sectionBadge, { backgroundColor: 'rgba(2, 132, 199, 0.12)' }]}>
+                          <Text style={[styles.sectionBadgeText, { color: '#0284C7' }]}>উচ্চারণ</Text>
+                        </View>
+                      </View>
+                      <Text style={[styles.modernPronunciationText, { color: colors.text }]}>
+                        {dua.pronunciation}
+                      </Text>
+                    </View>
+                  ) : null}
+
+                  {/* Meaning */}
+                  {dua.meaning ? (
+                    <View style={styles.textSectionWrap}>
+                      <View style={styles.sectionBadgeRow}>
+                        <View style={[styles.sectionBadge, { backgroundColor: 'rgba(5, 150, 105, 0.12)' }]}>
+                          <Text style={[styles.sectionBadgeText, { color: '#059669' }]}>অর্থ</Text>
+                        </View>
+                      </View>
+                      <Text style={[styles.modernMeaningText, { color: colors.text }]}>
+                        {dua.meaning}
+                      </Text>
+                    </View>
+                  ) : null}
+
+                  {/* Modern Audio Player Capsule */}
+                  {normalizedAudio && (
+                    <View style={styles.audioPlayerStrip}>
+                      <TouchableOpacity
+                        style={[
+                          styles.modernAudioCapsule,
+                          {
+                            backgroundColor: isPlaying
+                              ? (isDark ? '#065F46' : '#D1FAE5')
+                              : (isDark ? '#1E293B' : '#F1F5F9'),
+                            borderColor: isPlaying ? '#059669' : colors.cardBorder,
+                          },
+                        ]}
+                        onPress={() => playAudio(normalizedAudio, `${dua.id}-audio`)}
+                        activeOpacity={0.8}
+                      >
+                        <View
+                          style={[
+                            styles.audioPlayIconWrap,
+                            { backgroundColor: isPlaying ? '#059669' : colors.accentEmerald },
+                          ]}
+                        >
+                          <Ionicons
+                            name={isPlaying ? 'pause' : 'play'}
+                            size={16}
+                            color="#FFFFFF"
+                          />
+                        </View>
+                        <View style={{ flex: 1 }}>
+                          <Text
+                            style={[
+                              styles.modernAudioTitle,
+                              { color: isPlaying ? '#059669' : colors.text },
+                            ]}
+                          >
+                            {isPlaying ? 'দোয়া শোনা চলছে...' : 'দোয়া ও অর্থ শুনুন'}
+                          </Text>
+                          <Text style={[styles.modernAudioSub, { color: colors.textMuted }]}>
+                            {isDownloaded ? '💾 অফলাইন সংরক্ষিত' : 'অনলাইন স্ট্রিমিং'}
+                          </Text>
+                        </View>
+                      </TouchableOpacity>
+
+                      {/* Download / Offline Management */}
+                      {isDownloading ? (
+                        <View style={[styles.audioActionSquare, { backgroundColor: colors.inputBg }]}>
+                          <ActivityIndicator size="small" color={colors.accentEmerald} />
+                        </View>
+                      ) : isDownloaded ? (
+                        <TouchableOpacity
+                          onPress={() => deleteLocalAudio(normalizedAudio)}
+                          style={[styles.audioActionSquare, { backgroundColor: 'rgba(239, 68, 68, 0.1)' }]}
+                          hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                        >
+                          <Ionicons name="trash-outline" size={18} color="#EF4444" />
+                        </TouchableOpacity>
+                      ) : (
+                        <TouchableOpacity
+                          onPress={() => downloadAudio(normalizedAudio, `${dua.id}-audio`)}
+                          style={[styles.audioActionSquare, { backgroundColor: 'rgba(5, 150, 105, 0.12)' }]}
+                          hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                        >
+                          <Ionicons name="arrow-down-circle-outline" size={20} color={colors.accentEmerald} />
+                        </TouchableOpacity>
+                      )}
+                    </View>
+                  )}
+                </View>
+              )}
             </View>
-          </TouchableOpacity>
-        ))}
+          );
+        })}
 
         <View style={{ height: 40 }} />
       </ScrollView>
@@ -622,130 +819,278 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: 16,
-    paddingTop: 16,
+    paddingTop: 14,
+    paddingBottom: 24,
   },
-  heroOuter: {
-    borderRadius: 24,
-    padding: 3,
+  heroCard: {
+    borderRadius: 18,
     borderWidth: 1,
-    marginBottom: 16,
-    elevation: 4,
-    shadowColor: '#059669',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    elevation: 2,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
   },
-  heroInner: {
-    borderRadius: 21,
-    padding: 24,
+  heroContentRow: {
+    flexDirection: 'row',
     alignItems: 'center',
-    borderWidth: 1,
+    gap: 14,
   },
-  heroIconContainer: {
-    width: 72,
-    height: 72,
-    borderRadius: 20,
-    borderWidth: 1,
+  heroIconBadge: {
+    width: 52,
+    height: 52,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  heroTextCol: {
+    flex: 1,
+  },
+  heroMainTitle: {
+    fontSize: 19,
+    fontWeight: '900',
+    letterSpacing: -0.2,
+  },
+  heroSubLabel: {
+    fontSize: 12,
+    fontWeight: '500',
+    marginTop: 3,
+  },
+  searchBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 14,
+    borderWidth: 1,
+    paddingHorizontal: 14,
+    paddingVertical: Platform.OS === 'ios' ? 12 : 8,
     marginBottom: 12,
   },
-  heroTitle: {
-    fontSize: 22,
-    fontWeight: '900',
-    textAlign: 'center',
-    fontStyle: 'italic',
+  searchInput: {
+    flex: 1,
+    fontSize: 14,
+    paddingVertical: 2,
   },
-  heroSubtitle: {
-    fontSize: 12,
-    fontWeight: '600',
-    textAlign: 'center',
-    marginTop: 4,
-  },
-  duaWrapper: {
-    marginBottom: 14,
-  },
-  duaOuter: {
+  bookBanner: {
+    backgroundColor: '#065F46',
     borderRadius: 16,
-    padding: 2,
-    borderWidth: 1,
-  },
-  duaInner: {
-    borderRadius: 14,
-    padding: 12,
-    borderWidth: 1,
-  },
-  duaHeader: {
+    padding: 14,
+    marginBottom: 14,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(253,230,138,0.4)',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 6,
   },
-  duaIcon: {
-    width: 36,
-    height: 36,
+  bookBannerIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: 12,
+    backgroundColor: 'rgba(253,230,138,0.18)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  bookBannerTitle: {
+    color: '#FFFBEB',
+    fontSize: 14.5,
+    fontWeight: '900',
+  },
+  bookBannerSub: {
+    color: 'rgba(254,243,199,0.85)',
+    fontSize: 11.5,
+    marginTop: 2,
+    lineHeight: 16,
+  },
+  emptyBox: {
+    borderRadius: 16,
+    borderWidth: 1,
+    padding: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginVertical: 12,
+  },
+  emptyText: {
+    fontSize: 16,
+    fontWeight: '800',
+    marginTop: 10,
+  },
+  emptySub: {
+    fontSize: 12.5,
+    textAlign: 'center',
+    marginTop: 4,
+    lineHeight: 18,
+  },
+  modernCard: {
+    borderRadius: 16,
+    borderWidth: 1,
+    marginBottom: 12,
+    overflow: 'hidden',
+    elevation: 2,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+  },
+  cardHeaderPress: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 14,
+  },
+  headerLeftGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    flex: 1,
+  },
+  duaNumberBadge: {
+    width: 32,
+    height: 32,
     borderRadius: 10,
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  duaTitle: {
-    fontSize: 14,
+  duaNumberText: {
+    fontSize: 13,
     fontWeight: '800',
+  },
+  duaTitleCol: {
     flex: 1,
   },
-  shareBtn: {
+  modernDuaTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+    lineHeight: 21,
+  },
+  collapsedArabicPreview: {
+    fontSize: 12,
+    marginTop: 2,
+    fontFamily: 'Amiri-Regular',
+  },
+  headerRightActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginLeft: 8,
+  },
+  smallIconBtn: {
     width: 32,
     height: 32,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  duaDetails: {
-    marginTop: 12,
+  chevronCircle: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  arabicText: {
-    fontSize: 18,
+  modernCardBody: {
+    borderTopWidth: 1,
+    padding: 14,
+    paddingTop: 12,
+  },
+  arabicDisplayBox: {
+    borderRadius: 14,
+    borderWidth: 1,
+    padding: 14,
+    paddingTop: 8,
+    marginBottom: 14,
+  },
+  arabicActionStrip: {
+    flexDirection: 'row',
+    justifyContent: 'flex-start',
+    marginBottom: 6,
+  },
+  inlineCopyPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingVertical: 3,
+    paddingHorizontal: 8,
+    borderRadius: 6,
+  },
+  inlineCopyText: {
+    fontSize: 11,
     fontWeight: '600',
-    lineHeight: 28,
+  },
+  modernArabicText: {
+    fontSize: 22,
+    lineHeight: 38,
     textAlign: 'right',
+    fontFamily: 'Amiri-Regular',
+    writingDirection: 'rtl',
+  },
+  textSectionWrap: {
     marginBottom: 12,
   },
-  divider: {
-    height: 1,
-    marginVertical: 12,
+  sectionBadgeRow: {
+    flexDirection: 'row',
+    marginBottom: 5,
   },
-  pronunciationLabel: {
-    fontSize: 12,
-    fontWeight: '700',
-    textTransform: 'uppercase',
-    marginBottom: 8,
+  sectionBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
   },
-  pronunciationText: {
-    fontSize: 13,
-    lineHeight: 20,
-    marginBottom: 12,
+  sectionBadgeText: {
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 0.3,
   },
-  meaningLabel: {
-    fontSize: 12,
-    fontWeight: '700',
-    textTransform: 'uppercase',
-    marginBottom: 8,
+  modernPronunciationText: {
+    fontSize: 14,
+    lineHeight: 22,
+    letterSpacing: 0.1,
   },
-  meaningText: {
-    fontSize: 13,
-    lineHeight: 20,
+  modernMeaningText: {
+    fontSize: 14,
+    lineHeight: 22,
   },
-  audioButton: {
+  audioPlayerStrip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 4,
+  },
+  modernAudioCapsule: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
     paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderRadius: 8,
-    marginTop: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
+    borderWidth: 1,
   },
-  audioButtonText: {
-    fontSize: 12,
-    fontWeight: '700',
+  audioPlayIconWrap: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modernAudioTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  modernAudioSub: {
+    fontSize: 11,
+    marginTop: 1,
+  },
+  audioActionSquare: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   modalContainer: {
     flex: 1,

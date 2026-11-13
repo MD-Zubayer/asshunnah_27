@@ -18,7 +18,7 @@ export const QURAN_PARAS = [
     "id": 2,
     "arabic": "سَيَقُولُ",
     "bangla": "সায়াকূলু",
-    "page": 22,
+    "page": 23,
     "surah": "আল-বাকারা",
     "ayah": 142
   },
@@ -26,7 +26,7 @@ export const QURAN_PARAS = [
     "id": 3,
     "arabic": "تِلْكَ الرُّسُلُ",
     "bangla": "তিলকার রুসুল",
-    "page": 42,
+    "page": 43,
     "surah": "আল-বাকারা",
     "ayah": 253
   },
@@ -34,7 +34,7 @@ export const QURAN_PARAS = [
     "id": 4,
     "arabic": "لَنْ تَنَالُوا",
     "bangla": "লান তানালূ",
-    "page": 62,
+    "page": 63,
     "surah": "আলে-ইমরান",
     "ayah": 93
   },
@@ -42,7 +42,7 @@ export const QURAN_PARAS = [
     "id": 5,
     "arabic": "وَالْمُحْصَنَاتُ",
     "bangla": "ওয়াল মুহসানাতু",
-    "page": 82,
+    "page": 83,
     "surah": "আন-নিসা",
     "ayah": 24
   },
@@ -50,7 +50,7 @@ export const QURAN_PARAS = [
     "id": 6,
     "arabic": "لَا يُحِبُّ اللَّهُ",
     "bangla": "লা ইউহিব্বুল্লাহ",
-    "page": 102,
+    "page": 103,
     "surah": "আন-নিসা",
     "ayah": 148
   },
@@ -58,7 +58,7 @@ export const QURAN_PARAS = [
     "id": 7,
     "arabic": "وَإِذَا سَمِعُوا",
     "bangla": "ওয়া ইযা সামিঊ",
-    "page": 122,
+    "page": 123,
     "surah": "আল-মায়িদাহ",
     "ayah": 82
   },
@@ -66,7 +66,7 @@ export const QURAN_PARAS = [
     "id": 8,
     "arabic": "وَلَوْ أَنَّنَا",
     "bangla": "ওয়া লাও আন্নানা",
-    "page": 142,
+    "page": 143,
     "surah": "আল-আনআম",
     "ayah": 111
   },
@@ -74,7 +74,7 @@ export const QURAN_PARAS = [
     "id": 9,
     "arabic": "قَالَ الْمَلَأُ",
     "bangla": "ক্বালাল মালাউ",
-    "page": 162,
+    "page": 163,
     "surah": "আল-আরাফ",
     "ayah": 88
   },
@@ -82,7 +82,7 @@ export const QURAN_PARAS = [
     "id": 10,
     "arabic": "وَاعْلَمُوا",
     "bangla": "ওয়া’লামূ",
-    "page": 182,
+    "page": 183,
     "surah": "আল-আনফাল",
     "ayah": 41
   },
@@ -90,7 +90,7 @@ export const QURAN_PARAS = [
     "id": 11,
     "arabic": "يَعْتَذِرُونَ",
     "bangla": "ইয়া’তাযিরূন",
-    "page": 202,
+    "page": 203,
     "surah": "আত-তাওবাহ",
     "ayah": 93
   },
@@ -98,7 +98,7 @@ export const QURAN_PARAS = [
     "id": 12,
     "arabic": "وَمَا مِنْ دَابَّةٍ",
     "bangla": "ওয়া মা মিন দা-ব্বাহ",
-    "page": 222,
+    "page": 223,
     "surah": "হূদ",
     "ayah": 6
   },
@@ -106,7 +106,7 @@ export const QURAN_PARAS = [
     "id": 13,
     "arabic": "وَمَا أُبَرِّئُ",
     "bangla": "ওয়া মা উবাররিউ",
-    "page": 242,
+    "page": 243,
     "surah": "ইউসুফ",
     "ayah": 53
   },
@@ -114,7 +114,7 @@ export const QURAN_PARAS = [
     "id": 14,
     "arabic": "رُبَمَا",
     "bangla": "রুবা’মা",
-    "page": 262,
+    "page": 263,
     "surah": "আল-হিজর",
     "ayah": 2
   },
@@ -122,7 +122,7 @@ export const QURAN_PARAS = [
     "id": 15,
     "arabic": "سُبْحَانَ الَّذِي",
     "bangla": "সুবহানাল্লাযী",
-    "page": 282,
+    "page": 283,
     "surah": "বনী ইসরাঈল",
     "ayah": 1
   },
@@ -130,7 +130,7 @@ export const QURAN_PARAS = [
     "id": 16,
     "arabic": "قَالَ أَلَمْ",
     "bangla": "ক্বালা আলাম",
-    "page": 302,
+    "page": 303,
     "surah": "আল-কাহফ",
     "ayah": 75
   },
@@ -138,7 +138,7 @@ export const QURAN_PARAS = [
     "id": 17,
     "arabic": "اقْتَرَبَ لِلنَّاسِ",
     "bangla": "ইক্বতারা বা লিন্নাস",
-    "page": 322,
+    "page": 323,
     "surah": "আল-আম্বিয়া",
     "ayah": 1
   },
@@ -146,7 +146,7 @@ export const QURAN_PARAS = [
     "id": 18,
     "arabic": "قَدْ أَفْلَحَ",
     "bangla": "ক্বাদ আফলাহা",
-    "page": 342,
+    "page": 343,
     "surah": "আল-মুমিনূন",
     "ayah": 1
   },
@@ -154,7 +154,7 @@ export const QURAN_PARAS = [
     "id": 19,
     "arabic": "وَقَالَ الَّذِينَ",
     "bangla": "ওয়া ক্বালাল্লাযীনা",
-    "page": 362,
+    "page": 363,
     "surah": "আল-ফুরকান",
     "ayah": 21
   },
@@ -162,7 +162,7 @@ export const QURAN_PARAS = [
     "id": 20,
     "arabic": "أَمَّنْ خَلَقَ",
     "bangla": "আম্মান খালাক্বা",
-    "page": 382,
+    "page": 383,
     "surah": "আন-নামল",
     "ayah": 56
   },
@@ -170,7 +170,7 @@ export const QURAN_PARAS = [
     "id": 21,
     "arabic": "اتْلُ مَا أُوحِيَ",
     "bangla": "উতলু মা ঊহিয়া",
-    "page": 402,
+    "page": 403,
     "surah": "আল-আনকাবূত",
     "ayah": 46
   },
@@ -178,7 +178,7 @@ export const QURAN_PARAS = [
     "id": 22,
     "arabic": "وَمَنْ يَقْنُتْ",
     "bangla": "ওয়া মান ইয়াক্বনুত",
-    "page": 422,
+    "page": 423,
     "surah": "আল-আহযাব",
     "ayah": 31
   },
@@ -186,7 +186,7 @@ export const QURAN_PARAS = [
     "id": 23,
     "arabic": "وَمَا لِيَ",
     "bangla": "ওয়া মালিয়া",
-    "page": 442,
+    "page": 443,
     "surah": "ইয়াসীন",
     "ayah": 28
   },
@@ -194,7 +194,7 @@ export const QURAN_PARAS = [
     "id": 24,
     "arabic": "فَمَنْ أَظْلَمُ",
     "bangla": "ফামান আজলামু",
-    "page": 462,
+    "page": 463,
     "surah": "আয-যুমার",
     "ayah": 32
   },
@@ -202,7 +202,7 @@ export const QURAN_PARAS = [
     "id": 25,
     "arabic": "إِلَيْهِ يُرَدُّ",
     "bangla": "ইলাইহি ইউরাদ্দু",
-    "page": 482,
+    "page": 483,
     "surah": "ফুসসিলাত",
     "ayah": 47
   },
@@ -210,7 +210,7 @@ export const QURAN_PARAS = [
     "id": 26,
     "arabic": "حم",
     "bangla": "হা-মীম",
-    "page": 502,
+    "page": 503,
     "surah": "আল-আহক্বাফ",
     "ayah": 1
   },
@@ -218,7 +218,7 @@ export const QURAN_PARAS = [
     "id": 27,
     "arabic": "قَالَ فَمَا خَطْبُكُمْ",
     "bangla": "ক্বালা ফামা খাতবুকুম",
-    "page": 522,
+    "page": 523,
     "surah": "আয-যারিয়াত",
     "ayah": 31
   },
@@ -226,7 +226,7 @@ export const QURAN_PARAS = [
     "id": 28,
     "arabic": "قَدْ سَمِعَ اللَّهُ",
     "bangla": "ক্বাদ সামিআল্লাহ",
-    "page": 542,
+    "page": 543,
     "surah": "আল-মুজাদালাহ",
     "ayah": 1
   },
@@ -234,7 +234,7 @@ export const QURAN_PARAS = [
     "id": 29,
     "arabic": "تَبَارَكَ الَّذِي",
     "bangla": "তাবারাকাল্লাযী",
-    "page": 562,
+    "page": 563,
     "surah": "আল-মুলক",
     "ayah": 1
   },
@@ -242,7 +242,7 @@ export const QURAN_PARAS = [
     "id": 30,
     "arabic": "عَمَّ يَتَسَاءَلُونَ",
     "bangla": "আম্মা ইয়াতাসাআলূন",
-    "page": 582,
+    "page": 587,
     "surah": "আন-নাবা",
     "ayah": 1
   }
@@ -276,7 +276,7 @@ export const QURAN_SURAHS = [
     "meaningBangla": "ইমরানের পরিবার",
     "totalAyahs": 200,
     "type": "মাদানী",
-    "page": 50,
+    "page": 51,
     "para": 3
   },
   {
@@ -286,7 +286,7 @@ export const QURAN_SURAHS = [
     "meaningBangla": "নারী",
     "totalAyahs": 176,
     "type": "মাদানী",
-    "page": 77,
+    "page": 78,
     "para": 4
   },
   {
@@ -296,7 +296,7 @@ export const QURAN_SURAHS = [
     "meaningBangla": "খাদ্য পরিবেশিত টেবিল",
     "totalAyahs": 120,
     "type": "মাদানী",
-    "page": 106,
+    "page": 107,
     "para": 6
   },
   {
@@ -306,7 +306,7 @@ export const QURAN_SURAHS = [
     "meaningBangla": "গৃহপালিত পশু",
     "totalAyahs": 165,
     "type": "মাক্কী",
-    "page": 128,
+    "page": 129,
     "para": 7
   },
   {
@@ -316,7 +316,7 @@ export const QURAN_SURAHS = [
     "meaningBangla": "উঁচু স্থানসমূহ",
     "totalAyahs": 206,
     "type": "মাক্কী",
-    "page": 151,
+    "page": 152,
     "para": 8
   },
   {
@@ -326,7 +326,7 @@ export const QURAN_SURAHS = [
     "meaningBangla": "যুদ্ধলব্ধ সম্পদ",
     "totalAyahs": 75,
     "type": "মাদানী",
-    "page": 177,
+    "page": 178,
     "para": 9
   },
   {
@@ -336,7 +336,7 @@ export const QURAN_SURAHS = [
     "meaningBangla": "অনুশোচনা / ক্ষমা",
     "totalAyahs": 129,
     "type": "মাদানী",
-    "page": 187,
+    "page": 188,
     "para": 10
   },
   {
@@ -346,7 +346,7 @@ export const QURAN_SURAHS = [
     "meaningBangla": "নবী ইউনুস (আ.)",
     "totalAyahs": 109,
     "type": "মাক্কী",
-    "page": 208,
+    "page": 209,
     "para": 11
   },
   {
@@ -356,7 +356,7 @@ export const QURAN_SURAHS = [
     "meaningBangla": "নবী হূদ (আ.)",
     "totalAyahs": 123,
     "type": "মাক্কী",
-    "page": 221,
+    "page": 222,
     "para": 11
   },
   {
@@ -366,7 +366,7 @@ export const QURAN_SURAHS = [
     "meaningBangla": "নবী ইউসুফ (আ.)",
     "totalAyahs": 111,
     "type": "মাক্কী",
-    "page": 235,
+    "page": 236,
     "para": 12
   },
   {
@@ -376,7 +376,7 @@ export const QURAN_SURAHS = [
     "meaningBangla": "বজ্রপাত",
     "totalAyahs": 43,
     "type": "মাদানী",
-    "page": 249,
+    "page": 250,
     "para": 13
   },
   {
@@ -386,7 +386,7 @@ export const QURAN_SURAHS = [
     "meaningBangla": "নবী ইবরাহীম (আ.)",
     "totalAyahs": 52,
     "type": "মাক্কী",
-    "page": 255,
+    "page": 256,
     "para": 13
   },
   {
@@ -396,7 +396,7 @@ export const QURAN_SURAHS = [
     "meaningBangla": "পাথুরে পাহাড়",
     "totalAyahs": 99,
     "type": "মাক্কী",
-    "page": 261,
+    "page": 262,
     "para": 14
   },
   {
@@ -406,7 +406,7 @@ export const QURAN_SURAHS = [
     "meaningBangla": "মৌমাছি",
     "totalAyahs": 128,
     "type": "মাক্কী",
-    "page": 267,
+    "page": 268,
     "para": 14
   },
   {
@@ -416,7 +416,7 @@ export const QURAN_SURAHS = [
     "meaningBangla": "রাত্রিকালীন ভ্রমণ",
     "totalAyahs": 111,
     "type": "মাক্কী",
-    "page": 282,
+    "page": 283,
     "para": 15
   },
   {
@@ -426,7 +426,7 @@ export const QURAN_SURAHS = [
     "meaningBangla": "গুহা",
     "totalAyahs": 110,
     "type": "মাক্কী",
-    "page": 293,
+    "page": 294,
     "para": 15
   },
   {
@@ -436,7 +436,7 @@ export const QURAN_SURAHS = [
     "meaningBangla": "মরিয়ম (আ.)",
     "totalAyahs": 98,
     "type": "মাক্কী",
-    "page": 305,
+    "page": 306,
     "para": 16
   },
   {
@@ -446,7 +446,7 @@ export const QURAN_SURAHS = [
     "meaningBangla": "ত্বা-হা",
     "totalAyahs": 135,
     "type": "মাক্কী",
-    "page": 312,
+    "page": 313,
     "para": 16
   },
   {
@@ -456,7 +456,7 @@ export const QURAN_SURAHS = [
     "meaningBangla": "নবীগণ",
     "totalAyahs": 112,
     "type": "মাক্কী",
-    "page": 322,
+    "page": 323,
     "para": 17
   },
   {
@@ -476,7 +476,7 @@ export const QURAN_SURAHS = [
     "meaningBangla": "বিশ্বাসীগণ",
     "totalAyahs": 118,
     "type": "মাক্কী",
-    "page": 342,
+    "page": 343,
     "para": 18
   },
   {
@@ -486,7 +486,7 @@ export const QURAN_SURAHS = [
     "meaningBangla": "জ্যোতি",
     "totalAyahs": 64,
     "type": "মাদানী",
-    "page": 350,
+    "page": 351,
     "para": 18
   },
   {
@@ -496,7 +496,7 @@ export const QURAN_SURAHS = [
     "meaningBangla": "সত্য-মিথ্যার মানদণ্ড",
     "totalAyahs": 77,
     "type": "মাক্কী",
-    "page": 359,
+    "page": 360,
     "para": 18
   },
   {
@@ -526,7 +526,7 @@ export const QURAN_SURAHS = [
     "meaningBangla": "ইতিহাস / কাহিনী",
     "totalAyahs": 88,
     "type": "মাক্কী",
-    "page": 385,
+    "page": 386,
     "para": 20
   },
   {
@@ -536,7 +536,7 @@ export const QURAN_SURAHS = [
     "meaningBangla": "মাকড়সা",
     "totalAyahs": 69,
     "type": "মাক্কী",
-    "page": 396,
+    "page": 397,
     "para": 20
   },
   {
@@ -546,7 +546,7 @@ export const QURAN_SURAHS = [
     "meaningBangla": "রোমান জাতি",
     "totalAyahs": 60,
     "type": "মাক্কী",
-    "page": 404,
+    "page": 405,
     "para": 21
   },
   {
@@ -556,7 +556,7 @@ export const QURAN_SURAHS = [
     "meaningBangla": "জ্ঞানী লুকমান",
     "totalAyahs": 34,
     "type": "মাক্কী",
-    "page": 411,
+    "page": 412,
     "para": 21
   },
   {
@@ -566,7 +566,7 @@ export const QURAN_SURAHS = [
     "meaningBangla": "সিজদা",
     "totalAyahs": 30,
     "type": "মাক্কী",
-    "page": 415,
+    "page": 416,
     "para": 21
   },
   {
@@ -576,7 +576,7 @@ export const QURAN_SURAHS = [
     "meaningBangla": "জোটবদ্ধ বাহিনী",
     "totalAyahs": 73,
     "type": "মাদানী",
-    "page": 418,
+    "page": 419,
     "para": 21
   },
   {
@@ -586,7 +586,7 @@ export const QURAN_SURAHS = [
     "meaningBangla": "রানী সাবার জাতি",
     "totalAyahs": 54,
     "type": "মাক্কী",
-    "page": 428,
+    "page": 429,
     "para": 22
   },
   {
@@ -596,7 +596,7 @@ export const QURAN_SURAHS = [
     "meaningBangla": "সৃষ্টিকর্তা",
     "totalAyahs": 45,
     "type": "মাক্কী",
-    "page": 434,
+    "page": 435,
     "para": 22
   },
   {
@@ -606,7 +606,7 @@ export const QURAN_SURAHS = [
     "meaningBangla": "ইয়াসীন",
     "totalAyahs": 83,
     "type": "মাক্কী",
-    "page": 440,
+    "page": 441,
     "para": 22
   },
   {
@@ -636,7 +636,7 @@ export const QURAN_SURAHS = [
     "meaningBangla": "দলবদ্ধ জনতা",
     "totalAyahs": 75,
     "type": "মাক্কী",
-    "page": 458,
+    "page": 459,
     "para": 23
   },
   {
@@ -646,7 +646,7 @@ export const QURAN_SURAHS = [
     "meaningBangla": "ক্ষমাকারী",
     "totalAyahs": 85,
     "type": "মাক্কী",
-    "page": 467,
+    "page": 468,
     "para": 24
   },
   {
@@ -656,7 +656,7 @@ export const QURAN_SURAHS = [
     "meaningBangla": "সুস্পষ্ট বিবরণ",
     "totalAyahs": 54,
     "type": "মাক্কী",
-    "page": 477,
+    "page": 478,
     "para": 24
   },
   {
@@ -666,7 +666,7 @@ export const QURAN_SURAHS = [
     "meaningBangla": "পরামর্শ",
     "totalAyahs": 53,
     "type": "মাক্কী",
-    "page": 483,
+    "page": 484,
     "para": 25
   },
   {
@@ -676,7 +676,7 @@ export const QURAN_SURAHS = [
     "meaningBangla": "স্বর্ণালঙ্কার",
     "totalAyahs": 89,
     "type": "মাক্কী",
-    "page": 489,
+    "page": 490,
     "para": 25
   },
   {
@@ -706,7 +706,7 @@ export const QURAN_SURAHS = [
     "meaningBangla": "বালুকাময় পাহাড়",
     "totalAyahs": 35,
     "type": "মাক্কী",
-    "page": 502,
+    "page": 503,
     "para": 26
   },
   {
@@ -726,7 +726,7 @@ export const QURAN_SURAHS = [
     "meaningBangla": "মহাবিজয়",
     "totalAyahs": 29,
     "type": "মাদানী",
-    "page": 511,
+    "page": 512,
     "para": 26
   },
   {
@@ -736,7 +736,7 @@ export const QURAN_SURAHS = [
     "meaningBangla": "আবাসগৃহসমূহ",
     "totalAyahs": 18,
     "type": "মাদানী",
-    "page": 515,
+    "page": 516,
     "para": 26
   },
   {
@@ -746,7 +746,7 @@ export const QURAN_SURAHS = [
     "meaningBangla": "ক্বাফ",
     "totalAyahs": 45,
     "type": "মাক্কী",
-    "page": 518,
+    "page": 519,
     "para": 26
   },
   {
@@ -756,7 +756,7 @@ export const QURAN_SURAHS = [
     "meaningBangla": "বিক্ষেপকারী বাতাস",
     "totalAyahs": 60,
     "type": "মাক্কী",
-    "page": 520,
+    "page": 521,
     "para": 26
   },
   {
@@ -766,7 +766,7 @@ export const QURAN_SURAHS = [
     "meaningBangla": "তূর পাহাড়",
     "totalAyahs": 49,
     "type": "মাক্কী",
-    "page": 523,
+    "page": 524,
     "para": 27
   },
   {
@@ -776,7 +776,7 @@ export const QURAN_SURAHS = [
     "meaningBangla": "নক্ষত্র",
     "totalAyahs": 62,
     "type": "মাক্কী",
-    "page": 526,
+    "page": 527,
     "para": 27
   },
   {
@@ -786,7 +786,7 @@ export const QURAN_SURAHS = [
     "meaningBangla": "চন্দ্র",
     "totalAyahs": 55,
     "type": "মাক্কী",
-    "page": 528,
+    "page": 529,
     "para": 27
   },
   {
@@ -796,7 +796,7 @@ export const QURAN_SURAHS = [
     "meaningBangla": "পরম দয়ালু",
     "totalAyahs": 78,
     "type": "মাদানী",
-    "page": 531,
+    "page": 532,
     "para": 27
   },
   {
@@ -806,7 +806,7 @@ export const QURAN_SURAHS = [
     "meaningBangla": "কিয়ামত / নিশ্চিত ঘটনা",
     "totalAyahs": 96,
     "type": "মাক্কী",
-    "page": 534,
+    "page": 535,
     "para": 27
   },
   {
@@ -816,7 +816,7 @@ export const QURAN_SURAHS = [
     "meaningBangla": "লোহা",
     "totalAyahs": 29,
     "type": "মাদানী",
-    "page": 537,
+    "page": 538,
     "para": 27
   },
   {
@@ -826,7 +826,7 @@ export const QURAN_SURAHS = [
     "meaningBangla": "অনুনয়কারিণী",
     "totalAyahs": 22,
     "type": "মাদানী",
-    "page": 542,
+    "page": 543,
     "para": 28
   },
   {
@@ -836,7 +836,7 @@ export const QURAN_SURAHS = [
     "meaningBangla": "সমাবেশ / বিতাড়ন",
     "totalAyahs": 24,
     "type": "মাদানী",
-    "page": 545,
+    "page": 546,
     "para": 28
   },
   {
@@ -846,7 +846,7 @@ export const QURAN_SURAHS = [
     "meaningBangla": "পরীক্ষিত নারী",
     "totalAyahs": 13,
     "type": "মাদানী",
-    "page": 549,
+    "page": 550,
     "para": 28
   },
   {
@@ -856,7 +856,7 @@ export const QURAN_SURAHS = [
     "meaningBangla": "সারিবদ্ধ সৈন্যদল",
     "totalAyahs": 14,
     "type": "মাদানী",
-    "page": 551,
+    "page": 552,
     "para": 28
   },
   {
@@ -866,7 +866,7 @@ export const QURAN_SURAHS = [
     "meaningBangla": "সম্মেলন / জুমুআ",
     "totalAyahs": 11,
     "type": "মাদানী",
-    "page": 553,
+    "page": 554,
     "para": 28
   },
   {
@@ -876,7 +876,7 @@ export const QURAN_SURAHS = [
     "meaningBangla": "কপট বিশ্বাসীগণ",
     "totalAyahs": 11,
     "type": "মাদানী",
-    "page": 554,
+    "page": 555,
     "para": 28
   },
   {
@@ -886,7 +886,7 @@ export const QURAN_SURAHS = [
     "meaningBangla": "ক্ষতি-লাভ / মোহভঙ্গ",
     "totalAyahs": 18,
     "type": "মাদানী",
-    "page": 556,
+    "page": 557,
     "para": 28
   },
   {
@@ -896,7 +896,7 @@ export const QURAN_SURAHS = [
     "meaningBangla": "বিবাহ বিচ্ছেদ",
     "totalAyahs": 12,
     "type": "মাদানী",
-    "page": 558,
+    "page": 559,
     "para": 28
   },
   {
@@ -906,7 +906,7 @@ export const QURAN_SURAHS = [
     "meaningBangla": "নিষিদ্ধকরণ",
     "totalAyahs": 12,
     "type": "মাদানী",
-    "page": 560,
+    "page": 561,
     "para": 28
   },
   {
@@ -916,7 +916,7 @@ export const QURAN_SURAHS = [
     "meaningBangla": "সার্বভৌম কর্তৃত্ব",
     "totalAyahs": 30,
     "type": "মাক্কী",
-    "page": 562,
+    "page": 563,
     "para": 29
   },
   {
@@ -926,7 +926,7 @@ export const QURAN_SURAHS = [
     "meaningBangla": "কলম",
     "totalAyahs": 52,
     "type": "মাক্কী",
-    "page": 564,
+    "page": 565,
     "para": 29
   },
   {
@@ -936,7 +936,7 @@ export const QURAN_SURAHS = [
     "meaningBangla": "অনিবার্য সত্য",
     "totalAyahs": 52,
     "type": "মাক্কী",
-    "page": 566,
+    "page": 568,
     "para": 29
   },
   {
@@ -946,7 +946,7 @@ export const QURAN_SURAHS = [
     "meaningBangla": "উন্নয়নের সোপান",
     "totalAyahs": 44,
     "type": "মাক্কী",
-    "page": 568,
+    "page": 570,
     "para": 29
   },
   {
@@ -956,7 +956,7 @@ export const QURAN_SURAHS = [
     "meaningBangla": "নবী নূহ (আ.)",
     "totalAyahs": 28,
     "type": "মাক্কী",
-    "page": 570,
+    "page": 572,
     "para": 29
   },
   {
@@ -966,7 +966,7 @@ export const QURAN_SURAHS = [
     "meaningBangla": "জিন জাতি",
     "totalAyahs": 28,
     "type": "মাক্কী",
-    "page": 572,
+    "page": 574,
     "para": 29
   },
   {
@@ -976,7 +976,7 @@ export const QURAN_SURAHS = [
     "meaningBangla": "বস্ত্রাবৃত",
     "totalAyahs": 20,
     "type": "মাক্কী",
-    "page": 574,
+    "page": 577,
     "para": 29
   },
   {
@@ -986,7 +986,7 @@ export const QURAN_SURAHS = [
     "meaningBangla": "পোশাক পরিহিত",
     "totalAyahs": 56,
     "type": "মাক্কী",
-    "page": 575,
+    "page": 579,
     "para": 29
   },
   {
@@ -996,7 +996,7 @@ export const QURAN_SURAHS = [
     "meaningBangla": "পুনরুত্থান দিবস",
     "totalAyahs": 40,
     "type": "মাক্কী",
-    "page": 577,
+    "page": 581,
     "para": 29
   },
   {
@@ -1006,7 +1006,7 @@ export const QURAN_SURAHS = [
     "meaningBangla": "মানবজাতি",
     "totalAyahs": 31,
     "type": "মাদানী",
-    "page": 578,
+    "page": 583,
     "para": 29
   },
   {
@@ -1016,7 +1016,7 @@ export const QURAN_SURAHS = [
     "meaningBangla": "প্রেরিত বাতাস",
     "totalAyahs": 50,
     "type": "মাক্কী",
-    "page": 580,
+    "page": 585,
     "para": 29
   },
   {
@@ -1026,7 +1026,7 @@ export const QURAN_SURAHS = [
     "meaningBangla": "মহা সংবাদ",
     "totalAyahs": 40,
     "type": "মাক্কী",
-    "page": 582,
+    "page": 587,
     "para": 30
   },
   {
@@ -1036,7 +1036,7 @@ export const QURAN_SURAHS = [
     "meaningBangla": "উৎপাটনকারী",
     "totalAyahs": 46,
     "type": "মাক্কী",
-    "page": 583,
+    "page": 588,
     "para": 30
   },
   {
@@ -1046,7 +1046,7 @@ export const QURAN_SURAHS = [
     "meaningBangla": "ভ্রূকুটি করল",
     "totalAyahs": 42,
     "type": "মাক্কী",
-    "page": 585,
+    "page": 590,
     "para": 30
   },
   {
@@ -1056,7 +1056,7 @@ export const QURAN_SURAHS = [
     "meaningBangla": "অন্ধকারাচ্ছন্নকরণ",
     "totalAyahs": 29,
     "type": "মাক্কী",
-    "page": 586,
+    "page": 591,
     "para": 30
   },
   {
@@ -1066,7 +1066,7 @@ export const QURAN_SURAHS = [
     "meaningBangla": "বিদীর্ণ হওয়া",
     "totalAyahs": 19,
     "type": "মাক্কী",
-    "page": 587,
+    "page": 592,
     "para": 30
   },
   {
@@ -1076,7 +1076,7 @@ export const QURAN_SURAHS = [
     "meaningBangla": "প্রতারক সম্প্রদায়",
     "totalAyahs": 36,
     "type": "মাক্কী",
-    "page": 587,
+    "page": 593,
     "para": 30
   },
   {
@@ -1086,7 +1086,7 @@ export const QURAN_SURAHS = [
     "meaningBangla": "খণ্ড-বিখণ্ড হওয়া",
     "totalAyahs": 25,
     "type": "মাক্কী",
-    "page": 589,
+    "page": 595,
     "para": 30
   },
   {
@@ -1096,7 +1096,7 @@ export const QURAN_SURAHS = [
     "meaningBangla": "নক্ষত্রপুঞ্জ",
     "totalAyahs": 22,
     "type": "মাক্কী",
-    "page": 590,
+    "page": 596,
     "para": 30
   },
   {
@@ -1106,7 +1106,7 @@ export const QURAN_SURAHS = [
     "meaningBangla": "রাতের আগমনকারী",
     "totalAyahs": 17,
     "type": "মাক্কী",
-    "page": 591,
+    "page": 597,
     "para": 30
   },
   {
@@ -1116,7 +1116,7 @@ export const QURAN_SURAHS = [
     "meaningBangla": "সর্বোচ্চ মহান",
     "totalAyahs": 19,
     "type": "মাক্কী",
-    "page": 591,
+    "page": 598,
     "para": 30
   },
   {
@@ -1126,7 +1126,7 @@ export const QURAN_SURAHS = [
     "meaningBangla": "আচ্ছন্নকারী সংকট",
     "totalAyahs": 26,
     "type": "মাক্কী",
-    "page": 592,
+    "page": 598,
     "para": 30
   },
   {
@@ -1136,7 +1136,7 @@ export const QURAN_SURAHS = [
     "meaningBangla": "ভোরবেলা",
     "totalAyahs": 30,
     "type": "মাক্কী",
-    "page": 593,
+    "page": 599,
     "para": 30
   },
   {
@@ -1146,7 +1146,7 @@ export const QURAN_SURAHS = [
     "meaningBangla": "নগরী (মক্কা)",
     "totalAyahs": 20,
     "type": "মাক্কী",
-    "page": 594,
+    "page": 601,
     "para": 30
   },
   {
@@ -1156,7 +1156,7 @@ export const QURAN_SURAHS = [
     "meaningBangla": "সূর্য",
     "totalAyahs": 15,
     "type": "মাক্কী",
-    "page": 595,
+    "page": 601,
     "para": 30
   },
   {
@@ -1166,7 +1166,7 @@ export const QURAN_SURAHS = [
     "meaningBangla": "রাত",
     "totalAyahs": 21,
     "type": "মাক্কী",
-    "page": 595,
+    "page": 602,
     "para": 30
   },
   {
@@ -1176,7 +1176,7 @@ export const QURAN_SURAHS = [
     "meaningBangla": "পূর্বাহ্ণ",
     "totalAyahs": 11,
     "type": "মাক্কী",
-    "page": 596,
+    "page": 603,
     "para": 30
   },
   {
@@ -1186,7 +1186,7 @@ export const QURAN_SURAHS = [
     "meaningBangla": "বক্ষ প্রশস্তকরণ",
     "totalAyahs": 8,
     "type": "মাক্কী",
-    "page": 596,
+    "page": 603,
     "para": 30
   },
   {
@@ -1196,7 +1196,7 @@ export const QURAN_SURAHS = [
     "meaningBangla": "ডুমুর ফল",
     "totalAyahs": 8,
     "type": "মাক্কী",
-    "page": 597,
+    "page": 604,
     "para": 30
   },
   {
@@ -1206,7 +1206,7 @@ export const QURAN_SURAHS = [
     "meaningBangla": "রক্তপিণ্ড",
     "totalAyahs": 19,
     "type": "মাক্কী",
-    "page": 597,
+    "page": 604,
     "para": 30
   },
   {
@@ -1216,7 +1216,7 @@ export const QURAN_SURAHS = [
     "meaningBangla": "মহিমান্বিত রাত",
     "totalAyahs": 5,
     "type": "মাক্কী",
-    "page": 598,
+    "page": 605,
     "para": 30
   },
   {
@@ -1226,7 +1226,7 @@ export const QURAN_SURAHS = [
     "meaningBangla": "সুস্পষ্ট প্রমাণ",
     "totalAyahs": 8,
     "type": "মাদানী",
-    "page": 598,
+    "page": 605,
     "para": 30
   },
   {
@@ -1236,7 +1236,7 @@ export const QURAN_SURAHS = [
     "meaningBangla": "ভূমিকম্প",
     "totalAyahs": 8,
     "type": "মাদানী",
-    "page": 599,
+    "page": 606,
     "para": 30
   },
   {
@@ -1246,7 +1246,7 @@ export const QURAN_SURAHS = [
     "meaningBangla": "অভিযানকারী অশ্ব",
     "totalAyahs": 11,
     "type": "মাক্কী",
-    "page": 599,
+    "page": 606,
     "para": 30
   },
   {
@@ -1256,7 +1256,7 @@ export const QURAN_SURAHS = [
     "meaningBangla": "মহা প্রলয়",
     "totalAyahs": 11,
     "type": "মাক্কী",
-    "page": 600,
+    "page": 607,
     "para": 30
   },
   {
@@ -1266,7 +1266,7 @@ export const QURAN_SURAHS = [
     "meaningBangla": "প্রাচুর্যের প্রতিযোগিতা",
     "totalAyahs": 8,
     "type": "মাক্কী",
-    "page": 600,
+    "page": 607,
     "para": 30
   },
   {
@@ -1276,7 +1276,7 @@ export const QURAN_SURAHS = [
     "meaningBangla": "মহাকাল / সময়",
     "totalAyahs": 3,
     "type": "মাক্কী",
-    "page": 601,
+    "page": 608,
     "para": 30
   },
   {
@@ -1286,7 +1286,7 @@ export const QURAN_SURAHS = [
     "meaningBangla": "পরনিন্দাকারী",
     "totalAyahs": 9,
     "type": "মাক্কী",
-    "page": 601,
+    "page": 608,
     "para": 30
   },
   {
@@ -1296,7 +1296,7 @@ export const QURAN_SURAHS = [
     "meaningBangla": "হাতি",
     "totalAyahs": 5,
     "type": "মাক্কী",
-    "page": 601,
+    "page": 608,
     "para": 30
   },
   {
@@ -1306,7 +1306,7 @@ export const QURAN_SURAHS = [
     "meaningBangla": "কুরাইশ বংশ",
     "totalAyahs": 4,
     "type": "মাক্কী",
-    "page": 602,
+    "page": 609,
     "para": 30
   },
   {
@@ -1316,7 +1316,7 @@ export const QURAN_SURAHS = [
     "meaningBangla": "নিত্যপ্রয়োজনীয় বস্তু",
     "totalAyahs": 7,
     "type": "মাক্কী",
-    "page": 602,
+    "page": 609,
     "para": 30
   },
   {
@@ -1326,7 +1326,7 @@ export const QURAN_SURAHS = [
     "meaningBangla": "প্রচুর কল্যাণ",
     "totalAyahs": 3,
     "type": "মাক্কী",
-    "page": 602,
+    "page": 609,
     "para": 30
   },
   {
@@ -1336,7 +1336,7 @@ export const QURAN_SURAHS = [
     "meaningBangla": "অবিশ্বাসীগণ",
     "totalAyahs": 6,
     "type": "মাক্কী",
-    "page": 603,
+    "page": 609,
     "para": 30
   },
   {
@@ -1346,7 +1346,7 @@ export const QURAN_SURAHS = [
     "meaningBangla": "সাহায্য ও বিজয়",
     "totalAyahs": 3,
     "type": "মাদানী",
-    "page": 603,
+    "page": 610,
     "para": 30
   },
   {
@@ -1356,7 +1356,7 @@ export const QURAN_SURAHS = [
     "meaningBangla": "জ্বলন্ত অঙ্গার",
     "totalAyahs": 5,
     "type": "মাক্কী",
-    "page": 603,
+    "page": 610,
     "para": 30
   },
   {
@@ -1366,7 +1366,7 @@ export const QURAN_SURAHS = [
     "meaningBangla": "একনিষ্ঠতা",
     "totalAyahs": 4,
     "type": "মাক্কী",
-    "page": 604,
+    "page": 610,
     "para": 30
   },
   {
@@ -1376,7 +1376,7 @@ export const QURAN_SURAHS = [
     "meaningBangla": "নিশিভোর",
     "totalAyahs": 5,
     "type": "মাক্কী",
-    "page": 604,
+    "page": 611,
     "para": 30
   },
   {
@@ -1386,7 +1386,7 @@ export const QURAN_SURAHS = [
     "meaningBangla": "মানবমণ্ডলী",
     "totalAyahs": 6,
     "type": "মাক্কী",
-    "page": 604,
+    "page": 611,
     "para": 30
   }
 ];
@@ -1398,7 +1398,7 @@ export const QURAN_SIJDAHS = [
     "surah": "আল-আরাফ",
     "ayah": 206,
     "para": 9,
-    "page": 176
+    "page": 177
   },
   {
     "id": 2,
@@ -1406,7 +1406,7 @@ export const QURAN_SIJDAHS = [
     "surah": "আর-রাদ",
     "ayah": 15,
     "para": 13,
-    "page": 251
+    "page": 252
   },
   {
     "id": 3,
@@ -1414,7 +1414,7 @@ export const QURAN_SIJDAHS = [
     "surah": "আন-নাহল",
     "ayah": 50,
     "para": 14,
-    "page": 272
+    "page": 273
   },
   {
     "id": 4,
@@ -1430,7 +1430,7 @@ export const QURAN_SIJDAHS = [
     "surah": "মারইয়াম",
     "ayah": 58,
     "para": 16,
-    "page": 309
+    "page": 310
   },
   {
     "id": 6,
@@ -1438,7 +1438,7 @@ export const QURAN_SIJDAHS = [
     "surah": "আল-হাজ্জ",
     "ayah": 18,
     "para": 17,
-    "page": 334
+    "page": 335
   },
   {
     "id": 7,
@@ -1446,7 +1446,7 @@ export const QURAN_SIJDAHS = [
     "surah": "আল-ফুরকান",
     "ayah": 60,
     "para": 19,
-    "page": 365
+    "page": 366
   },
   {
     "id": 8,
@@ -1462,7 +1462,7 @@ export const QURAN_SIJDAHS = [
     "surah": "আস-সাজদাহ",
     "ayah": 15,
     "para": 21,
-    "page": 416
+    "page": 417
   },
   {
     "id": 10,
@@ -1470,7 +1470,7 @@ export const QURAN_SIJDAHS = [
     "surah": "ছোয়াদ",
     "ayah": 24,
     "para": 23,
-    "page": 454
+    "page": 455
   },
   {
     "id": 11,
@@ -1478,7 +1478,7 @@ export const QURAN_SIJDAHS = [
     "surah": "ফুসসিলাত",
     "ayah": 38,
     "para": 24,
-    "page": 480
+    "page": 481
   },
   {
     "id": 12,
@@ -1486,7 +1486,7 @@ export const QURAN_SIJDAHS = [
     "surah": "আন-নাজম",
     "ayah": 62,
     "para": 27,
-    "page": 528
+    "page": 529
   },
   {
     "id": 13,
@@ -1494,7 +1494,7 @@ export const QURAN_SIJDAHS = [
     "surah": "আল-ইনশিক্বাক্ব",
     "ayah": 21,
     "para": 30,
-    "page": 589
+    "page": 595
   },
   {
     "id": 14,
@@ -1502,7 +1502,7 @@ export const QURAN_SIJDAHS = [
     "surah": "আল-আলাক্ব",
     "ayah": 19,
     "para": 30,
-    "page": 597
+    "page": 605
   }
 ];
 

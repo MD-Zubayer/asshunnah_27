@@ -289,7 +289,7 @@ class UserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['id', 'email', 'first_name', 'last_name', 'father_name', 'phone_number',
+        fields = ['id', 'email', 'is_email_verified', 'first_name', 'last_name', 'father_name', 'phone_number',
                   'district', 'upazila', 'profile_type', 'profile_completed', 'profile_image',
                   'cover_image', 'bio', 'jamat', 'designation', 'department', 'dakhila_number',
                   'blood_group', 'occupation', 'fuzalaye_jamia_name', 'takmil_year_type', 'custom_graduation_year',
@@ -607,3 +607,82 @@ class JamiaGraduateSerializer(serializers.ModelSerializer):
     def get_registered_user_id(self, obj):
         user = obj.users.first()
         return user.id if user else None
+
+
+# ============================================
+# Password Reset & Email Verification Serializers
+# ============================================
+
+class PasswordResetRequestSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+
+    def validate_email(self, value):
+        return value.strip().lower()
+
+
+class PasswordResetVerifySerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    otp = serializers.CharField(max_length=6, min_length=6)
+
+    def validate_email(self, value):
+        return value.strip().lower()
+
+    def validate_otp(self, value):
+        return value.strip()
+
+
+class PasswordResetConfirmSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    otp = serializers.CharField(max_length=6, min_length=6)
+    password = serializers.CharField(min_length=8, write_only=True)
+    password_confirm = serializers.CharField(min_length=8, write_only=True, required=False)
+
+    def validate_email(self, value):
+        return value.strip().lower()
+
+    def validate_otp(self, value):
+        return value.strip()
+
+    def validate(self, attrs):
+        pw = attrs.get('password')
+        # Check both snake_case and camelCase
+        pwc = attrs.get('password_confirm') or self.initial_data.get('passwordConfirm')
+        if pwc and pw != pwc:
+            raise serializers.ValidationError({'password_confirm': 'পাসওয়ার্ড দুটি মিলছে না।'})
+        return attrs
+
+
+class EmailVerifyRequestSerializer(serializers.Serializer):
+    email = serializers.EmailField(required=False)
+
+    def validate_email(self, value):
+        if value:
+            return value.strip().lower()
+        return value
+
+
+class EmailVerifyConfirmSerializer(serializers.Serializer):
+    email = serializers.EmailField(required=False)
+    otp = serializers.CharField(max_length=6, min_length=6)
+
+    def validate_email(self, value):
+        if value:
+            return value.strip().lower()
+        return value
+
+    def validate_otp(self, value):
+        return value.strip()
+
+
+class ChangePasswordSerializer(serializers.Serializer):
+    old_password = serializers.CharField(write_only=True)
+    new_password = serializers.CharField(min_length=8, write_only=True)
+    new_password_confirm = serializers.CharField(min_length=8, write_only=True, required=False)
+
+    def validate(self, attrs):
+        pw = attrs.get('new_password')
+        pwc = attrs.get('new_password_confirm') or self.initial_data.get('newPasswordConfirm')
+        if pwc and pw != pwc:
+            raise serializers.ValidationError({'new_password_confirm': 'নতুন পাসওয়ার্ড দুটি মিলছে না।'})
+        return attrs
+

@@ -22,7 +22,7 @@ export async function getQuranCache(key) {
     const entry = JSON.parse(raw);
     if (entry && typeof entry === 'object' && entry.__t) {
       if (Date.now() - entry.__t > CACHE_TTL_MS) {
-        AsyncStorage.removeItem(key).catch(() => {});
+        AsyncStorage.removeItem(key).catch(() => { });
         return null;
       }
       return entry.data;
@@ -76,7 +76,7 @@ export async function saveQuranCache(key, data) {
   try {
     const payload = JSON.stringify({ data, __t: Date.now() });
     await AsyncStorage.setItem(key, payload);
-    pruneOldQuranCache().catch(() => {});
+    pruneOldQuranCache().catch(() => { });
   } catch (_e) {
     // ignore
   }
@@ -2083,11 +2083,40 @@ class QuranService {
   }
 
   /**
-   * Get all Ayahs and Translations for any Quran Page (Pages 1 to 604)
+   * Get all Ayahs and Translations for any Quran Page (15-Line Hafezi Quran, Pages 1 to 614)
+   * PDF page 2 corresponds to Mushaf 6 page 1 (Surah Al-Fatihah), up to PDF page 611 (Mushaf 6 page 610: Surah An-Nas).
    */
   async getPageAyahs(pageNum) {
-    const p = Math.max(1, Math.min(604, Number(pageNum) || 1));
-    const cacheKey = `${CACHE_PREFIX}page_ayahs_v5_${p}`;
+    const rawP = Number(pageNum) || 2;
+    // Cover page
+    if (rawP <= 1) {
+      return {
+        page: 1,
+        surahId: 1,
+        ayahs: [],
+        isCover: true,
+      };
+    }
+    // Khatam Dua pages
+    if (rawP >= 612) {
+      return {
+        page: rawP,
+        surahId: 114,
+        isDuaKhatmulQuran: true,
+        ayahs: [
+          {
+            number: 1,
+            globalNumber: 6236,
+            arabic: 'دُعَاءُ خَتْمِ الْقُرْآنِ الْكَرِيمِ',
+            trans: 'খতমে কুরআনুল কারীমের মোবারক দু‘আ ও মুনাজাত।',
+            surahId: 114,
+          },
+        ],
+      };
+    }
+
+    const mushafPage = Math.max(1, Math.min(610, rawP - 1));
+    const cacheKey = `${CACHE_PREFIX}page_ayahs_v7_mushaf6_${rawP}`;
 
     try {
       const cached = await getQuranCache(cacheKey);
@@ -2100,9 +2129,9 @@ class QuranService {
 
     const headers = { Accept: 'application/json', 'User-Agent': 'Mozilla/5.0' };
 
-    // 1. Primary: QuranCDN verses by page with authentic Bengali translation (163: Sheikh Mujibur Rahman)
+    // 1. Primary: QuranCDN verses by 15-line Hafezi mushaf (mushaf=6) with authentic Bengali translation (163: Sheikh Mujibur Rahman)
     try {
-      const res = await fetch(`https://api.qurancdn.com/api/qdc/verses/by_page/${p}?translations=163&words=true`, { headers });
+      const res = await fetch(`https://api.qurancdn.com/api/qdc/verses/by_page/${mushafPage}?mushaf=6&translations=163&words=true`, { headers });
       if (res.ok) {
         const data = await res.json();
         const verses = data?.verses || [];
@@ -2124,7 +2153,8 @@ class QuranService {
           });
 
           const result = {
-            page: p,
+            page: rawP,
+            mushafPage,
             surahId: combinedAyahs[0]?.surahId || 1,
             ayahs: combinedAyahs,
           };
@@ -2137,11 +2167,11 @@ class QuranService {
       // fallback
     }
 
-    // 2. Secondary fallback: AlQuran Cloud
+    // 2. Secondary fallback: AlQuran Cloud (mushafPage)
     try {
       const [arRes, bnRes] = await Promise.all([
-        fetch(`https://api.alquran.cloud/v1/page/${p}/quran-uthmani`, { headers }),
-        fetch(`https://api.alquran.cloud/v1/page/${p}/bn.bengali`, { headers }),
+        fetch(`https://api.alquran.cloud/v1/page/${mushafPage}/quran-uthmani`, { headers }),
+        fetch(`https://api.alquran.cloud/v1/page/${mushafPage}/bn.bengali`, { headers }),
       ]);
 
       if (arRes.ok) {
@@ -2164,7 +2194,8 @@ class QuranService {
         });
 
         const result = {
-          page: p,
+          page: rawP,
+          mushafPage,
           surahId: arAyahs[0]?.surah?.number || 1,
           surahNameArabic: arAyahs[0]?.surah?.name || '',
           ayahs: combinedAyahs,
@@ -2175,8 +2206,8 @@ class QuranService {
           return result;
         }
       }
-    } catch (_err) {
-      // Fallback
+    } catch (_e) {
+      // fallback
     }
 
     return null;

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   StyleSheet,
   Text,
@@ -39,13 +39,25 @@ export default function ForgotPasswordScreen() {
   // Messages & Errors
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
-  const [devOtpHint, setDevOtpHint] = useState('');
+  const [resendCooldown, setResendCooldown] = useState(0);
+
+  useEffect(() => {
+    let timer;
+    if (resendCooldown > 0) {
+      timer = setInterval(() => {
+        setResendCooldown((prev) => (prev > 0 ? prev - 1 : 0));
+      }, 1000);
+    }
+    return () => {
+      if (timer) clearInterval(timer);
+    };
+  }, [resendCooldown]);
 
   // Step 1: Request OTP via Gmail
   const handleRequestOtp = async () => {
+    if (resendCooldown > 0) return;
     setErrorMessage('');
     setSuccessMessage('');
-    setDevOtpHint('');
 
     if (!email.trim()) {
       setErrorMessage('অনুগ্রহ করে আপনার ইমেইল এড্রেস প্রবেশ করান।');
@@ -60,7 +72,7 @@ export default function ForgotPasswordScreen() {
     const res = await requestPasswordReset(email.trim().toLowerCase());
     if (res.success) {
       setSuccessMessage(res.message || 'আপনার ইমেইলে ৬ ডিজিটের OTP পাঠানো হয়েছে।');
-      if (res.dev_otp) setDevOtpHint(`(ডেসটিনেশন টেস্ট OTP: ${res.dev_otp})`);
+      setResendCooldown(60);
       setStep(2);
     } else {
       setErrorMessage(parseBackendError(res.message));
@@ -189,7 +201,6 @@ export default function ForgotPasswordScreen() {
             <Ionicons name="checkmark-circle" size={20} color={colors.success} />
             <View style={{ flex: 1 }}>
               <Text style={[styles.successContainerText, { color: colors.success }]}>{successMessage}</Text>
-              {devOtpHint ? <Text style={styles.devOtpText}>{devOtpHint}</Text> : null}
             </View>
           </View>
         ) : null}
@@ -258,9 +269,22 @@ export default function ForgotPasswordScreen() {
                 )}
               </TouchableOpacity>
 
-              <TouchableOpacity style={styles.resendRow} onPress={handleRequestOtp}>
+              <TouchableOpacity
+                style={styles.resendRow}
+                onPress={resendCooldown === 0 ? handleRequestOtp : null}
+                disabled={resendCooldown > 0 || isLoading}
+              >
                 <Text style={{ color: colors.textSecondary, fontSize: 13 }}>
-                  কোড পাননি? <Text style={{ color: colors.primary, fontWeight: '700' }}>পুনরায় OTP পাঠান</Text>
+                  কোড পাননি?{' '}
+                  {resendCooldown > 0 ? (
+                    <Text style={{ color: colors.textMuted }}>
+                      অপেক্ষা করুন ({resendCooldown} সে.)
+                    </Text>
+                  ) : (
+                    <Text style={{ color: colors.primary, fontWeight: '700' }}>
+                      পুনরায় OTP পাঠান
+                    </Text>
+                  )}
                 </Text>
               </TouchableOpacity>
             </View>

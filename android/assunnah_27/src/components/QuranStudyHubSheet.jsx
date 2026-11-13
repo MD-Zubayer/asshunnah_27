@@ -217,7 +217,7 @@ export default function QuranStudyHubSheet({
 
   // Dynamic Ayahs for the current page
   const [pageData, setPageData] = useState(null);
-  const [loadingPage, setLoadingPage] = useState(false);
+  const [_loadingPage, setLoadingPage] = useState(false);
 
   // Selected Ayah (number & details)
   const [selectedAyahNumber, setSelectedAyahNumber] = useState(initialAyahNumber || 1);
@@ -2173,15 +2173,15 @@ const styles = StyleSheet.create({
     padding: 4,
   },
   ayahArabicText: {
-    fontSize: 19,
-    fontFamily: 'serif',
-    lineHeight: 34,
+    fontSize: 21,
+    fontFamily: 'Amiri-Regular',
+    lineHeight: 38,
     textAlign: 'right',
     writingDirection: 'rtl',
   },
   mainTabBar: {
     flexDirection: 'row',
-    borderBottomWidth: 1,
+    borderBottomWidth: 1.5,
     marginHorizontal: 12,
     marginTop: 4,
   },
@@ -2191,14 +2191,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    gap: 4,
+    gap: 3,
     paddingVertical: 10,
-    paddingHorizontal: 4,
-    borderBottomWidth: 2,
+    paddingHorizontal: 2,
+    borderBottomWidth: 2.5,
   },
   mainTabItemActive: {},
   mainTabText: {
-    fontSize: 13,
+    fontSize: 12.5,
     textAlign: 'center',
     flexShrink: 1,
   },

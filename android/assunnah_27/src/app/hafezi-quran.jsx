@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   StyleSheet,
   Text,
@@ -7,7 +7,6 @@ import {
   TextInput,
   Modal,
   FlatList,
-  ActivityIndicator,
   Alert,
   StatusBar,
   Dimensions,
@@ -2332,9 +2331,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 12,
+    paddingHorizontal: 8,
     paddingTop: 6,
-    gap: 4,
+    gap: 3,
   },
   paraScrollViewWrapper: {
     paddingVertical: 4,
@@ -2425,12 +2424,12 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   navBtnSmall: {
-    paddingHorizontal: 8,
-    paddingVertical: 8,
-    borderRadius: 10,
+    paddingHorizontal: 6,
+    paddingVertical: 7,
+    borderRadius: 8,
     justifyContent: 'center',
     alignItems: 'center',
-    minWidth: 36,
+    minWidth: 32,
   },
   navBtnSmallText: {
     fontSize: 12,
@@ -2439,26 +2438,31 @@ const styles = StyleSheet.create({
   navBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 10,
-    gap: 4,
+    justifyContent: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 7,
+    borderRadius: 8,
+    gap: 3,
+    flexShrink: 1,
   },
   navBtnDisabled: {
     opacity: 0.4,
   },
   navBtnText: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '600',
   },
   pageIndicatorBox: {
     alignItems: 'center',
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: 10,
+    justifyContent: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    borderRadius: 8,
+    flex: 1,
+    marginHorizontal: 2,
   },
   pageIndicatorNumber: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '700',
   },
   pageIndicatorHint: {

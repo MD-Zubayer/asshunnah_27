@@ -86,7 +86,7 @@ export const AuthProvider = ({ children }) => {
   // Custom In-App Notification states
   const [activeNotification, setActiveNotification] = useState(null);
   const [isInCallScreen, setIsInCallScreen] = useState(false);
-  const slideAnim = useRef(new Animated.Value(-180)).current;
+  const [slideAnim] = useState(() => new Animated.Value(-180));
   const presenceSocketRef = useRef(null);
 
   const showInAppNotification = (notificationData) => {
@@ -312,6 +312,36 @@ export const AuthProvider = ({ children }) => {
     };
   }, [token, user]);
 
+  // Fetch fresh profile from server
+  const fetchProfile = async (overrideToken) => {
+    const tokenToUse = overrideToken || token;
+    if (!tokenToUse) return null;
+    try {
+      const response = await fetch(API_ENDPOINTS.PROFILE, {
+        headers: {
+          'Authorization': `Token ${tokenToUse}`,
+        },
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setUser(data);
+        return data;
+      }
+    } catch (error) {
+      console.error('[AuthContext] Profile fetch error:', error);
+    }
+    return null;
+  };
+
+  // Perform silent background sync
+  const fetchProfileBackground = async (overrideToken) => {
+    try {
+      await fetchProfile(overrideToken);
+    } catch (error) {
+      console.log('[AuthContext] Background profile sync error:', error);
+    }
+  };
+
   // Load cached auth state on app start
   useEffect(() => {
     const loadCachedAuth = async () => {
@@ -362,36 +392,6 @@ export const AuthProvider = ({ children }) => {
       clearAuthCache();
     }
   }, [token]);
-
-  // Fetch fresh profile from server
-  const fetchProfile = async (overrideToken) => {
-    const tokenToUse = overrideToken || token;
-    if (!tokenToUse) return null;
-    try {
-      const response = await fetch(API_ENDPOINTS.PROFILE, {
-        headers: {
-          'Authorization': `Token ${tokenToUse}`,
-        },
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setUser(data);
-        return data;
-      }
-    } catch (error) {
-      console.error('[AuthContext] Profile fetch error:', error);
-    }
-    return null;
-  };
-
-  // Perform silent background sync
-  const fetchProfileBackground = async (overrideToken) => {
-    try {
-      await fetchProfile(overrideToken);
-    } catch (error) {
-      console.log('[AuthContext] Background profile sync error:', error);
-    }
-  };
 
   const signup = async (profileType, data) => {
     setIsLoading(true);
@@ -537,7 +537,7 @@ export const AuthProvider = ({ children }) => {
       }
 
       if (response.ok) {
-        return { success: true, message: result.message || result, dev_otp: result.dev_otp };
+        return { success: true, message: result.message || result };
       }
       return { success: false, message: result };
     } catch (error) {
@@ -740,6 +740,117 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const sendEmailVerification = async (targetEmail) => {
+    setIsLoading(true);
+    try {
+      const emailToUse = targetEmail || user?.email;
+      const headers = { 'Content-Type': 'application/json' };
+      if (token) {
+        headers['Authorization'] = `Token ${token}`;
+      }
+      const response = await fetch(API_ENDPOINTS.EMAIL_VERIFY_SEND, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ email: emailToUse }),
+      });
+      const text = await response.text();
+      let result;
+      try {
+        result = JSON.parse(text);
+      } catch (e) {
+        result = text || `HTTP ${response.status}`;
+      }
+      if (response.ok) {
+        return {
+          success: true,
+          already_verified: !!result.already_verified,
+          message: result.message || 'আপনার ইমেইলে ভেরিফিকেশন কোড পাঠানো হয়েছে।',
+        };
+      }
+      return { success: false, message: result };
+    } catch (error) {
+      console.error('Send email verification error:', error);
+      return { success: false, message: error.message || 'নেটওয়ার্ক সংযোগ ত্রুটি' };
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const confirmEmailVerification = async (otp, targetEmail) => {
+    setIsLoading(true);
+    try {
+      const emailToUse = targetEmail || user?.email;
+      const headers = { 'Content-Type': 'application/json' };
+      if (token) {
+        headers['Authorization'] = `Token ${token}`;
+      }
+      const response = await fetch(API_ENDPOINTS.EMAIL_VERIFY_CONFIRM, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ email: emailToUse, otp }),
+      });
+      const text = await response.text();
+      let result;
+      try {
+        result = JSON.parse(text);
+      } catch (e) {
+        result = text || `HTTP ${response.status}`;
+      }
+      if (response.ok) {
+        if (result.user) {
+          setUser(result.user);
+          await setCache(CacheKeys.USER_PROFILE, result.user);
+        } else if (user) {
+          const updated = { ...user, is_email_verified: true };
+          setUser(updated);
+          await setCache(CacheKeys.USER_PROFILE, updated);
+        }
+        return { success: true, message: result.message || 'ইমেইল সফলভাবে ভেরিফাই করা হয়েছে!' };
+      }
+      return { success: false, message: result };
+    } catch (error) {
+      console.error('Confirm email verification error:', error);
+      return { success: false, message: error.message || 'নেটওয়ার্ক সংযোগ ত্রুটি' };
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const changePassword = async (oldPassword, newPassword, newPasswordConfirm) => {
+    if (!token) return { success: false, message: 'প্রথমে লগইন করুন।' };
+    setIsLoading(true);
+    try {
+      const response = await fetch(API_ENDPOINTS.CHANGE_PASSWORD, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Token ${token}`,
+        },
+        body: JSON.stringify({
+          old_password: oldPassword,
+          new_password: newPassword,
+          new_password_confirm: newPasswordConfirm,
+        }),
+      });
+      const text = await response.text();
+      let result;
+      try {
+        result = JSON.parse(text);
+      } catch (e) {
+        result = text || `HTTP ${response.status}`;
+      }
+      if (response.ok) {
+        return { success: true, message: result.message || 'পাসওয়ার্ড সফলভাবে পরিবর্তন করা হয়েছে।' };
+      }
+      return { success: false, message: result };
+    } catch (error) {
+      console.error('Change password error:', error);
+      return { success: false, message: error.message || 'নেটওয়ার্ক সংযোগ ত্রুটি' };
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const value = {
     user,
     token,
@@ -754,6 +865,9 @@ export const AuthProvider = ({ children }) => {
     requestPasswordReset,
     verifyPasswordReset,
     confirmPasswordReset,
+    sendEmailVerification,
+    confirmEmailVerification,
+    changePassword,
     uploadProfilePhoto,
     uploadCoverPhoto,
     updateUser,

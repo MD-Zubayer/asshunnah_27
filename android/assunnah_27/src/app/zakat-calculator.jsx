@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   StyleSheet,
   Text,
@@ -18,8 +18,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Clipboard from 'expo-clipboard';
 import { Colors } from '../constants/theme';
 import { useAuth } from '../context/AuthContext';
-import diaryService from '../services/diary-service';
-import cacheService, { CacheKeys } from '../services/cacheService';
+import { addDiary } from '../services/diary-service';
+import { CacheKeys, getCache, setCache } from '../services/cacheService';
 import { toBanglaDigits, getHijriDate, toISODateString } from '../utils/diaryDate';
 
 /**
@@ -92,7 +92,6 @@ export default function ZakatCalculatorScreen() {
   // UI state
   const [savingToDiary, setSavingToDiary] = useState(false);
   const [showFiqhModal, setShowFiqhModal] = useState(false);
-  const [_copiedToast, setCopiedToast] = useState(false);
 
   // Calculations
   const goldRate = parseAmount(goldRatePerBhori);
@@ -204,8 +203,7 @@ export default function ZakatCalculatorScreen() {
     if (Platform.OS === 'android') {
       ToastAndroid.show(msg, ToastAndroid.SHORT);
     } else {
-      setCopiedToast(true);
-      setTimeout(() => setCopiedToast(false), 2000);
+      Alert.alert('', msg);
     }
   };
 
@@ -242,7 +240,7 @@ export default function ZakatCalculatorScreen() {
     ]);
   };
 
-  const buildSummaryText = () => {
+  const buildSummaryText = useCallback(() => {
     const today = new Date();
     const hijri = getHijriDate(today);
     const engDate = toBanglaDigits(
@@ -277,7 +275,27 @@ export default function ZakatCalculatorScreen() {
       `পরিশোধযোগ্য নিট যাকাত: ${formatTaka(netPayableZakat)}\n\n` +
       `রেফারেন্স: আল-হিদায়া, রদ্দুল মুহতার আলাদ দুররিল মুখতার (ফাতাওয়া শামী), বাদায়েউস সানায়ে'।\n` +
       `— জামিয়া ইসলামিয়া ইমদাদিয়া অ্যাপ যাকাত ক্যালকুলেটর`;
-  };
+  }, [
+    silverRate,
+    silverNisabValue,
+    goldRate,
+    goldNisabValue,
+    nisabExplanation,
+    goldBhori,
+    totalGoldValue,
+    silverBhori,
+    totalSilverValue,
+    totalCash,
+    totalBusiness,
+    totalAssets,
+    totalLiabilities,
+    netWealth,
+    isNisabReached,
+    baseZakat,
+    advanceZakat,
+    previousDueZakat,
+    netPayableZakat,
+  ]);
 
   const handleCopy = async () => {
     const text = buildSummaryText();
@@ -285,7 +303,7 @@ export default function ZakatCalculatorScreen() {
     showToast('যাকাত হিসাব ক্লিপবোর্ডে কপি হয়েছে');
   };
 
-  const handleSaveToDiary = async () => {
+  const handleSaveToDiary = useCallback(async () => {
     if (totalAssets === 0 && totalLiabilities === 0) {
       Alert.alert('খালি হিসাব', 'সংরক্ষণ করার জন্য সম্পদের পরিমাণ লিখুন।');
       return;
@@ -314,10 +332,10 @@ export default function ZakatCalculatorScreen() {
     setSavingToDiary(true);
     try {
       if (token) {
-        await diaryService.addDiary(token, payload);
+        await addDiary(token, payload);
       } else {
         // Offline / Unauthenticated local caching
-        const cached = await cacheService.getCache(CacheKeys.DIARIES);
+        const cached = await getCache(CacheKeys.DIARIES);
         const entries = cached.exists && Array.isArray(cached.data) ? cached.data : [];
         const localEntry = {
           ...payload,
@@ -325,7 +343,7 @@ export default function ZakatCalculatorScreen() {
           created_at: new Date().toISOString(),
         };
         entries.unshift(localEntry);
-        await cacheService.setCache(CacheKeys.DIARIES, entries, 1440);
+        await setCache(CacheKeys.DIARIES, entries, 1440);
       }
 
       Alert.alert(
@@ -344,7 +362,7 @@ export default function ZakatCalculatorScreen() {
     } finally {
       setSavingToDiary(false);
     }
-  };
+  }, [totalAssets, totalLiabilities, buildSummaryText, isDark, token, router]);
 
   const renderInputField = (label, value, onChange, placeholder, hint) => (
     <View style={styles.inputRow}>

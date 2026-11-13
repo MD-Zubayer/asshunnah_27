@@ -102,6 +102,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     
     is_staff = models.BooleanField(_('staff status'), default=False)
     is_active = models.BooleanField(_('active'), default=True)
+    is_email_verified = models.BooleanField(_('email verified'), default=False)
     date_joined = models.DateTimeField(_('date joined'), default=timezone.now)
     profile_completed = models.BooleanField(_('profile completed'), default=False)
 
@@ -530,3 +531,52 @@ class JamiaGraduate(models.Model):
 
     def __str__(self):
         return f"{self.name} ({self.graduation_year})"
+
+
+# ============================================
+# OTP Models (Password Reset & Email Verification)
+# ============================================
+
+class PasswordResetOTP(models.Model):
+    """Stores 6-digit OTP codes for password reset requests."""
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='password_reset_otps')
+    email = models.EmailField(_('email address'))
+    otp_code = models.CharField(_('OTP code'), max_length=6)
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+    is_used = models.BooleanField(default=False)
+    attempts = models.PositiveSmallIntegerField(default=0)
+
+    class Meta:
+        verbose_name = _('password reset OTP')
+        verbose_name_plural = _('password reset OTPs')
+        ordering = ['-created_at']
+
+    def is_valid(self):
+        return (not self.is_used) and (self.attempts < 5) and (timezone.now() < self.expires_at)
+
+    def __str__(self):
+        return f"PasswordResetOTP for {self.email} ({self.otp_code})"
+
+
+class EmailVerificationOTP(models.Model):
+    """Stores 6-digit OTP codes for email verification."""
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='email_verification_otps')
+    email = models.EmailField(_('email address'))
+    otp_code = models.CharField(_('OTP code'), max_length=6)
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+    is_used = models.BooleanField(default=False)
+    attempts = models.PositiveSmallIntegerField(default=0)
+
+    class Meta:
+        verbose_name = _('email verification OTP')
+        verbose_name_plural = _('email verification OTPs')
+        ordering = ['-created_at']
+
+    def is_valid(self):
+        return (not self.is_used) and (self.attempts < 5) and (timezone.now() < self.expires_at)
+
+    def __str__(self):
+        return f"EmailVerificationOTP for {self.email} ({self.otp_code})"
+

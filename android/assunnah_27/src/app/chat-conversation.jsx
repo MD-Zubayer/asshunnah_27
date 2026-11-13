@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import {
   StyleSheet, Text, View, FlatList, TextInput, TouchableOpacity,
   KeyboardAvoidingView, Platform, ActivityIndicator, useColorScheme,
-  Alert, Clipboard, Modal
+  Alert, Clipboard, Modal, ScrollView
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
@@ -369,24 +369,6 @@ export default function ChatConversationScreen() {
     setIsDeleteModalVisible(true);
   };
 
-  useFocusEffect(
-    React.useCallback(() => {
-      loadMessages();
-      markAsRead();
-    }, [roomId])
-  );
-
-  useEffect(() => {
-    connectWebSocket();
-
-    return () => {
-      if (socketRef.current) {
-        socketRef.current.close();
-      }
-      if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
-    };
-  }, [roomId]);
-
   const loadMessages = async () => {
     try {
       // 1. Try loading from cache first
@@ -420,8 +402,8 @@ export default function ChatConversationScreen() {
           setTimeout(() => flatListRef.current?.scrollToEnd({ animated: false }), 100);
         }
       }
-    } catch (e) {
-      console.error('Error loading messages:', e);
+    } catch (_e) {
+      console.error('Error loading messages:', _e);
     } finally {
       setLoading(false);
     }
@@ -447,8 +429,8 @@ export default function ChatConversationScreen() {
           setHasMore(false);
         }
       }
-    } catch (e) {
-      console.error('Error loading more messages:', e);
+    } catch (_e) {
+      console.error('Error loading more messages:', _e);
     } finally {
       setLoadingMore(false);
     }
@@ -469,8 +451,8 @@ export default function ChatConversationScreen() {
           'Authorization': `Token ${token}`,
         }
       });
-    } catch (e) {
-      console.error('Error marking messages as read:', e);
+    } catch (_e) {
+      console.error('Error marking messages as read:', _e);
     }
   };
 
@@ -536,8 +518,8 @@ export default function ChatConversationScreen() {
       }
     };
 
-    ws.onerror = (e) => {
-      console.warn('WebSocket error:', e);
+    ws.onerror = (_e) => {
+      console.warn('WebSocket error:', _e);
     };
 
     ws.onclose = () => {
@@ -547,6 +529,24 @@ export default function ChatConversationScreen() {
 
     socketRef.current = ws;
   };
+
+  useFocusEffect(
+    React.useCallback(() => {
+      loadMessages();
+      markAsRead();
+    }, [roomId])
+  );
+
+  useEffect(() => {
+    connectWebSocket();
+
+    return () => {
+      if (socketRef.current) {
+        socketRef.current.close();
+      }
+      if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
+    };
+  }, [roomId]);
 
   // Audio Recording Handlers
   const startRecording = async () => {
@@ -806,7 +806,7 @@ export default function ChatConversationScreen() {
               if (item.image_file.startsWith('[')) {
                 try {
                   imageList = JSON.parse(item.image_file);
-                } catch (e) {
+                } catch (_e) {
                   imageList = [item.image_file];
                 }
               } else {

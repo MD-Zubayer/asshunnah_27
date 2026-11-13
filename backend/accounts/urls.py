@@ -35,6 +35,12 @@ from .views import (
     AdminSendPushNotificationView,
     AdminAdhanUploadView,
     AdminAlertToggleGlobalView,
+    PasswordResetRequestView,
+    PasswordResetVerifyView,
+    PasswordResetConfirmView,
+    EmailVerificationSendView,
+    EmailVerificationConfirmView,
+    ChangePasswordView,
 )
 
 urlpatterns = [
@@ -48,6 +54,22 @@ urlpatterns = [
     path('auth/switch-profile-type/', SwitchProfileTypeView.as_view(), name='switch_profile_type'),
     path('auth/profile/upload-photo/', UploadProfilePhotoView.as_view(), name='upload_profile_photo'),
     path('auth/profile/upload-cover/', UploadCoverPhotoView.as_view(), name='upload_cover_photo'),
+    path('auth/change-password/', ChangePasswordView.as_view(), name='change_password'),
+
+    # Password Reset endpoints (with & without auth/ prefix for maximum frontend compatibility)
+    path('auth/password-reset/request/', PasswordResetRequestView.as_view(), name='auth_password_reset_request'),
+    path('auth/password-reset/verify/', PasswordResetVerifyView.as_view(), name='auth_password_reset_verify'),
+    path('auth/password-reset/confirm/', PasswordResetConfirmView.as_view(), name='auth_password_reset_confirm'),
+    path('password-reset/request/', PasswordResetRequestView.as_view(), name='password_reset_request'),
+    path('password-reset/verify/', PasswordResetVerifyView.as_view(), name='password_reset_verify'),
+    path('password-reset/confirm/', PasswordResetConfirmView.as_view(), name='password_reset_confirm'),
+
+    # Email Verification endpoints
+    path('auth/email-verify/send/', EmailVerificationSendView.as_view(), name='auth_email_verify_send'),
+    path('auth/email-verify/confirm/', EmailVerificationConfirmView.as_view(), name='auth_email_verify_confirm'),
+    path('auth/verify-email/send/', EmailVerificationSendView.as_view(), name='auth_verify_email_send'),
+    path('auth/verify-email/confirm/', EmailVerificationConfirmView.as_view(), name='auth_verify_email_confirm'),
+
     path('duas/', DuaListCreateView.as_view(), name='duas'),
     
     # Follow endpoints

@@ -59,7 +59,7 @@ export default function CreateDiaryScreen() {
       return { reflection: match[1].trim(), content: match[2].trim() };
     }
     return { reflection: params?.reflection ? String(params.reflection) : '', content: raw };
-  }, [params?.content, params?.reflection]);
+  }, [params]);
 
   const [title, setTitle] = useState(params?.title ? String(params.title) : '');
   const [content, setContent] = useState(parsedInitial.content);

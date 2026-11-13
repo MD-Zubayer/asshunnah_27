@@ -25,6 +25,13 @@ export const API_ENDPOINTS = {
   PASSWORD_RESET_VERIFY: `${API_BASE_URL}/api/auth/password-reset/verify/`,
   PASSWORD_RESET_CONFIRM: `${API_BASE_URL}/api/auth/password-reset/confirm/`,
 
+  // Email Verification Endpoints
+  EMAIL_VERIFY_SEND: `${API_BASE_URL}/api/auth/email-verify/send/`,
+  EMAIL_VERIFY_CONFIRM: `${API_BASE_URL}/api/auth/email-verify/confirm/`,
+
+  // Change Password Endpoint
+  CHANGE_PASSWORD: `${API_BASE_URL}/api/auth/change-password/`,
+
   // ============================================
   // Prayer Alert Endpoints
   // ============================================

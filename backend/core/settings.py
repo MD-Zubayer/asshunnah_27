@@ -161,3 +161,18 @@ FIREWORKS_API_KEYS = [k.strip() for k in os.getenv('FIREWORKS_API_KEYS', '').spl
 # Gemini API Configuration
 GEMINI_API_KEYS = [k.strip() for k in os.getenv('GEMINI_API_KEYS', '').split(',') if k.strip()]
 
+# Email Configuration
+EMAIL_HOST = os.getenv('EMAIL_HOST', 'smtp.gmail.com' if os.getenv('EMAIL_HOST_USER') else '')
+EMAIL_PORT = int(os.getenv('EMAIL_PORT', 587))
+EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', 'True').lower() in ('true', '1', 't')
+EMAIL_USE_SSL = os.getenv('EMAIL_USE_SSL', 'False').lower() in ('true', '1', 't')
+EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', '').strip()
+EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', '').strip().strip('"').strip("'")
+DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'As-Sunnah Jamia <newsmartagentbd@gmail.com>')
+
+if EMAIL_HOST and EMAIL_HOST_USER:
+    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+else:
+    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+
+

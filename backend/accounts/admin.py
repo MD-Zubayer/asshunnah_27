@@ -7,7 +7,7 @@ from django.utils.translation import gettext_lazy as _
 from .models import (
     User, TakmilStudentProfile, NonTakmilStudentProfile, Dua,
     GlobalPrayerAlertConfig, PrayerAlertSetting, PrayerAlertLog, DeviceToken,
-    AppSettings
+    AppSettings, PasswordResetOTP, EmailVerificationOTP
 )
 
 
@@ -49,8 +49,8 @@ class UserAdmin(BaseUserAdmin):
     form = UserChangeForm
     add_form = UserCreationForm
     model = User
-    list_display = ('email', 'first_name', 'last_name', 'profile_type', 'is_staff', 'is_active')
-    list_filter = ('is_staff', 'is_active', 'is_superuser', 'profile_type')
+    list_display = ('email', 'first_name', 'last_name', 'profile_type', 'is_email_verified', 'is_staff', 'is_active')
+    list_filter = ('is_email_verified', 'is_staff', 'is_active', 'is_superuser', 'profile_type')
     search_fields = ('email', 'first_name', 'last_name', 'phone_number')
     ordering = ('email',)
     fieldsets = (
@@ -147,6 +147,22 @@ class DeviceTokenAdmin(admin.ModelAdmin):
     raw_id_fields = ('user',)
 
 
+class PasswordResetOTPAdmin(admin.ModelAdmin):
+    list_display = ('email', 'user', 'otp_code', 'is_used', 'attempts', 'expires_at', 'created_at')
+    list_filter = ('is_used', 'created_at')
+    search_fields = ('email', 'user__email', 'otp_code')
+    readonly_fields = ('created_at',)
+    raw_id_fields = ('user',)
+
+
+class EmailVerificationOTPAdmin(admin.ModelAdmin):
+    list_display = ('email', 'user', 'otp_code', 'is_used', 'attempts', 'expires_at', 'created_at')
+    list_filter = ('is_used', 'created_at')
+    search_fields = ('email', 'user__email', 'otp_code')
+    readonly_fields = ('created_at',)
+    raw_id_fields = ('user',)
+
+
 admin.site.register(User, UserAdmin)
 admin.site.register(TakmilStudentProfile, TakmilStudentProfileAdmin)
 admin.site.register(NonTakmilStudentProfile, NonTakmilStudentProfileAdmin)
@@ -155,3 +171,6 @@ admin.site.register(GlobalPrayerAlertConfig, GlobalPrayerAlertConfigAdmin)
 admin.site.register(PrayerAlertSetting, PrayerAlertSettingAdmin)
 admin.site.register(PrayerAlertLog, PrayerAlertLogAdmin)
 admin.site.register(DeviceToken, DeviceTokenAdmin)
+admin.site.register(PasswordResetOTP, PasswordResetOTPAdmin)
+admin.site.register(EmailVerificationOTP, EmailVerificationOTPAdmin)
+
