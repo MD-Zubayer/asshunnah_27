@@ -2232,11 +2232,15 @@ class QuranService {
 
     const headers = { Accept: 'application/json', 'User-Agent': 'Mozilla/5.0' };
 
-    // 1. Primary: Try fetching from As-Sunnah Django Backend (auto-caches into PostgreSQL database)
+    // 1. Primary: Try fetching from As-Sunnah Django Backend (fast 2.5s timeout for offline resilience)
     try {
+      const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+      const timeoutId = controller ? setTimeout(() => controller.abort(), 2500) : null;
       const backendRes = await fetch(`${API_ENDPOINTS.QURAN_AYAH_STUDY}?surah=${s}&ayah=${a}`, {
         headers,
+        signal: controller ? controller.signal : undefined,
       });
+      if (timeoutId) clearTimeout(timeoutId);
       if (backendRes.ok) {
         const backendData = await backendRes.json();
         if (backendData?.translations?.length > 0 && backendData?.tafsirs?.length > 0) {

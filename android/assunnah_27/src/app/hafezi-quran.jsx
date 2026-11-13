@@ -20,6 +20,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { WebView } from 'react-native-webview';
+import { Asset } from 'expo-asset';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Colors } from '../constants/theme';
 import { API_ENDPOINTS } from '../constants/api';
@@ -82,7 +83,33 @@ export default function HafeziQuranScreen() {
   const [readingTheme, setReadingTheme] = useState('day'); // 'day' | 'night' | 'sepia'
   const [fullscreen, setFullscreen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [pdfSourceUrl, setPdfSourceUrl] = useState(API_ENDPOINTS.QURAN_PDF);
+  const [pdfSourceUrl, setPdfSourceUrl] = useState('');
+
+  // 100% Offline Local Quran Asset Loader (Zero Backend / Cloudflare Dependency)
+  useEffect(() => {
+    let isMounted = true;
+    const prepareLocalQuran = async () => {
+      try {
+        const localAsset = Asset.fromModule(require('../../assets/quran/Imdadia-Hafezi-Quran.pdf'));
+        if (!localAsset.localUri) {
+          await localAsset.downloadAsync();
+        }
+        const resolvedUri = localAsset.localUri || localAsset.uri;
+        if (isMounted && resolvedUri) {
+          setPdfSourceUrl(resolvedUri);
+        }
+      } catch (assetErr) {
+        console.warn('Could not resolve local Quran asset, fallback to remote:', assetErr);
+        if (isMounted) {
+          setPdfSourceUrl(API_ENDPOINTS.QURAN_PDF);
+        }
+      }
+    };
+    prepareLocalQuran();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   // Fast-Scroll Scrubber & Continuous Navigation States
   const [isScrubbing, setIsScrubbing] = useState(false);
@@ -473,6 +500,19 @@ export default function HafeziQuranScreen() {
 
   // HTML content for PDF.js inside WebView
   const htmlContent = useMemo(() => {
+    if (!pdfSourceUrl) {
+      return `
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+<body style="margin:0;padding:0;background-color:#F8F6F0;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;color:#065F46;">
+  <div style="width:40px;height:40px;border:3px solid #E5E7EB;border-top-color:#059669;border-radius:50%;animation:spin 0.8s linear infinite;"></div>
+  <style>@keyframes spin { to { transform: rotate(360deg); } }</style>
+  <div style="margin-top:14px;font-weight:600;font-size:14px;">হাফেজী কুরআন প্রস্তুত হচ্ছে...</div>
+</body>
+</html>
+      `;
+    }
     return `
 <!DOCTYPE html>
 <html lang="ar">
@@ -899,7 +939,6 @@ export default function HafeziQuranScreen() {
           ref={webViewRef}
           source={{
             html: htmlContent,
-            baseUrl: 'https://api-assunnah-27.newsmartagent.com'
           }}
           style={styles.webView}
           onMessage={handleWebViewMessage}
