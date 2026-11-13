@@ -4,6 +4,12 @@
 export const parseBackendError = (errorObj) => {
   if (!errorObj) return 'একটি অজানা সমস্যা ঘটেছে। আবার চেষ্টা করুন।';
 
+  // Intercept Cloudflare 1033 / Argo Tunnel / 530 error
+  const rawStr = typeof errorObj === 'string' ? errorObj : (errorObj?.message || errorObj?.detail || '');
+  if (typeof rawStr === 'string' && (rawStr.includes('1033') || rawStr.includes('Argo Tunnel') || rawStr.includes('Cloudflare') || rawStr.includes('530'))) {
+    return 'সার্ভার বর্তমানে সাময়িক অফলাইনে রয়েছে। অনুগ্রহ করে কিছুক্ষণ পর চেষ্টা করুন।';
+  }
+
   // If error is a string
   if (typeof errorObj === 'string') {
     // If backend returned an HTML error page (e.g. Django 500 debug page)
